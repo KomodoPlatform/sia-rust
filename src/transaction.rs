@@ -68,6 +68,14 @@ impl From<u64> for Currency {
     fn from(value: u64) -> Self { Currency { lo: value, hi: 0 } }
 }
 
+impl From<u128> for Currency {
+    fn from(value: u128) -> Self {
+        let lo = value as u64;
+        let hi = (value >> 64) as u64;
+        Currency { lo, hi }
+    }
+}
+
 // Currency remains the same data structure between V1 and V2 however the encoding changes
 #[derive(Clone, Debug)]
 pub enum CurrencyVersion<'a> {
