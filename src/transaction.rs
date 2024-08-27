@@ -67,6 +67,10 @@ impl From<u64> for Currency {
     fn from(value: u64) -> Self { Currency { lo: value, hi: 0 } }
 }
 
+impl From<i32> for Currency {
+    fn from(value: i32) -> Self { Currency { lo: value as u64, hi: 0 } }
+}
+
 impl From<u128> for Currency {
     fn from(value: u128) -> Self {
         let lo = value as u64;
