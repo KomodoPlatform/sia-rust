@@ -2,6 +2,7 @@ use crate::blake2b_internal::standard_unlock_hash;
 use crate::encoding::{Encodable, Encoder, PrefixedH256};
 use crate::transaction::{FileContractElementV1, SiacoinElement, SiafundElement, StateElement, V1Transaction,
                          V2FileContractResolution, V2Transaction};
+pub use crate::transaction::Currency;
 use blake2b_simd::Params;
 use chrono::{DateTime, Utc};
 use ed25519_dalek::PublicKey;
