@@ -6,7 +6,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rpc = { git = "https://github.com/KomodoPlatform/komodo-defi-framework", rev = "932669a" }
 ed25519-dalek = { version = "1.0.1", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order", "raw_value"] }
@@ -19,3 +18,4 @@ reqwest = { version = "0.11.9", default-features = false, features = ["json"]}
 base64 = "0.21.2"
 url = { version = "2.2.2", features = ["serde"] }
 derive_more = "0.99.11"
+rustc-hex = "2"

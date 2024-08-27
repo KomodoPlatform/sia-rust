@@ -2,14 +2,13 @@ use crate::blake2b_internal::{public_key_leaf, sigs_required_leaf, standard_unlo
 use crate::encoding::{Encodable, Encoder, PrefixedH256, PrefixedPublicKey};
 use crate::specifier::Specifier;
 use crate::transaction::{Preimage, SatisfiedPolicy};
-use crate::types::Address;
+use crate::types::{Address, H256};
 use crate::{PublicKey, Signature};
 use nom::bytes::complete::{take_until, take_while, take_while_m_n};
 use nom::character::complete::char;
 use nom::combinator::all_consuming;
 use nom::combinator::map_res;
 use nom::IResult;
-use rpc::v1::types::H256;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::str::FromStr;

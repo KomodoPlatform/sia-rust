@@ -1,9 +1,8 @@
 use crate::encoding::{Encodable, Encoder, HexArray64, PrefixedH256, PrefixedPublicKey, PrefixedSignature};
 use crate::spend_policy::{SpendPolicy, SpendPolicyHelper, UnlockCondition, UnlockKey};
-use crate::types::{Address, ChainIndex};
+use crate::types::{Address, ChainIndex, H256};
 use crate::Keypair;
 use ed25519_dalek::{PublicKey, Signature, Signer};
-use rpc::v1::types::H256;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use serde_with::{serde_as, FromInto};

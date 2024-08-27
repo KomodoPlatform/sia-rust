@@ -4,9 +4,8 @@ use crate::spend_policy::{spend_policy_atomic_swap_refund, spend_policy_atomic_s
 use crate::transaction::{Attestation, Currency, CurrencyVersion, FileContractRevisionV2, SatisfiedPolicy,
                          SiacoinElement, SiacoinInputV1, SiacoinInputV2, SiacoinOutput, SiacoinOutputVersion,
                          StateElement, V2FileContract, V2FileContractElement, V2Transaction};
-use crate::types::{v1_standard_address_from_pubkey, Address};
+use crate::types::{v1_standard_address_from_pubkey, Address, H256};
 use crate::{PublicKey, Signature};
-use rpc::v1::types::H256;
 use std::str::FromStr;
 
 #[test]

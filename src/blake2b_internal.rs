@@ -1,8 +1,8 @@
 use crate::specifier::Specifier;
 use crate::spend_policy::UnlockKey;
+use crate::types::H256;
 use blake2b_simd::Params;
 use ed25519_dalek::PublicKey;
-use rpc::v1::types::H256;
 use std::default::Default;
 
 #[cfg(test)] use hex;
