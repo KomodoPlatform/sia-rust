@@ -129,7 +129,7 @@ impl FromStr for Address {
 // to address as checksum
 fn blake2b_checksum(preimage: &[u8]) -> [u8; 6] {
     let hash = Params::new().hash_length(32).to_state().update(preimage).finalize();
-    hash.as_array()[0..6].try_into().expect("array is 64 bytes long")
+    hash.as_bytes()[0..6].try_into().expect("array is 64 bytes long")
 }
 
 pub fn v1_standard_address_from_pubkey(pubkey: &PublicKey) -> Address {

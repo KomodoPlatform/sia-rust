@@ -129,7 +129,7 @@ pub fn standard_unlock_hash(pubkey: &PublicKey) -> H256 {
 
 pub fn hash_blake2b_single(preimage: &[u8]) -> H256 {
     let hash = Params::new().hash_length(32).to_state().update(preimage).finalize();
-    let ret_array = hash.as_array();
+    let ret_array = hash.as_bytes();
     ret_array[0..32].into()
 }
 
@@ -141,7 +141,7 @@ fn hash_blake2b_pair(prefix: &[u8], leaf1: &[u8], leaf2: &[u8]) -> H256 {
         .update(leaf1)
         .update(leaf2)
         .finalize();
-    let ret_array = hash.as_array();
+    let ret_array = hash.as_bytes();
     ret_array[0..32].into()
 }
 
