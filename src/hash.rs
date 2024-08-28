@@ -320,8 +320,7 @@ impl_hash!(H256, GlobalH256, 32);
 
 #[cfg(test)]
 mod tests {
-    use super::H256;
-    use primitives::hash::H256 as GlobalH256;
+    use super::{GlobalH256, H256};
     use std::str::FromStr;
 
     #[test]
