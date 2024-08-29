@@ -897,7 +897,7 @@ pub struct V2TransactionBuilder {
 impl V2TransactionBuilder {
     /**
      * "weight" is the size of the transaction in bytes. This can be used to estimate miner fees.
-     * The recommended method for calculating a suitable fee is to multiply the response of `/txpool/fee` API endpoint 
+     * The recommended method for calculating a suitable fee is to multiply the response of `/txpool/fee` API endpoint
      * and the weight to get the fee in hastings.
      */
     pub fn weight(&self) -> u64 {
