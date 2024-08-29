@@ -16,6 +16,10 @@ pub struct Currency {
     hi: u64,
 }
 
+impl Currency {
+    const ZERO: Currency = Currency { lo: 0, hi: 0 };
+}
+
 // TODO does this also need to be able to deserialize from an integer?
 // walletd API returns this as a string
 impl<'de> Deserialize<'de> for Currency {
@@ -890,6 +894,19 @@ pub struct V2TransactionBuilder {
     miner_fee: Currency,
 }
 
+impl V2TransactionBuilder {
+    /**
+     * "weight" is the size of the transaction in bytes. This can be used to estimate miner fees.
+     * The recommended method for calculating a suitable fee is to multiply the response of `/txpool/fee` API endpoint 
+     * and the weight to get the fee in hastings.
+     */
+    pub fn weight(&self) -> u64 {
+        let mut encoder = Encoder::default();
+        self.encode(&mut encoder);
+        encoder.buffer.len() as u64
+    }
+}
+
 impl Encodable for V2TransactionBuilder {
     fn encode(&self, encoder: &mut Encoder) {
         encoder.write_u64(self.siacoin_inputs.len() as u64);
@@ -947,7 +964,7 @@ impl Encodable for V2TransactionBuilder {
 }
 
 impl V2TransactionBuilder {
-    pub fn new(miner_fee: Currency) -> Self {
+    pub fn new() -> Self {
         Self {
             siacoin_inputs: Vec::new(),
             siacoin_outputs: Vec::new(),
@@ -959,7 +976,7 @@ impl V2TransactionBuilder {
             attestations: Vec::new(),
             arbitrary_data: Vec::new(),
             new_foundation_address: None,
-            miner_fee,
+            miner_fee: Currency::ZERO,
         }
     }
 
@@ -1010,6 +1027,11 @@ impl V2TransactionBuilder {
 
     pub fn new_foundation_address(mut self, address: Address) -> Self {
         self.new_foundation_address = Some(address);
+        self
+    }
+
+    pub fn miner_fee(mut self, fee: Currency) -> Self {
+        self.miner_fee = fee;
         self
     }
 
