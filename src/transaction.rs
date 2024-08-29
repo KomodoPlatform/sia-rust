@@ -5,19 +5,23 @@ use crate::{Keypair, PublicKey, Signature};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use serde_with::{serde_as, FromInto};
+use std::ops::Deref;
 use std::str::FromStr;
 
 type SiacoinOutputID = H256;
 const V2_REPLAY_PREFIX: u8 = 2;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
-pub struct Currency {
-    lo: u64,
-    hi: u64,
+pub struct Currency(pub u128);
+
+impl Deref for Currency {
+    type Target = u128;
+
+    fn deref(&self) -> &Self::Target { &self.0 }
 }
 
 impl Currency {
-    const ZERO: Currency = Currency { lo: 0, hi: 0 };
+    const ZERO: Currency = Currency(0);
 }
 
 // TODO does this also need to be able to deserialize from an integer?
@@ -40,10 +44,7 @@ impl<'de> Deserialize<'de> for Currency {
             where
                 E: serde::de::Error,
             {
-                let u128_value = u128::from_str(value).map_err(E::custom)?;
-                let lo = u128_value as u64;
-                let hi = (u128_value >> 64) as u64;
-                Ok(Currency::new(lo, hi))
+                Ok(Currency(u128::from_str(value).map_err(E::custom)?))
             }
         }
 
@@ -56,35 +57,20 @@ impl Serialize for Currency {
     where
         S: Serializer,
     {
-        serializer.serialize_str(&self.to_u128().to_string())
+        serializer.serialize_str(&self.to_string())
     }
-}
-
-impl Currency {
-    pub fn new(lo: u64, hi: u64) -> Self { Currency { lo, hi } }
-
-    pub fn to_u128(&self) -> u128 { ((self.hi as u128) << 64) | (self.lo as u128) }
 }
 
 impl From<u64> for Currency {
-    fn from(value: u64) -> Self { Currency { lo: value, hi: 0 } }
+    fn from(value: u64) -> Self { Currency(value.into()) }
 }
 
 impl From<i32> for Currency {
-    fn from(value: i32) -> Self {
-        Currency {
-            lo: value as u64,
-            hi: 0,
-        }
-    }
+    fn from(value: i32) -> Self { Currency(value as u128) }
 }
 
 impl From<u128> for Currency {
-    fn from(value: u128) -> Self {
-        let lo = value as u64;
-        let hi = (value >> 64) as u64;
-        Currency { lo, hi }
-    }
+    fn from(value: u128) -> Self { Currency(value) }
 }
 
 // Currency remains the same data structure between V1 and V2 however the encoding changes
@@ -100,8 +86,9 @@ impl<'a> Encodable for CurrencyVersion<'a> {
             CurrencyVersion::V1(currency) => {
                 let mut buffer = [0u8; 16];
 
-                buffer[8..].copy_from_slice(&currency.lo.to_be_bytes());
-                buffer[..8].copy_from_slice(&currency.hi.to_be_bytes());
+                // buffer[8..].copy_from_slice(&currency.lo.to_be_bytes());
+                // buffer[..8].copy_from_slice(&currency.hi.to_be_bytes());
+                buffer.copy_from_slice(&currency.to_be_bytes());
 
                 // Trim leading zero bytes from the buffer
                 let trimmed_buf = match buffer.iter().position(|&x| x != 0) {
@@ -111,8 +98,7 @@ impl<'a> Encodable for CurrencyVersion<'a> {
                 encoder.write_len_prefixed_bytes(trimmed_buf);
             },
             CurrencyVersion::V2(currency) => {
-                encoder.write_u64(currency.lo);
-                encoder.write_u64(currency.hi);
+                encoder.write_u128(currency.0);
             },
         }
     }

@@ -46,7 +46,7 @@ fn test_siacoin_currency_encode_v2() {
 
 #[test]
 fn test_siacoin_currency_encode_v1_max() {
-    let currency = Currency::new(u64::MAX, u64::MAX);
+    let currency = Currency(u128::MAX);
 
     let hash = Encoder::encode_and_hash(&CurrencyVersion::V1(&currency));
     let expected = H256::from("4b9ed7269cb15f71ddf7238172a593a8e7ffe68b12c1bf73d67ac8eec44355bb");
@@ -55,7 +55,7 @@ fn test_siacoin_currency_encode_v1_max() {
 
 #[test]
 fn test_siacoin_currency_encode_v2_max() {
-    let currency = Currency::new(u64::MAX, u64::MAX);
+    let currency = Currency(u128::MAX);
 
     let hash = Encoder::encode_and_hash(&CurrencyVersion::V2(&currency));
     let expected = H256::from("681467b3337425fd38fa3983531ca1a6214de9264eebabdf9c9bc5d157d202b4");
