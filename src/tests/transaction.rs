@@ -672,7 +672,6 @@ fn test_v2_transaction_sig_hash() {
 #[test]
 fn test_v2_transaction_signing() {
     use crate::{Keypair, Signature};
-    use ed25519_dalek::Signer;
     let j = json!(
         {
             "siacoinInputs": [
@@ -727,10 +726,10 @@ fn test_v2_transaction_signing() {
         }
     );
     let tx = serde_json::from_value::<V2Transaction>(j).unwrap();
-    let keypair = Keypair::from_bytes(&hex::decode("0100000000000000000000000000000000000000000000000000000000000000cecc1507dc1ddd7295951c290888f095adb9044d1b73d696e6df065d683bd4fc").unwrap()).unwrap();
+    let keypair = Keypair::from_private_bytes(&hex::decode("0100000000000000000000000000000000000000000000000000000000000000").unwrap()).unwrap();
     let sig_hash = tx.input_sig_hash();
 
     // test that we can correctly regenerate the signature
-    let sig: Signature = keypair.try_sign(&sig_hash.0).unwrap();
+    let sig: Signature = keypair.sign(&sig_hash.0);
     assert_eq!(tx.siacoin_inputs[0].satisfied_policy.signatures[0], sig);
 }
