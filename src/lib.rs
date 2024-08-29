@@ -1,9 +1,10 @@
 use derive_more::Display;
-use std::ops::Deref;
-use std::fmt;
-use std::str::FromStr;
+use ed25519_dalek::{Keypair as Ed25519Keypair, PublicKey as Ed25519PublicKey, SecretKey,
+                    Signature as Ed25519Signature, SignatureError as Ed25519SignatureError, Signer};
 use serde::{Deserialize, Serialize};
-use ed25519_dalek::{Keypair as Ed25519Keypair, PublicKey as Ed25519PublicKey, SecretKey, Signature as Ed25519Signature, SignatureError as Ed25519SignatureError, Signer};
+use std::fmt;
+use std::ops::Deref;
+use std::str::FromStr;
 
 pub mod blake2b_internal;
 pub mod encoding;
@@ -29,14 +30,12 @@ pub struct Keypair(pub Ed25519Keypair);
 
 impl Keypair {
     pub fn from_private_bytes(bytes: &[u8]) -> Result<Self, KeypairError> {
-        let secret = SecretKey::from_bytes(&bytes).map_err(|e|KeypairError::InvalidSecretKey(e))?;
+        let secret = SecretKey::from_bytes(&bytes).map_err(|e| KeypairError::InvalidSecretKey(e))?;
         let public = Ed25519PublicKey::from(&secret);
-        Ok(Keypair( Ed25519Keypair{secret, public}))
+        Ok(Keypair(Ed25519Keypair { secret, public }))
     }
 
-    pub fn sign(&self, message: &[u8]) -> Signature {
-        self.0.sign(message).into()
-    }
+    pub fn sign(&self, message: &[u8]) -> Signature { self.0.sign(message).into() }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Deserialize, Serialize)]
@@ -56,9 +55,7 @@ impl From<Ed25519Signature> for Signature {
 impl Deref for Signature {
     type Target = Ed25519Signature;
 
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
+    fn deref(&self) -> &Self::Target { &self.0 }
 }
 
 #[derive(Debug, Display)]
@@ -68,15 +65,11 @@ pub enum SignatureError {
 }
 
 impl From<ed25519_dalek::ed25519::Error> for SignatureError {
-    fn from(e: Ed25519SignatureError) -> Self {
-        SignatureError::InvalidSignature(e)
-    }
+    fn from(e: Ed25519SignatureError) -> Self { SignatureError::InvalidSignature(e) }
 }
 
 impl fmt::LowerHex for Signature {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", hex::encode(self.0.to_bytes()))
-    }
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{}", hex::encode(self.0.to_bytes())) }
 }
 
 impl FromStr for Signature {
@@ -106,27 +99,19 @@ impl From<Ed25519PublicKey> for PublicKey {
 impl Deref for PublicKey {
     type Target = Ed25519PublicKey;
 
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
+    fn deref(&self) -> &Self::Target { &self.0 }
 }
 
 impl fmt::Display for PublicKey {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", hex::encode(self.as_bytes()))
-    }
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{}", hex::encode(self.as_bytes())) }
 }
 
 impl Deref for Keypair {
     type Target = Ed25519Keypair;
 
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
+    fn deref(&self) -> &Self::Target { &self.0 }
 }
 
 impl Keypair {
-    pub fn public(&self) -> PublicKey {
-        PublicKey(self.0.public.clone())
-    }
+    pub fn public(&self) -> PublicKey { PublicKey(self.0.public.clone()) }
 }

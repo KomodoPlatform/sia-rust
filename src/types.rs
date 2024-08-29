@@ -1,10 +1,10 @@
-use crate::PublicKey;
 use crate::blake2b_internal::standard_unlock_hash;
 use crate::encoding::{Encodable, Encoder, PrefixedH256};
 pub use crate::hash::H256;
 pub use crate::transaction::Currency;
 use crate::transaction::{FileContractElementV1, SiacoinElement, SiafundElement, StateElement, V1Transaction,
                          V2FileContractResolution, V2Transaction};
+use crate::PublicKey;
 use blake2b_simd::Params;
 use chrono::{DateTime, Utc};
 use hex::FromHexError;

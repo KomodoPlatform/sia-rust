@@ -726,7 +726,10 @@ fn test_v2_transaction_signing() {
         }
     );
     let tx = serde_json::from_value::<V2Transaction>(j).unwrap();
-    let keypair = Keypair::from_private_bytes(&hex::decode("0100000000000000000000000000000000000000000000000000000000000000").unwrap()).unwrap();
+    let keypair = Keypair::from_private_bytes(
+        &hex::decode("0100000000000000000000000000000000000000000000000000000000000000").unwrap(),
+    )
+    .unwrap();
     let sig_hash = tx.input_sig_hash();
 
     // test that we can correctly regenerate the signature

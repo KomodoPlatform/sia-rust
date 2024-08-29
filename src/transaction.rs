@@ -1,7 +1,7 @@
 use crate::encoding::{Encodable, Encoder, HexArray64, PrefixedH256, PrefixedPublicKey, PrefixedSignature};
 use crate::spend_policy::{SpendPolicy, SpendPolicyHelper, UnlockCondition, UnlockKey};
 use crate::types::{Address, ChainIndex, H256};
-use crate::{Keypair, Signature, PublicKey};
+use crate::{Keypair, PublicKey, Signature};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use serde_with::{serde_as, FromInto};
@@ -67,7 +67,12 @@ impl From<u64> for Currency {
 }
 
 impl From<i32> for Currency {
-    fn from(value: i32) -> Self { Currency { lo: value as u64, hi: 0 } }
+    fn from(value: i32) -> Self {
+        Currency {
+            lo: value as u64,
+            hi: 0,
+        }
+    }
 }
 
 impl From<u128> for Currency {
@@ -1040,8 +1045,7 @@ impl V2TransactionBuilder {
     pub fn sign_simple(mut self, keypairs: Vec<&Keypair>) -> Result<Self, String> {
         let sig_hash = self.input_sig_hash();
         for keypair in keypairs {
-            let sig = keypair
-                .sign(&sig_hash.0);
+            let sig = keypair.sign(&sig_hash.0);
             for si in &mut self.siacoin_inputs {
                 match &si.satisfied_policy.policy {
                     SpendPolicy::PublicKey(pk) if pk == &keypair.public() => si.satisfied_policy.signatures.push(sig),

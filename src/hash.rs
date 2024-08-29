@@ -1,11 +1,11 @@
 //! Fixed-size hashes
 use rustc_hex::{FromHex, FromHexError, ToHex};
-use std::hash::{Hash, Hasher};
-use std::{cmp, fmt, ops, str};
 use serde;
 use serde::de::Unexpected;
 use std::cmp::Ordering;
+use std::hash::{Hash, Hasher};
 use std::str::FromStr;
+use std::{cmp, fmt, ops, str};
 
 macro_rules! impl_global_hash {
     ($name: ident, $size: expr) => {
