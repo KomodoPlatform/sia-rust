@@ -806,6 +806,13 @@ impl V2Transaction {
         self.encode(&mut encoder);
         encoder.hash()
     }
+
+    pub fn txid(&self) -> H256 {
+        let mut encoder = Encoder::default();
+        encoder.write_distinguisher("id/transaction");
+        self.encode(&mut encoder);
+        encoder.hash()
+    }
 }
 
 // this encoding corresponds to the Go implementation's "V2TransactionSemantics" rather than "V2Transaction"
