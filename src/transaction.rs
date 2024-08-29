@@ -1,8 +1,8 @@
 use crate::encoding::{Encodable, Encoder, HexArray64, PrefixedH256, PrefixedPublicKey, PrefixedSignature};
 use crate::spend_policy::{SpendPolicy, SpendPolicyHelper, UnlockCondition, UnlockKey};
 use crate::types::{Address, ChainIndex, H256};
-use crate::Keypair;
-use ed25519_dalek::{PublicKey, Signature, Signer};
+use crate::{Keypair, PublicKey};
+use ed25519_dalek::{Signature, Signer};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use serde_with::{serde_as, FromInto};
@@ -165,7 +165,7 @@ impl Encodable for SatisfiedPolicy {
                 SpendPolicy::UnlockConditions(uc) => {
                     for unlock_key in &uc.unlock_keys {
                         if let UnlockKey::Ed25519(public_key) = unlock_key {
-                            rec(&SpendPolicy::PublicKey(*public_key), encoder, sigi, prei, sp);
+                            rec(&SpendPolicy::PublicKey(public_key.clone()), encoder, sigi, prei, sp);
                         }
                         // else FIXME consider when this is possible, is it always developer error or could it be forced maliciously?
                     }
@@ -1039,11 +1039,11 @@ impl V2TransactionBuilder {
                 .map_err(|e| format!("signature creation error: {}", e))?;
             for si in &mut self.siacoin_inputs {
                 match &si.satisfied_policy.policy {
-                    SpendPolicy::PublicKey(pk) if pk == &keypair.public => si.satisfied_policy.signatures.push(sig),
+                    SpendPolicy::PublicKey(pk) if pk == &keypair.public() => si.satisfied_policy.signatures.push(sig),
                     SpendPolicy::UnlockConditions(uc) => {
                         for p in &uc.unlock_keys {
                             match p {
-                                UnlockKey::Ed25519(pk) if pk == &keypair.public => {
+                                UnlockKey::Ed25519(pk) if pk == &keypair.public() => {
                                     si.satisfied_policy.signatures.push(sig)
                                 },
                                 _ => (),

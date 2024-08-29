@@ -2,7 +2,7 @@ use crate::blake2b_internal::standard_unlock_hash;
 use crate::encoding::Encoder;
 use crate::spend_policy::{SpendPolicy, UnlockCondition};
 use crate::types::{Address, H256};
-use ed25519_dalek::PublicKey;
+use crate::PublicKey;
 use std::str::FromStr;
 
 #[test]
