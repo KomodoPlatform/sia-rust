@@ -174,7 +174,10 @@ impl SiaApiRequest for TxpoolBroadcastRequest {
 #[derive(Deserialize, Serialize, Debug)]
 pub struct TxpoolFeeRequest;
 
+#[derive(Deserialize, Serialize, Debug)]
 pub struct TxpoolFeeResponse(pub Currency);
+
+impl SiaApiResponse for TxpoolFeeResponse {}
 
 impl SiaApiRequest for TxpoolFeeRequest {
     type Response = TxpoolFeeResponse;
