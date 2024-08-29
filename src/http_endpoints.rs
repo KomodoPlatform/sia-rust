@@ -170,6 +170,23 @@ impl SiaApiRequest for TxpoolBroadcastRequest {
     }
 }
 
+/// GET /txpool/fee
+#[derive(Deserialize, Serialize, Debug)]
+pub struct TxpoolFeeRequest;
+
+pub struct TxpoolFeeResponse(pub Currency);
+
+impl SiaApiRequest for TxpoolFeeRequest {
+    type Response = TxpoolFeeResponse;
+
+    fn to_http_request(&self, client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
+        let endpoint_path = "api/txpool/fee";
+        let endpoint_url = base_url.join(endpoint_path).map_err(SiaApiClientError::UrlParse)?;
+        let request = Request::new(Method::GET, endpoint_url);
+        Ok(request)
+    }
+}
+
 #[derive(Serialize, Debug, Default)]
 pub struct EmptyResponse;
 
