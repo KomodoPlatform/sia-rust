@@ -2,8 +2,7 @@ use derive_more::Display;
 use std::ops::Deref;
 use std::fmt;
 use serde::{Deserialize, Serialize};
-pub use ed25519_dalek::{SecretKey, Signature};
-use ed25519_dalek::{Keypair as Ed25519Keypair, PublicKey as Ed25519PublicKey, SignatureError};
+use ed25519_dalek::{Keypair as Ed25519Keypair, PublicKey as Ed25519PublicKey, SecretKey, Signature, SignatureError};
 
 pub mod blake2b_internal;
 pub mod encoding;
@@ -32,6 +31,10 @@ impl Keypair {
         let secret = SecretKey::from_bytes(&bytes).map_err(|e|KeypairError::InvalidSecretKey(e))?;
         let public = Ed25519PublicKey::from(&secret);
         Ok(Keypair( Ed25519Keypair{secret, public}))
+    }
+
+    pub fn sign(&self, message: &[u8]) -> Signature {
+        *self.sign(message)
     }
 }
 
