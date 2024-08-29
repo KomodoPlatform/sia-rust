@@ -1,8 +1,7 @@
 use crate::encoding::{Encodable, Encoder, HexArray64, PrefixedH256, PrefixedPublicKey, PrefixedSignature};
 use crate::spend_policy::{SpendPolicy, SpendPolicyHelper, UnlockCondition, UnlockKey};
 use crate::types::{Address, ChainIndex, H256};
-use crate::{Keypair, PublicKey};
-use ed25519_dalek::{Signature, Signer};
+use crate::{Keypair, Signature, PublicKey};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use serde_with::{serde_as, FromInto};
@@ -1042,8 +1041,7 @@ impl V2TransactionBuilder {
         let sig_hash = self.input_sig_hash();
         for keypair in keypairs {
             let sig = keypair
-                .try_sign(&sig_hash.0)
-                .map_err(|e| format!("signature creation error: {}", e))?;
+                .sign(&sig_hash.0);
             for si in &mut self.siacoin_inputs {
                 match &si.satisfied_policy.policy {
                     SpendPolicy::PublicKey(pk) if pk == &keypair.public() => si.satisfied_policy.signatures.push(sig),
