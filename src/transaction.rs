@@ -10,7 +10,7 @@ use std::str::FromStr;
 type SiacoinOutputID = H256;
 const V2_REPLAY_PREFIX: u8 = 2;
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct Currency {
     lo: u64,
     hi: u64,
