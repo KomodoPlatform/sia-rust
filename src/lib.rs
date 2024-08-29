@@ -1,8 +1,9 @@
 use derive_more::Display;
 use std::ops::Deref;
 use std::fmt;
+use std::str::FromStr;
 use serde::{Deserialize, Serialize};
-use ed25519_dalek::{Keypair as Ed25519Keypair, PublicKey as Ed25519PublicKey, SecretKey, Signature, SignatureError};
+use ed25519_dalek::{Keypair as Ed25519Keypair, PublicKey as Ed25519PublicKey, SecretKey, Signature as Ed25519Signature, SignatureError as Ed25519SignatureError, Signer};
 
 pub mod blake2b_internal;
 pub mod encoding;
@@ -16,7 +17,7 @@ pub mod types;
 
 #[derive(Debug, Display)]
 pub enum KeypairError {
-    InvalidSecretKey(SignatureError),
+    InvalidSecretKey(Ed25519SignatureError),
 }
 
 #[cfg(test)] mod tests;
@@ -34,11 +35,61 @@ impl Keypair {
     }
 
     pub fn sign(&self, message: &[u8]) -> Signature {
-        *self.sign(message)
+        self.0.sign(message).into()
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Deserialize, Serialize)]
+pub struct Signature(pub Ed25519Signature);
+
+impl Signature {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SignatureError> {
+        let signature = Ed25519Signature::from_bytes(bytes).map_err(SignatureError::ParseError)?;
+        Ok(Signature(signature))
+    }
+}
+
+impl From<Ed25519Signature> for Signature {
+    fn from(signature: Ed25519Signature) -> Self { Signature(signature) }
+}
+
+impl Deref for Signature {
+    type Target = Ed25519Signature;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Debug, Display)]
+pub enum SignatureError {
+    ParseError(ed25519_dalek::ed25519::Error),
+    InvalidSignature(Ed25519SignatureError),
+}
+
+impl From<ed25519_dalek::ed25519::Error> for SignatureError {
+    fn from(e: Ed25519SignatureError) -> Self {
+        SignatureError::InvalidSignature(e)
+    }
+}
+
+impl fmt::LowerHex for Signature {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", hex::encode(self.0.to_bytes()))
+    }
+}
+
+impl FromStr for Signature {
+    type Err = SignatureError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ed25519Signature::from_str(s)
+            .map(Signature)
+            .map_err(SignatureError::InvalidSignature)
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub struct PublicKey(pub Ed25519PublicKey);
 
 impl PublicKey {
