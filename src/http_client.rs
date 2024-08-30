@@ -62,7 +62,7 @@ impl From<SiaApiClientError> for String {
 
 /// Generic function to fetch data from a URL and deserialize it into a specified type.
 async fn fetch_and_parse<T: DeserializeOwned>(client: &Client, request: Request) -> Result<T, SiaApiClientError> {
-    let url = request.url().clone(); // TODO remove this once reqwest crate is updated
+    let url = request.url().clone();
     let fetched = client.execute(request).await.map_err(|e| {
         SiaApiClientError::ReqwestFetchError(ReqwestErrorWithUrl {
             error: e,
