@@ -159,7 +159,7 @@ impl Encodable for SatisfiedPolicy {
                 SpendPolicy::UnlockConditions(uc) => {
                     for unlock_key in &uc.unlock_keys {
                         if let UnlockKey::Ed25519(public_key) = unlock_key {
-                            rec(&SpendPolicy::PublicKey(public_key.clone()), encoder, sigi, prei, sp);
+                            rec(&SpendPolicy::PublicKey(*public_key), encoder, sigi, prei, sp);
                         }
                         // else FIXME consider when this is possible, is it always developer error or could it be forced maliciously?
                     }
@@ -1088,5 +1088,11 @@ impl V2TransactionBuilder {
             new_foundation_address: self.new_foundation_address,
             miner_fee: self.miner_fee,
         }
+    }
+}
+
+impl Default for V2TransactionBuilder {
+    fn default() -> Self {
+        V2TransactionBuilder::new()
     }
 }

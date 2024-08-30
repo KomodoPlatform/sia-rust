@@ -118,7 +118,7 @@ pub fn timelock_leaf(timelock: u64) -> H256 {
 //     ┌─────┴─────┐              │
 //  timelock     pubkey     sigsrequired
 pub fn standard_unlock_hash(pubkey: &PublicKey) -> H256 {
-    let pubkey_leaf = public_key_leaf(&UnlockKey::Ed25519(pubkey.clone()));
+    let pubkey_leaf = public_key_leaf(&UnlockKey::Ed25519(*pubkey));
     let timelock_pubkey_node = hash_blake2b_pair(&NODE_HASH_PREFIX, &STANDARD_TIMELOCK_BLAKE2B_HASH, &pubkey_leaf.0);
     hash_blake2b_pair(
         &NODE_HASH_PREFIX,

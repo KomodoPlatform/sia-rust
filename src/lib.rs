@@ -30,7 +30,7 @@ pub struct Keypair(pub Ed25519Keypair);
 
 impl Keypair {
     pub fn from_private_bytes(bytes: &[u8]) -> Result<Self, KeypairError> {
-        let secret = SecretKey::from_bytes(&bytes).map_err(|e| KeypairError::InvalidSecretKey(e))?;
+        let secret = SecretKey::from_bytes(bytes).map_err(KeypairError::InvalidSecretKey)?;
         let public = Ed25519PublicKey::from(&secret);
         Ok(Keypair(Ed25519Keypair { secret, public }))
     }
@@ -113,5 +113,5 @@ impl Deref for Keypair {
 }
 
 impl Keypair {
-    pub fn public(&self) -> PublicKey { PublicKey(self.0.public.clone()) }
+    pub fn public(&self) -> PublicKey { PublicKey(self.0.public) }
 }
