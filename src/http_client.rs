@@ -5,8 +5,7 @@ use base64::Engine;
 #[cfg(not(target_arch = "wasm32"))] use core::time::Duration;
 use derive_more::Display;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
-use reqwest::{Client, Error as ReqwestError, Request, Url};
-use serde::de::DeserializeOwned;
+use reqwest::{Client, Error as ReqwestError, Url};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -112,12 +111,7 @@ impl SiaApiClient {
         let client = client_builder
             .build()
             // covering this with a unit test seems to require altering the system's ssl certificates
-            .map_err(|e| {
-                SiaApiClientError::ReqwestTlsError(ReqwestErrorWithUrl {
-                    error: e,
-                    url: conf.url.clone(),
-                })
-            })?;
+            .map_err(SiaApiClientError::ReqwestError)?;
         let ret = SiaApiClient { client, conf };
         ret.dispatcher(ConsensusTipRequest).await?;
         Ok(ret)
