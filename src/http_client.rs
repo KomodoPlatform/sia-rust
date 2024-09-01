@@ -39,53 +39,6 @@ impl From<SiaApiClientError> for String {
     fn from(e: SiaApiClientError) -> Self { format!("{:?}", e) }
 }
 
-/// Generic function to fetch data from a URL and deserialize it into a specified type.
-async fn fetch_and_parse<T: DeserializeOwned>(client: &Client, request: Request) -> Result<T, SiaApiClientError> {
-    let url = request.url().clone();
-    let fetched = client.execute(request).await.map_err(|e| {
-        SiaApiClientError::ReqwestFetchError(ReqwestErrorWithUrl {
-            error: e,
-            url: url.clone(),
-        })
-    })?;
-
-    let status = fetched.status().as_u16();
-    let response_text = match status {
-        200 | 500 => fetched.text().await.map_err(|e| {
-            SiaApiClientError::ReqwestParseInvalidEncodingError(
-                ReqwestErrorWithUrl {
-                    error: e,
-                    url: url.clone(),
-                }
-                .to_string(),
-            )
-        })?,
-        s => return Err(SiaApiClientError::UnexpectedHttpStatus(s)),
-    };
-
-    if status == 500 {
-        return Err(SiaApiClientError::ApiInternalError(response_text));
-    }
-
-    let json: serde_json::Value = serde_json::from_str(&response_text).map_err(|e| {
-        SiaApiClientError::ReqwestParseInvalidJsonError(format!(
-            "Failed to parse response as JSON. Response: '{}'. Error: {}",
-            response_text, e
-        ))
-    })?;
-
-    let parsed: T = serde_json::from_value(json.clone()).map_err(|e| {
-        SiaApiClientError::ReqwestParseUnexpectedTypeError(format!(
-            "JSON response does not match the expected type '{:?}'. Response: '{}'. Error: {}",
-            std::any::type_name::<T>(),
-            json.to_string(),
-            e
-        ))
-    })?;
-
-    Ok(parsed)
-}
-
 /// Implements the methods for sending specific requests and handling their responses.
 impl SiaApiClient {
     /// Constructs a new instance of the API client using the provided base URL and password for authentication.
@@ -118,9 +71,20 @@ impl SiaApiClient {
     }
 
     /// General method for dispatching requests, handling routing and response parsing.
-    pub async fn dispatcher<R: SiaApiRequest + Send>(&self, request: R) -> Result<R::Response, SiaApiClientError> {
+    pub async fn dispatcher<R: SiaApiRequest>(&self, request: R) -> Result<R::Response, SiaApiClientError> {
         let req = request.to_http_request(&self.client, &self.conf.url)?;
-        fetch_and_parse::<R::Response>(&self.client, req).await
+        let response = self.client.execute(req).await.map_err(SiaApiClientError::ReqwestError)?;
+        match response.status() {
+            reqwest::StatusCode::OK => Ok(response.json::<R::Response>().await.map_err(SiaApiClientError::ReqwestError)?),
+            reqwest::StatusCode::NO_CONTENT => {
+                if let Some(empty_response) = R::is_empty_response() {
+                    Ok(empty_response)
+                } else {
+                    Err(SiaApiClientError::UnexpectedEmptyResponse { expected_type: std::any::type_name::<R::Response>().to_string() })
+                }
+            }
+            _ => Err(SiaApiClientError::UnexpectedHttpStatus(response.status().as_u16())),
+        }
     }
 
     pub async fn current_height(&self) -> Result<u64, SiaApiClientError> {
