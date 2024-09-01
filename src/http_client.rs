@@ -22,20 +22,6 @@ pub struct SiaApiClient {
     conf: SiaHttpConf,
 }
 
-// this is neccesary to show the URL in error messages returned to the user
-// this can be removed in favor of using ".with_url()" once reqwest is updated to v0.11.23
-#[derive(Debug)]
-pub struct ReqwestErrorWithUrl {
-    error: ReqwestError,
-    url: Url,
-}
-
-impl Display for ReqwestErrorWithUrl {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Error: {}, URL: {}", self.error, self.url)
-    }
-}
-
 // TODO clean up reqwest errors
 // update reqwest to latest for `.with_url()` method
 #[derive(Debug, Display)]
@@ -43,12 +29,7 @@ pub enum SiaApiClientError {
     Timeout(String),
     BuildError(String),
     ServerUnreachable(String),
-    ReqwestFetchError(ReqwestErrorWithUrl), // TODO make an enum
-    ReqwestError(reqwest::Error),
-    ReqwestParseInvalidEncodingError(String),
-    ReqwestParseInvalidJsonError(String),
-    ReqwestParseUnexpectedTypeError(String),
-    ReqwestTlsError(ReqwestErrorWithUrl),
+    ReqwestError(ReqwestError),
     UrlParse(url::ParseError),
     UnexpectedHttpStatus(u16),
     ApiInternalError(String),
