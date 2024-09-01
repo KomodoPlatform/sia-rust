@@ -2,7 +2,6 @@ use crate::http_endpoints::{AddressBalanceRequest, AddressBalanceResponse, Conse
 use crate::types::Address;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
-use core::fmt::Display;
 #[cfg(not(target_arch = "wasm32"))] use core::time::Duration;
 use derive_more::Display;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
