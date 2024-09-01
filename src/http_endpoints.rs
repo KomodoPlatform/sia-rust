@@ -183,6 +183,8 @@ pub struct TxpoolFeeResponse(pub Currency);
 impl SiaApiRequest for TxpoolFeeRequest {
     type Response = TxpoolFeeResponse;
 
+    fn is_empty_response() -> Option<Self::Response> { None }
+
     fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
         let endpoint_path = "api/txpool/fee";
         let endpoint_url = base_url.join(endpoint_path).map_err(SiaApiClientError::UrlParse)?;
