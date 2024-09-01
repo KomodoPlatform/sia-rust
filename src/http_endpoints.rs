@@ -22,9 +22,7 @@ pub struct ConsensusTipRequest;
 impl SiaApiRequest for ConsensusTipRequest {
     type Response = ConsensusTipResponse;
 
-    fn is_empty_response() -> Option<Self::Response> {
-        None
-    }
+    fn is_empty_response() -> Option<Self::Response> { None }
 
     fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<reqwest::Request, SiaApiClientError> {
         let endpoint_url = base_url
@@ -54,9 +52,7 @@ pub struct AddressBalanceRequest {
 impl SiaApiRequest for AddressBalanceRequest {
     type Response = AddressBalanceResponse;
 
-    fn is_empty_response() -> Option<Self::Response> {
-        None
-    }
+    fn is_empty_response() -> Option<Self::Response> { None }
 
     fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
         let endpoint_path = format!("api/addresses/{}/balance", self.address);
@@ -87,9 +83,7 @@ pub struct EventsTxidRequest {
 impl SiaApiRequest for EventsTxidRequest {
     type Response = EventsTxidResponse;
 
-    fn is_empty_response() -> Option<Self::Response> {
-        None
-    }
+    fn is_empty_response() -> Option<Self::Response> { None }
 
     fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
         let endpoint_path = format!("api/events/{}", self.txid);
@@ -112,9 +106,7 @@ pub struct AddressesEventsRequest {
 impl SiaApiRequest for AddressesEventsRequest {
     type Response = Vec<Event>;
 
-    fn is_empty_response() -> Option<Self::Response> {
-        None
-    }
+    fn is_empty_response() -> Option<Self::Response> { None }
 
     fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
         let endpoint_path = format!("api/addresses/{}/events", self.address);
@@ -139,9 +131,7 @@ pub type AddressUtxosResponse = Vec<SiacoinElement>;
 impl SiaApiRequest for AddressUtxosRequest {
     type Response = AddressUtxosResponse;
 
-    fn is_empty_response() -> Option<Self::Response> {
-        None
-    }
+    fn is_empty_response() -> Option<Self::Response> { None }
 
     fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
         let endpoint_path = format!("api/addresses/{}/outputs/siacoin", self.address);
@@ -162,13 +152,10 @@ pub struct TxpoolBroadcastRequest {
 #[derive(Deserialize, Serialize, Debug)]
 pub struct EmptyResponse;
 
-
 impl SiaApiRequest for TxpoolBroadcastRequest {
     type Response = EmptyResponse;
 
-    fn is_empty_response() -> Option<Self::Response> {
-        Some(EmptyResponse)
-    }
+    fn is_empty_response() -> Option<Self::Response> { Some(EmptyResponse) }
 
     fn to_http_request(&self, client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
         let endpoint_path = "api/txpool/broadcast";

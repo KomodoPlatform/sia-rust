@@ -73,16 +73,25 @@ impl SiaApiClient {
     /// General method for dispatching requests, handling routing and response parsing.
     pub async fn dispatcher<R: SiaApiRequest>(&self, request: R) -> Result<R::Response, SiaApiClientError> {
         let req = request.to_http_request(&self.client, &self.conf.url)?;
-        let response = self.client.execute(req).await.map_err(SiaApiClientError::ReqwestError)?;
+        let response = self
+            .client
+            .execute(req)
+            .await
+            .map_err(SiaApiClientError::ReqwestError)?;
         match response.status() {
-            reqwest::StatusCode::OK => Ok(response.json::<R::Response>().await.map_err(SiaApiClientError::ReqwestError)?),
+            reqwest::StatusCode::OK => Ok(response
+                .json::<R::Response>()
+                .await
+                .map_err(SiaApiClientError::ReqwestError)?),
             reqwest::StatusCode::NO_CONTENT => {
                 if let Some(empty_response) = R::is_empty_response() {
                     Ok(empty_response)
                 } else {
-                    Err(SiaApiClientError::UnexpectedEmptyResponse { expected_type: std::any::type_name::<R::Response>().to_string() })
+                    Err(SiaApiClientError::UnexpectedEmptyResponse {
+                        expected_type: std::any::type_name::<R::Response>().to_string(),
+                    })
                 }
-            }
+            },
             _ => Err(SiaApiClientError::UnexpectedHttpStatus(response.status().as_u16())),
         }
     }

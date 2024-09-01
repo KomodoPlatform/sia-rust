@@ -1092,7 +1092,5 @@ impl V2TransactionBuilder {
 }
 
 impl Default for V2TransactionBuilder {
-    fn default() -> Self {
-        V2TransactionBuilder::new()
-    }
+    fn default() -> Self { V2TransactionBuilder::new() }
 }
