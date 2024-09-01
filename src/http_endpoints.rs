@@ -3,20 +3,15 @@ use crate::transaction::{SiacoinElement, V1Transaction, V2Transaction};
 use crate::types::{Address, BlockID, Currency, Event, H256};
 use reqwest::{Client, Method, Request, Url};
 use serde::de::DeserializeOwned;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 
 const ENDPOINT_CONSENSUS_TIP: &str = "api/consensus/tip";
 
 pub trait SiaApiRequest {
-    type Response: SiaApiResponse + DeserializeOwned;
+    type Response: DeserializeOwned;
 
     fn to_http_request(&self, client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError>;
 }
-
-/// Marker trait for Sia API responses.
-///
-/// This trait is used to indicate that a type can be used as a response
-pub trait SiaApiResponse {}
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct ConsensusTipRequest;
@@ -42,8 +37,6 @@ pub struct ConsensusTipResponse {
     pub height: u64,
     pub id: BlockID,
 }
-
-impl SiaApiResponse for ConsensusTipResponse {}
 
 /// GET /addresses/:addr/balance
 #[derive(Deserialize, Serialize, Debug)]
@@ -74,8 +67,6 @@ pub struct AddressBalanceResponse {
     pub siafunds: u64,
 }
 
-impl SiaApiResponse for AddressBalanceResponse {}
-
 /// GET /events/:id
 #[derive(Deserialize, Serialize, Debug)]
 pub struct EventsTxidRequest {
@@ -97,8 +88,6 @@ impl SiaApiRequest for EventsTxidRequest {
 #[derive(Deserialize, Serialize)]
 pub struct EventsTxidResponse(pub Event);
 
-impl SiaApiResponse for EventsTxidResponse {}
-
 /// GET /addresses/:addr/events
 #[derive(Deserialize, Serialize, Debug)]
 pub struct AddressesEventsRequest {
@@ -119,8 +108,6 @@ impl SiaApiRequest for AddressesEventsRequest {
 
 pub type AddressesEventsResponse = Vec<Event>;
 
-impl SiaApiResponse for Vec<Event> {}
-
 /// The request to get the unspent transaction outputs (UTXOs) for a Sia address.
 /// GET /addresses/:addr/outputs/siacoin
 #[derive(Deserialize, Serialize, Debug)]
@@ -129,8 +116,6 @@ pub struct AddressUtxosRequest {
 }
 
 pub type AddressUtxosResponse = Vec<SiacoinElement>;
-
-impl SiaApiResponse for AddressUtxosResponse {}
 
 impl SiaApiRequest for AddressUtxosRequest {
     type Response = AddressUtxosResponse;
@@ -177,8 +162,6 @@ pub struct TxpoolFeeRequest;
 #[derive(Deserialize, Serialize, Debug)]
 pub struct TxpoolFeeResponse(pub Currency);
 
-impl SiaApiResponse for TxpoolFeeResponse {}
-
 impl SiaApiRequest for TxpoolFeeRequest {
     type Response = TxpoolFeeResponse;
 
@@ -190,21 +173,4 @@ impl SiaApiRequest for TxpoolFeeRequest {
     }
 }
 
-#[derive(Serialize, Debug, Default)]
-pub struct EmptyResponse;
-
-impl<'de> Deserialize<'de> for EmptyResponse {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s: &str = Deserialize::deserialize(deserializer)?;
-        if s.is_empty() {
-            Ok(EmptyResponse)
-        } else {
-            Err(serde::de::Error::custom("expected an empty string"))
-        }
-    }
-}
-
-impl SiaApiResponse for EmptyResponse {}
+pub type EmptyResponse = String;
