@@ -19,3 +19,5 @@ base64 = "0.21.2"
 url = { version = "2.2.2", features = ["serde"] }
 derive_more = "0.99.11"
 rustc-hex = "2"
+mm2_net = { path = "../../mm2_net" }
+http = "0.2.12"

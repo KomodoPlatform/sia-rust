@@ -1,9 +1,14 @@
-use crate::http_client::SiaApiClientError;
+use crate::http_client::{HttpClient, SiaApiClientError};
 use crate::transaction::{SiacoinElement, V1Transaction, V2Transaction};
 use crate::types::{Address, BlockID, Currency, Event, H256};
-use reqwest::{Client, Method, Request, Url};
+use url::Url;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
+
+#[cfg(target_arch = "wasm32")]
+use mm2_net::wasm::http::FetchRequest; // FIXME this introduces a circular dependency
+#[cfg(not(target_arch = "wasm32"))]
+use reqwest::{Client, Method, Request};
 
 const ENDPOINT_CONSENSUS_TIP: &str = "api/consensus/tip";
 
@@ -15,7 +20,11 @@ pub trait SiaApiRequest {
 
     fn endpoint_url(&self, base_url: &Url) -> Result<Url, SiaApiClientError>;
 
-    fn to_http_request(&self, client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError>;
+    #[cfg(target_arch = "wasm32")]
+    fn to_http_request(&self, client: &HttpClient, base_url: &Url) -> Result<FetchRequest, SiaApiClientError>;
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn to_http_request(&self, client: &HttpClient, base_url: &Url) -> Result<Request, SiaApiClientError>;
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -32,7 +41,13 @@ impl SiaApiRequest for ConsensusTipRequest {
             .map_err(SiaApiClientError::UrlParse)
     }
 
-    fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
+    #[cfg(target_arch = "wasm32")]
+    fn to_http_request(&self, client: &HttpClient, base_url: &Url) -> Result<FetchRequest, SiaApiClientError> {
+        Ok(FetchRequest::get(&self.endpoint_url(base_url)?.to_string()).header_map(client.headers.clone()))
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn to_http_request(&self, _client: &HttpClient, base_url: &Url) -> Result<Request, SiaApiClientError> {
         Ok(Request::new(Method::GET, self.endpoint_url(base_url)?))
     }
 }
@@ -63,6 +78,12 @@ impl SiaApiRequest for AddressBalanceRequest {
             .map_err(SiaApiClientError::UrlParse)
     }
 
+    #[cfg(target_arch = "wasm32")]
+    fn to_http_request(&self, client: &HttpClient, base_url: &Url) -> Result<FetchRequest, SiaApiClientError> {
+        Ok(FetchRequest::get(&self.endpoint_url(base_url)?.to_string()).header_map(client.headers.clone()))
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
         Ok(Request::new(Method::GET, self.endpoint_url(base_url)?))
     }
@@ -96,6 +117,12 @@ impl SiaApiRequest for EventsTxidRequest {
             .map_err(SiaApiClientError::UrlParse)
     }
 
+    #[cfg(target_arch = "wasm32")]
+    fn to_http_request(&self, client: &HttpClient, base_url: &Url) -> Result<FetchRequest, SiaApiClientError> {
+        Ok(FetchRequest::get(&self.endpoint_url(base_url)?.to_string()).header_map(client.headers.clone()))
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
         Ok(Request::new(Method::GET, self.endpoint_url(base_url)?))
     }
@@ -121,6 +148,12 @@ impl SiaApiRequest for AddressesEventsRequest {
             .map_err(SiaApiClientError::UrlParse)
     }
 
+    #[cfg(target_arch = "wasm32")]
+    fn to_http_request(&self, client: &HttpClient, base_url: &Url) -> Result<FetchRequest, SiaApiClientError> {
+        Ok(FetchRequest::get(&self.endpoint_url(base_url)?.to_string()).header_map(client.headers.clone()))
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
         Ok(Request::new(Method::GET, self.endpoint_url(base_url)?))
     }
@@ -148,6 +181,12 @@ impl SiaApiRequest for AddressUtxosRequest {
             .map_err(SiaApiClientError::UrlParse)
     }
 
+    #[cfg(target_arch = "wasm32")]
+    fn to_http_request(&self, client: &HttpClient, base_url: &Url) -> Result<FetchRequest, SiaApiClientError> {
+        Ok(FetchRequest::get(&self.endpoint_url(base_url)?.to_string()).header_map(client.headers.clone()))
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
         Ok(Request::new(Method::GET, self.endpoint_url(base_url)?))
     }
@@ -174,6 +213,13 @@ impl SiaApiRequest for TxpoolBroadcastRequest {
             .map_err(SiaApiClientError::UrlParse)
     }
 
+    #[cfg(target_arch = "wasm32")]
+    fn to_http_request(&self, _client: &HttpClient, base_url: &Url) -> Result<FetchRequest, SiaApiClientError> {
+        let json_body = serde_json::to_string(self).map_err(SiaApiClientError::SerializationError)?;
+        Ok(FetchRequest::post(&self.endpoint_url(base_url)?.to_string()).body_utf8(json_body))
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     fn to_http_request(&self, client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
         let json_body = serde_json::to_string(self).map_err(SiaApiClientError::SerializationError)?;
 
@@ -203,6 +249,12 @@ impl SiaApiRequest for TxpoolFeeRequest {
         base_url.join("api/txpool/fee").map_err(SiaApiClientError::UrlParse)
     }
 
+    #[cfg(target_arch = "wasm32")]
+    fn to_http_request(&self, client: &HttpClient, base_url: &Url) -> Result<FetchRequest, SiaApiClientError> {
+        Ok(FetchRequest::get(&self.endpoint_url(base_url)?.to_string()).header_map(client.headers.clone()))
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
         Ok(Request::new(Method::GET, self.endpoint_url(base_url)?))
     }
