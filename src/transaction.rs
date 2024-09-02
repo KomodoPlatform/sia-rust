@@ -1,4 +1,4 @@
-use crate::encoding::{Encodable, Encoder, HexArray64, PrefixedH256, PrefixedPublicKey, PrefixedSignature};
+use crate::encoding::{Encodable, Encoder, HexArray64, PrefixedH256, PrefixedPublicKey, PrefixedSignature, ScoidH256};
 use crate::spend_policy::{SpendPolicy, SpendPolicyHelper, UnlockCondition, UnlockKey};
 use crate::types::{Address, ChainIndex, H256};
 use crate::{Keypair, PublicKey, Signature};
@@ -7,8 +7,9 @@ use serde_json::Value;
 use serde_with::{serde_as, FromInto};
 use std::ops::Deref;
 use std::str::FromStr;
+use std::fmt;
+use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
 
-type SiacoinOutputID = H256;
 const V2_REPLAY_PREFIX: u8 = 2;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
@@ -253,9 +254,13 @@ impl Encodable for SiafundInputV2 {
 }
 
 // https://github.com/SiaFoundation/core/blob/6c19657baf738c6b730625288e9b5413f77aa659/types/types.go#L197-L198
+#[serde_as]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SiacoinInputV1 {
-    pub parent_id: SiacoinOutputID,
+    #[serde(rename = "parentID")]
+    #[serde_as(as = "FromInto<ScoidH256>")]
+    pub parent_id: H256,
+    #[serde(rename = "unlockConditions")]
     pub unlock_condition: UnlockCondition,
 }
 
@@ -336,7 +341,9 @@ pub struct SiacoinOutput {
     pub address: Address,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(default)]
 pub struct CoveredFields {
     pub whole_transaction: bool,
     pub siacoin_inputs: Vec<u64>,
@@ -351,14 +358,52 @@ pub struct CoveredFields {
     pub signatures: Vec<u64>,
 }
 
+#[serde_as]
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TransactionSignature {
+    #[serde_as(as = "FromInto<PrefixedH256>")]
+    #[serde(rename = "parentID")]
     pub parent_id: H256,
+    #[serde(default)]
     pub public_key_index: u64,
+    #[serde(default)]
     pub timelock: u64,
     pub covered_fields: CoveredFields,
-    pub signature: Vec<u8>,
+    pub signature: V1Signature,
 }
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(transparent)]
+pub struct V1Signature(Vec<u8>);
+
+impl<'de> Deserialize<'de> for V1Signature {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct V1SignatureVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for V1SignatureVisitor {
+            type Value = V1Signature;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a base64 encoded string")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                let decoded = base64.decode(value).map_err(serde::de::Error::custom)?;
+                Ok(V1Signature(decoded))
+            }
+        }
+
+        deserializer.deserialize_str(V1SignatureVisitor)
+    }
+}
+
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FileContract {
