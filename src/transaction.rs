@@ -779,6 +779,19 @@ pub struct FileContractV1 {
     pub unlock_hash: H256,
     pub revision_number: u64,
 }
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(transparent)]
+pub struct V1ArbitraryData {
+    pub data: Vec<Vec<u8>>,
+}
+
+impl Encodable for V1ArbitraryData {
+    fn encode(&self, encoder: &mut Encoder) { 
+        encoder.write_u64(self.data.len() as u64);
+        self.data.iter().for_each(|b| encoder.write_slice(b));
+    }
+}
 /*
 While implementing this, we faced two options.
     1.) Treat every field as an Option<>
