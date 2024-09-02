@@ -551,6 +551,17 @@ pub struct StorageProof {
     pub proof: Vec<H256>,
 }
 
+impl Encodable for StorageProof {
+    fn encode(&self, encoder: &mut Encoder) {
+        self.parent_id.encode(encoder);
+        encoder.write_slice(&self.leaf.0);
+        encoder.write_u64(self.proof.len() as u64);
+        for proof in &self.proof {
+            proof.encode(encoder);
+        }
+    }
+}
+
 type SiafundOutputID = H256;
 type FileContractID = H256;
 
@@ -856,12 +867,6 @@ pub struct V1Transaction {
     pub miner_fees: Vec<Currency>,
     pub arbitrary_data: Option<V1ArbitraryData>,
     pub signatures: Vec<TransactionSignature>,
-}
-
-impl Encodable for StorageProof {
-    fn encode(&self, encoder: &mut Encoder) {
-        todo!()
-    }
 }
 
 impl Encodable for SiafundInputV1 {
