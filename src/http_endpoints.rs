@@ -1,9 +1,9 @@
 use crate::http_client::{HttpClient, SiaApiClientError};
 use crate::transaction::{SiacoinElement, V1Transaction, V2Transaction};
 use crate::types::{Address, BlockID, Currency, Event, H256};
-use url::Url;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 #[cfg(target_arch = "wasm32")]
 use mm2_net::wasm::http::FetchRequest; // FIXME this introduces a circular dependency
@@ -271,7 +271,9 @@ impl SiaApiRequest for TxpoolTransactionsRequest {
     fn is_empty_response() -> Option<Self::Response> { Some(EmptyResponse) }
 
     fn endpoint_url(&self, base_url: &Url) -> Result<Url, SiaApiClientError> {
-        base_url.join("api/txpool/transactions").map_err(SiaApiClientError::UrlParse)
+        base_url
+            .join("api/txpool/transactions")
+            .map_err(SiaApiClientError::UrlParse)
     }
 
     #[cfg(target_arch = "wasm32")]

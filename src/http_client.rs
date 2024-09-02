@@ -7,8 +7,9 @@ use http::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[cfg(not(target_arch = "wasm32"))] use reqwest::{Client, Error as ReqwestError};
 #[cfg(not(target_arch = "wasm32"))] use core::time::Duration;
+#[cfg(not(target_arch = "wasm32"))]
+use reqwest::{Client, Error as ReqwestError};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SiaHttpConf {
@@ -87,9 +88,11 @@ impl SiaApiClient {
 
         match status.as_u16() {
             200 => Ok(serde_json::from_str(&response_string).map_err(SiaApiClientError::SerializationError)?),
-            204 => Ok(R::is_empty_response().ok_or(SiaApiClientError::UnexpectedEmptyResponse {
-                expected_type: std::any::type_name::<R::Response>().to_string(),
-            })?),
+            204 => Ok(
+                R::is_empty_response().ok_or(SiaApiClientError::UnexpectedEmptyResponse {
+                    expected_type: std::any::type_name::<R::Response>().to_string(),
+                })?,
+            ),
             _ => Err(SiaApiClientError::UnexpectedHttpStatus(status.as_u16())),
         }
     }
