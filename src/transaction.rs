@@ -866,7 +866,9 @@ impl Encodable for StorageProof {
 
 impl Encodable for SiafundInputV1 {
     fn encode(&self, encoder: &mut Encoder) {
-        todo!()
+        self.parent_id.encode(encoder);
+        self.unlock_condition.encode(encoder);
+        self.claim_address.encode(encoder);
     }
 }
 
