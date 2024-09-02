@@ -558,6 +558,29 @@ type FileContractID = H256;
 pub struct FileContractRevision {
     pub parent_id: FileContractID,
     pub unlock_condition: UnlockCondition,
+    #[serde(flatten)]
+    pub file_contract: FileContract,
+}
+
+impl Encodable for FileContractRevision {
+    fn encode(&self, encoder: &mut Encoder) {
+        self.parent_id.encode(encoder);
+        self.unlock_condition.encode(encoder);
+        encoder.write_u64(self.file_contract.revision_number);
+        encoder.write_u64(self.file_contract.filesize);
+        self.file_contract.file_merkle_root.encode(encoder);
+        encoder.write_u64(self.file_contract.window_start);
+        encoder.write_u64(self.file_contract.window_end);
+        encoder.write_u64(self.file_contract.valid_proof_outputs.len() as u64);
+        for so in &self.file_contract.valid_proof_outputs {
+            SiacoinOutputVersion::V1(so).encode(encoder);
+        }
+        encoder.write_u64(self.file_contract.missed_proof_outputs.len() as u64);
+        for so in &self.file_contract.missed_proof_outputs {
+            SiacoinOutputVersion::V1(so).encode(encoder);
+        }
+        self.file_contract.unlock_hash.encode(encoder);
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -833,12 +856,6 @@ pub struct V1Transaction {
     pub miner_fees: Vec<Currency>,
     pub arbitrary_data: Option<V1ArbitraryData>,
     pub signatures: Vec<TransactionSignature>,
-}
-
-impl Encodable for FileContractRevision {
-    fn encode(&self, encoder: &mut Encoder) {
-        todo!()
-    }
 }
 
 impl Encodable for StorageProof {
