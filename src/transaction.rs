@@ -2,13 +2,13 @@ use crate::encoding::{Encodable, Encoder, HexArray64, PrefixedH256, PrefixedPubl
 use crate::spend_policy::{SpendPolicy, SpendPolicyHelper, UnlockCondition, UnlockKey};
 use crate::types::{Address, ChainIndex, H256};
 use crate::{Keypair, PublicKey, Signature};
+use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use serde_with::{serde_as, FromInto};
+use std::fmt;
 use std::ops::Deref;
 use std::str::FromStr;
-use std::fmt;
-use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
 
 const V2_REPLAY_PREFIX: u8 = 2;
 
@@ -180,6 +180,7 @@ pub struct StateElement {
     #[serde_as(as = "FromInto<PrefixedH256>")]
     pub id: H256,
     pub leaf_index: u64,
+    #[serde(default)]
     #[serde_as(as = "Option<Vec<FromInto<PrefixedH256>>>")]
     pub merkle_proof: Option<Vec<H256>>,
 }
@@ -403,7 +404,6 @@ impl<'de> Deserialize<'de> for V1Signature {
         deserializer.deserialize_str(V1SignatureVisitor)
     }
 }
-
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FileContract {
@@ -787,7 +787,7 @@ pub struct V1ArbitraryData {
 }
 
 impl Encodable for V1ArbitraryData {
-    fn encode(&self, encoder: &mut Encoder) { 
+    fn encode(&self, encoder: &mut Encoder) {
         encoder.write_u64(self.data.len() as u64);
         self.data.iter().for_each(|b| encoder.write_slice(b));
     }

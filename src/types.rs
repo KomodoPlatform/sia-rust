@@ -213,6 +213,7 @@ impl Encodable for ChainIndex {
 pub struct EventV1Transaction {
     pub transaction: V1Transaction,
     pub spent_siacoin_elements: Vec<SiacoinElement>,
+    #[serde(default)]
     pub spent_siafund_elements: Vec<SiafundElement>,
 }
 
@@ -292,7 +293,9 @@ impl<'de> Deserialize<'de> for Event {
             EventType::V2Transaction => serde_json::from_value::<V2Transaction>(helper.data)
                 .map(EventDataWrapper::V2Transaction)
                 .map_err(serde::de::Error::custom),
-            EventType::V1ContractResolution => return Err(serde::de::Error::custom("V1ContractResolution not supported")),
+            EventType::V1ContractResolution => {
+                return Err(serde::de::Error::custom("V1ContractResolution not supported"))
+            },
             EventType::V2ContractResolution => serde_json::from_value::<EventV2ContractResolution>(helper.data)
                 .map(|data| EventDataWrapper::V2FileContractResolution(Box::new(data)))
                 .map_err(serde::de::Error::custom),
