@@ -418,6 +418,26 @@ pub struct FileContract {
     pub revision_number: u64,
 }
 
+impl Encodable for FileContract {
+    fn encode(&self, encoder: &mut Encoder) {
+        encoder.write_u64(self.filesize);
+        self.file_merkle_root.encode(encoder);
+        encoder.write_u64(self.window_start);
+        encoder.write_u64(self.window_end);
+        CurrencyVersion::V1(&self.payout).encode(encoder);
+        encoder.write_u64(self.valid_proof_outputs.len() as u64);
+        for so in &self.valid_proof_outputs {
+            SiacoinOutputVersion::V1(so).encode(encoder);
+        }
+        encoder.write_u64(self.missed_proof_outputs.len() as u64);
+        for so in &self.missed_proof_outputs {
+            SiacoinOutputVersion::V1(so).encode(encoder);
+        }
+        self.unlock_hash.encode(encoder);
+        encoder.write_u64(self.revision_number);
+    }
+}
+
 #[serde_as]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -813,12 +833,6 @@ pub struct V1Transaction {
     pub miner_fees: Vec<Currency>,
     pub arbitrary_data: Option<V1ArbitraryData>,
     pub signatures: Vec<TransactionSignature>,
-}
-
-impl Encodable for FileContract {
-    fn encode(&self, encoder: &mut Encoder) {
-        todo!()
-    }
 }
 
 impl Encodable for FileContractRevision {
