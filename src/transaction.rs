@@ -900,7 +900,6 @@ impl Encodable for V1TransactionSansSigs {
         encoder.write_len_prefixed_vec(&self.file_contracts);
         encoder.write_len_prefixed_vec(&self.file_contract_revisions);
         encoder.write_len_prefixed_vec(&self.storage_proofs);
-        encoder.write_len_prefixed_vec(&self.file_contract_revisions);
         encoder.write_len_prefixed_vec(&self.siafund_inputs);
 
         encoder.write_u64(self.siafund_outputs.len() as u64);
