@@ -137,6 +137,7 @@ pub struct AddressesEventsRequest {
     pub address: Address,
 }
 
+// TODO this endpoint has additional params, limit and offset
 impl SiaApiRequest for AddressesEventsRequest {
     type Response = Vec<Event>;
 
