@@ -869,6 +869,12 @@ pub struct V1Transaction {
     pub signatures: Vec<TransactionSignature>,
 }
 
+impl V1Transaction {
+    pub fn txid(&self) -> H256 {
+        Encoder::encode_and_hash(&V1TransactionSansSigs(self.clone()))
+    }
+}
+
 impl Encodable for SiafundInputV1 {
     fn encode(&self, encoder: &mut Encoder) {
         self.parent_id.encode(encoder);
@@ -876,10 +882,9 @@ impl Encodable for SiafundInputV1 {
         self.claim_address.encode(encoder);
     }
 }
-
-
+// TODO possible this can just hold a ref to V1Transaction like CurrencyVersion
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct V1TransactionSansSigs(pub V1Transaction);
+pub struct V1TransactionSansSigs(V1Transaction);
 
 impl Deref for V1TransactionSansSigs {
     type Target = V1Transaction;
