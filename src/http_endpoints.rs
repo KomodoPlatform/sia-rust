@@ -13,6 +13,8 @@ pub trait SiaApiRequest {
     // this allows us to return a default value for Empty responses without having to implement Default for every endpoint
     fn is_empty_response() -> Option<Self::Response>;
 
+    fn endpoint_url(&self, base_url: &Url) -> Result<Url, SiaApiClientError>;
+
     fn to_http_request(&self, client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError>;
 }
 
@@ -24,13 +26,14 @@ impl SiaApiRequest for ConsensusTipRequest {
 
     fn is_empty_response() -> Option<Self::Response> { None }
 
-    fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<reqwest::Request, SiaApiClientError> {
-        let endpoint_url = base_url
+    fn endpoint_url(&self, base_url: &Url) -> Result<Url, SiaApiClientError> {
+        base_url
             .join(ENDPOINT_CONSENSUS_TIP)
-            .map_err(SiaApiClientError::UrlParse)?;
+            .map_err(SiaApiClientError::UrlParse)
+    }
 
-        let request = reqwest::Request::new(Method::GET, endpoint_url);
-        Ok(request)
+    fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
+        Ok(Request::new(Method::GET, self.endpoint_url(base_url)?))
     }
 }
 
@@ -54,12 +57,14 @@ impl SiaApiRequest for AddressBalanceRequest {
 
     fn is_empty_response() -> Option<Self::Response> { None }
 
-    fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
-        let endpoint_path = format!("api/addresses/{}/balance", self.address);
-        let endpoint_url = base_url.join(&endpoint_path).map_err(SiaApiClientError::UrlParse)?;
+    fn endpoint_url(&self, base_url: &Url) -> Result<Url, SiaApiClientError> {
+        base_url
+            .join(&format!("api/addresses/{}/balance", self.address))
+            .map_err(SiaApiClientError::UrlParse)
+    }
 
-        let request = Request::new(Method::GET, endpoint_url);
-        Ok(request)
+    fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
+        Ok(Request::new(Method::GET, self.endpoint_url(base_url)?))
     }
 }
 
@@ -85,12 +90,14 @@ impl SiaApiRequest for EventsTxidRequest {
 
     fn is_empty_response() -> Option<Self::Response> { None }
 
-    fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
-        let endpoint_path = format!("api/events/{}", self.txid);
-        let endpoint_url = base_url.join(&endpoint_path).map_err(SiaApiClientError::UrlParse)?;
+    fn endpoint_url(&self, base_url: &Url) -> Result<Url, SiaApiClientError> {
+        base_url
+            .join(&format!("api/events/{}", self.txid))
+            .map_err(SiaApiClientError::UrlParse)
+    }
 
-        let request = Request::new(Method::GET, endpoint_url);
-        Ok(request)
+    fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
+        Ok(Request::new(Method::GET, self.endpoint_url(base_url)?))
     }
 }
 
@@ -108,12 +115,14 @@ impl SiaApiRequest for AddressesEventsRequest {
 
     fn is_empty_response() -> Option<Self::Response> { None }
 
-    fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
-        let endpoint_path = format!("api/addresses/{}/events", self.address);
-        let endpoint_url = base_url.join(&endpoint_path).map_err(SiaApiClientError::UrlParse)?;
+    fn endpoint_url(&self, base_url: &Url) -> Result<Url, SiaApiClientError> {
+        base_url
+            .join(&format!("api/addresses/{}/events", self.address))
+            .map_err(SiaApiClientError::UrlParse)
+    }
 
-        let request = Request::new(Method::GET, endpoint_url);
-        Ok(request)
+    fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
+        Ok(Request::new(Method::GET, self.endpoint_url(base_url)?))
     }
 }
 
@@ -133,12 +142,14 @@ impl SiaApiRequest for AddressUtxosRequest {
 
     fn is_empty_response() -> Option<Self::Response> { None }
 
-    fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
-        let endpoint_path = format!("api/addresses/{}/outputs/siacoin", self.address);
-        let endpoint_url = base_url.join(&endpoint_path).map_err(SiaApiClientError::UrlParse)?;
+    fn endpoint_url(&self, base_url: &Url) -> Result<Url, SiaApiClientError> {
+        base_url
+            .join(&format!("api/addresses/{}/outputs/siacoin", self.address))
+            .map_err(SiaApiClientError::UrlParse)
+    }
 
-        let request = Request::new(Method::GET, endpoint_url);
-        Ok(request)
+    fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
+        Ok(Request::new(Method::GET, self.endpoint_url(base_url)?))
     }
 }
 
@@ -157,14 +168,17 @@ impl SiaApiRequest for TxpoolBroadcastRequest {
 
     fn is_empty_response() -> Option<Self::Response> { Some(EmptyResponse) }
 
-    fn to_http_request(&self, client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
-        let endpoint_path = "api/txpool/broadcast";
-        let endpoint_url = base_url.join(endpoint_path).map_err(SiaApiClientError::UrlParse)?;
+    fn endpoint_url(&self, base_url: &Url) -> Result<Url, SiaApiClientError> {
+        base_url
+            .join("api/txpool/broadcast")
+            .map_err(SiaApiClientError::UrlParse)
+    }
 
+    fn to_http_request(&self, client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
         let json_body = serde_json::to_string(self).map_err(SiaApiClientError::SerializationError)?;
 
         let request = client
-            .post(endpoint_url)
+            .post(self.endpoint_url(base_url)?)
             .header(reqwest::header::CONTENT_TYPE, "application/json")
             .body(json_body)
             .build()
@@ -185,10 +199,11 @@ impl SiaApiRequest for TxpoolFeeRequest {
 
     fn is_empty_response() -> Option<Self::Response> { None }
 
+    fn endpoint_url(&self, base_url: &Url) -> Result<Url, SiaApiClientError> {
+        base_url.join("api/txpool/fee").map_err(SiaApiClientError::UrlParse)
+    }
+
     fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
-        let endpoint_path = "api/txpool/fee";
-        let endpoint_url = base_url.join(endpoint_path).map_err(SiaApiClientError::UrlParse)?;
-        let request = Request::new(Method::GET, endpoint_url);
-        Ok(request)
+        Ok(Request::new(Method::GET, self.endpoint_url(base_url)?))
     }
 }
