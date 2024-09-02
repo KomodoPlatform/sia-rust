@@ -260,3 +260,27 @@ impl SiaApiRequest for TxpoolFeeRequest {
         Ok(Request::new(Method::GET, self.endpoint_url(base_url)?))
     }
 }
+
+/// GET /txpool/transactions
+#[derive(Deserialize, Serialize, Debug)]
+pub struct TxpoolTransactionsRequest;
+
+impl SiaApiRequest for TxpoolTransactionsRequest {
+    type Response = EmptyResponse;
+
+    fn is_empty_response() -> Option<Self::Response> { Some(EmptyResponse) }
+
+    fn endpoint_url(&self, base_url: &Url) -> Result<Url, SiaApiClientError> {
+        base_url.join("api/txpool/transactions").map_err(SiaApiClientError::UrlParse)
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn to_http_request(&self, client: &HttpClient, base_url: &Url) -> Result<FetchRequest, SiaApiClientError> {
+        Ok(FetchRequest::get(&self.endpoint_url(base_url)?.to_string()).header_map(client.headers.clone()))
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn to_http_request(&self, _client: &Client, base_url: &Url) -> Result<Request, SiaApiClientError> {
+        Ok(Request::new(Method::GET, self.endpoint_url(base_url)?))
+    }
+}
