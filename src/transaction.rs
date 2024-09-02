@@ -811,7 +811,7 @@ pub struct V1Transaction {
     pub siafund_inputs: Vec<SiafundInputV1>,
     pub siafund_outputs: Vec<SiafundOutput>,
     pub miner_fees: Vec<Currency>,
-    pub arbitrary_data: Vec<u8>,
+    pub arbitrary_data: Option<V1ArbitraryData>,
     pub signatures: Vec<TransactionSignature>,
 }
 
