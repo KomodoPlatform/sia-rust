@@ -243,6 +243,64 @@ impl From<H256> for PrefixedH256 {
     fn from(h256: H256) -> Self { PrefixedH256(h256) }
 }
 
+/// This wrapper allows us to use H256 internally but still serde as "scoid:" prefixed string
+#[derive(Clone, Debug, PartialEq)]
+pub struct ScoidH256(pub H256);
+
+// FIXME this code pattern is reoccuring in many places and should be generalized with helpers or macros
+impl<'de> Deserialize<'de> for ScoidH256 {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct ScoidH256Visitor;
+
+        impl<'de> serde::de::Visitor<'de> for ScoidH256Visitor {
+            type Value = ScoidH256;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a string prefixed with 'scoid:' and followed by a 64-character hex string")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                if let Some(hex_str) = value.strip_prefix("scoid:") {
+                    H256::from_str(hex_str)
+                        .map(ScoidH256)
+                        .map_err(|_| E::invalid_value(serde::de::Unexpected::Str(value), &self))
+                } else {
+                    Err(E::invalid_value(serde::de::Unexpected::Str(value), &self))
+                }
+            }
+        }
+
+        deserializer.deserialize_str(ScoidH256Visitor)
+    }
+}
+
+impl Serialize for ScoidH256 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&format!("{}", self))
+    }
+}
+
+impl fmt::Display for ScoidH256 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "h:{}", self.0) }
+}
+
+impl From<ScoidH256> for H256 {
+    fn from(sia_hash: ScoidH256) -> Self { sia_hash.0 }
+}
+
+impl From<H256> for ScoidH256 {
+    fn from(h256: H256) -> Self { ScoidH256(h256) }
+}
+
 impl Encodable for H256 {
     fn encode(&self, encoder: &mut Encoder) { encoder.write_slice(&self.0); }
 }
