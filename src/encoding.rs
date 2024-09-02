@@ -46,7 +46,7 @@ impl Encoder {
     }
 
     // equivalent of Sia Core's EncodeSlice()
-    pub fn write_len_prefixed_vec<T: Encodable>(&mut self, data: Vec<T>) {
+    pub fn write_len_prefixed_vec<T: Encodable>(&mut self, data: &Vec<T>) {
         self.write_u64(data.len() as u64);
         for item in data {
             item.encode(self);

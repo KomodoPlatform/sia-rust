@@ -815,6 +815,71 @@ pub struct V1Transaction {
     pub signatures: Vec<TransactionSignature>,
 }
 
+impl Encodable for FileContract {
+    fn encode(&self, encoder: &mut Encoder) {
+        todo!()
+    }
+}
+
+impl Encodable for FileContractRevision {
+    fn encode(&self, encoder: &mut Encoder) {
+        todo!()
+    }
+}
+
+impl Encodable for StorageProof {
+    fn encode(&self, encoder: &mut Encoder) {
+        todo!()
+    }
+}
+
+impl Encodable for SiafundInputV1 {
+    fn encode(&self, encoder: &mut Encoder) {
+        todo!()
+    }
+}
+
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct V1TransactionSansSigs(pub V1Transaction);
+
+impl Deref for V1TransactionSansSigs {
+    type Target = V1Transaction;
+
+    fn deref(&self) -> &Self::Target { &self.0 }
+}
+
+impl Encodable for V1TransactionSansSigs {
+    fn encode(&self, encoder: &mut Encoder) {
+        encoder.write_len_prefixed_vec(&self.siacoin_inputs);
+        
+        encoder.write_u64(self.siacoin_outputs.len() as u64);
+        for so in &self.siacoin_outputs {
+            SiacoinOutputVersion::V1(so).encode(encoder);
+        }
+        encoder.write_len_prefixed_vec(&self.file_contracts);
+        encoder.write_len_prefixed_vec(&self.file_contract_revisions);
+        encoder.write_len_prefixed_vec(&self.storage_proofs);
+        encoder.write_len_prefixed_vec(&self.file_contract_revisions);
+        encoder.write_len_prefixed_vec(&self.siafund_inputs);
+
+        encoder.write_u64(self.siafund_outputs.len() as u64);
+        for so in &self.siafund_outputs {
+            SiafundOutputVersion::V1(so).encode(encoder);
+        }
+
+        encoder.write_u64(self.miner_fees.len() as u64);
+        for so in &self.miner_fees {
+            CurrencyVersion::V1(so).encode(encoder);
+        }
+
+        match &self.arbitrary_data {
+            Some(data) => data.encode(encoder),
+            None => encoder.write_u64(0u64),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 #[serde(default, deny_unknown_fields, rename_all = "camelCase")]
 pub struct V2Transaction {
