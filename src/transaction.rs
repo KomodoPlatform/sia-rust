@@ -256,7 +256,7 @@ impl Encodable for SiafundInputV2 {
 
 // https://github.com/SiaFoundation/core/blob/6c19657baf738c6b730625288e9b5413f77aa659/types/types.go#L197-L198
 #[serde_as]
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct SiacoinInputV1 {
     #[serde(rename = "parentID")]
     #[serde_as(as = "FromInto<ScoidH256>")]
@@ -342,7 +342,7 @@ pub struct SiacoinOutput {
     pub address: Address,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(default)]
 pub struct CoveredFields {
@@ -360,7 +360,7 @@ pub struct CoveredFields {
 }
 
 #[serde_as]
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransactionSignature {
     #[serde_as(as = "FromInto<PrefixedH256>")]
@@ -374,7 +374,7 @@ pub struct TransactionSignature {
     pub signature: V1Signature,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(transparent)]
 pub struct V1Signature(Vec<u8>);
 
@@ -405,7 +405,7 @@ impl<'de> Deserialize<'de> for V1Signature {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct FileContract {
     pub filesize: u64,
     pub file_merkle_root: H256,
@@ -544,7 +544,7 @@ impl Encodable for Attestation {
     }
 }
 #[serde_as]
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct StorageProof {
     pub parent_id: FileContractID,
     pub leaf: HexArray64,
@@ -565,7 +565,7 @@ impl Encodable for StorageProof {
 type SiafundOutputID = H256;
 type FileContractID = H256;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct FileContractRevision {
     pub parent_id: FileContractID,
     pub unlock_condition: UnlockCondition,
@@ -594,7 +594,7 @@ impl Encodable for FileContractRevision {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct SiafundInputV1 {
     pub parent_id: SiafundOutputID,
     pub unlock_condition: UnlockCondition,
@@ -834,7 +834,7 @@ pub struct FileContractV1 {
     pub revision_number: u64,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(transparent)]
 pub struct V1ArbitraryData {
     pub data: Vec<Vec<u8>>,
@@ -854,7 +854,7 @@ While implementing this, we faced two options.
 We chose the latter as it allows for simpler encoding of this struct.
 It is possible this may need to change in later implementations.
 */
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(default, deny_unknown_fields, rename_all = "camelCase")]
 pub struct V1Transaction {
     pub siacoin_inputs: Vec<SiacoinInputV1>,

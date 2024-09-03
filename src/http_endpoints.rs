@@ -43,7 +43,7 @@ impl SiaApiRequest for ConsensusTipRequest {
 
     #[cfg(target_arch = "wasm32")]
     fn to_http_request(&self, client: &HttpClient, base_url: &Url) -> Result<FetchRequest, SiaApiClientError> {
-        Ok(FetchRequest::get(&self.endpoint_url(base_url)?.to_string()).header_map(client.headers.clone()))
+        Ok(FetchRequest::get(self.endpoint_url(base_url)?.as_ref()).header_map(client.headers.clone()))
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -80,7 +80,7 @@ impl SiaApiRequest for AddressBalanceRequest {
 
     #[cfg(target_arch = "wasm32")]
     fn to_http_request(&self, client: &HttpClient, base_url: &Url) -> Result<FetchRequest, SiaApiClientError> {
-        Ok(FetchRequest::get(&self.endpoint_url(base_url)?.to_string()).header_map(client.headers.clone()))
+        Ok(FetchRequest::get(self.endpoint_url(base_url)?.as_ref()).header_map(client.headers.clone()))
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -119,7 +119,7 @@ impl SiaApiRequest for EventsTxidRequest {
 
     #[cfg(target_arch = "wasm32")]
     fn to_http_request(&self, client: &HttpClient, base_url: &Url) -> Result<FetchRequest, SiaApiClientError> {
-        Ok(FetchRequest::get(&self.endpoint_url(base_url)?.to_string()).header_map(client.headers.clone()))
+        Ok(FetchRequest::get(self.endpoint_url(base_url)?.as_ref()).header_map(client.headers.clone()))
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -151,7 +151,7 @@ impl SiaApiRequest for AddressesEventsRequest {
 
     #[cfg(target_arch = "wasm32")]
     fn to_http_request(&self, client: &HttpClient, base_url: &Url) -> Result<FetchRequest, SiaApiClientError> {
-        Ok(FetchRequest::get(&self.endpoint_url(base_url)?.to_string()).header_map(client.headers.clone()))
+        Ok(FetchRequest::get(self.endpoint_url(base_url)?.as_ref()).header_map(client.headers.clone()))
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -184,7 +184,7 @@ impl SiaApiRequest for AddressUtxosRequest {
 
     #[cfg(target_arch = "wasm32")]
     fn to_http_request(&self, client: &HttpClient, base_url: &Url) -> Result<FetchRequest, SiaApiClientError> {
-        Ok(FetchRequest::get(&self.endpoint_url(base_url)?.to_string()).header_map(client.headers.clone()))
+        Ok(FetchRequest::get(self.endpoint_url(base_url)?.as_ref()).header_map(client.headers.clone()))
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -217,7 +217,7 @@ impl SiaApiRequest for TxpoolBroadcastRequest {
     #[cfg(target_arch = "wasm32")]
     fn to_http_request(&self, _client: &HttpClient, base_url: &Url) -> Result<FetchRequest, SiaApiClientError> {
         let json_body = serde_json::to_string(self).map_err(SiaApiClientError::SerializationError)?;
-        Ok(FetchRequest::post(&self.endpoint_url(base_url)?.to_string()).body_utf8(json_body))
+        Ok(FetchRequest::post(self.endpoint_url(base_url)?.as_ref()).body_utf8(json_body))
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -252,7 +252,7 @@ impl SiaApiRequest for TxpoolFeeRequest {
 
     #[cfg(target_arch = "wasm32")]
     fn to_http_request(&self, client: &HttpClient, base_url: &Url) -> Result<FetchRequest, SiaApiClientError> {
-        Ok(FetchRequest::get(&self.endpoint_url(base_url)?.to_string()).header_map(client.headers.clone()))
+        Ok(FetchRequest::get(self.endpoint_url(base_url)?.as_ref()).header_map(client.headers.clone()))
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -278,7 +278,7 @@ impl SiaApiRequest for TxpoolTransactionsRequest {
 
     #[cfg(target_arch = "wasm32")]
     fn to_http_request(&self, client: &HttpClient, base_url: &Url) -> Result<FetchRequest, SiaApiClientError> {
-        Ok(FetchRequest::get(&self.endpoint_url(base_url)?.to_string()).header_map(client.headers.clone()))
+        Ok(FetchRequest::get(self.endpoint_url(base_url)?.as_ref()).header_map(client.headers.clone()))
     }
 
     #[cfg(not(target_arch = "wasm32"))]
