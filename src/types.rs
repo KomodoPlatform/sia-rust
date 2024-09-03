@@ -213,6 +213,7 @@ impl Encodable for ChainIndex {
 pub struct EventV1Transaction {
     pub transaction: V1Transaction,
     pub spent_siacoin_elements: Vec<SiacoinElement>,
+    #[serde(default)]
     pub spent_siafund_elements: Vec<SiafundElement>,
 }
 

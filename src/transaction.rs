@@ -180,6 +180,7 @@ pub struct StateElement {
     #[serde_as(as = "FromInto<PrefixedH256>")]
     pub id: H256,
     pub leaf_index: u64,
+    #[serde(default)]
     #[serde_as(as = "Option<Vec<FromInto<PrefixedH256>>>")]
     pub merkle_proof: Option<Vec<H256>>,
 }
