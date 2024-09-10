@@ -1,3 +1,4 @@
+use crate::http::endpoints::{AddressBalanceRequest, AddressBalanceResponse, ConsensusTipRequest, SiaApiRequest};
 use crate::types::Address;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
@@ -5,10 +6,14 @@ use derive_more::Display;
 use http::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use serde::{Deserialize, Serialize};
 use url::Url;
+use common::log::info;
 
 #[cfg(not(target_arch = "wasm32"))] use core::time::Duration;
 #[cfg(not(target_arch = "wasm32"))]
 use reqwest::{Client, Error as ReqwestError};
+
+#[cfg(target_arch = "wasm32")]
+use crate::http::wasm::FetchRequest;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SiaHttpConf {
