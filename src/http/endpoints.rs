@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 #[cfg(target_arch = "wasm32")]
-use mm2_net::wasm::http::FetchRequest; // FIXME this introduces a circular dependency
+use crate::http::wasm::FetchRequest;
+
 #[cfg(not(target_arch = "wasm32"))]
 use reqwest::{Client, Method, Request};
 

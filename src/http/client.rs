@@ -6,14 +6,11 @@ use derive_more::Display;
 use http::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use serde::{Deserialize, Serialize};
 use url::Url;
-use common::log::info;
 
 #[cfg(not(target_arch = "wasm32"))] use core::time::Duration;
 #[cfg(not(target_arch = "wasm32"))]
 use reqwest::{Client, Error as ReqwestError};
 
-#[cfg(target_arch = "wasm32")]
-use crate::http::wasm::FetchRequest;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SiaHttpConf {
@@ -84,21 +81,22 @@ impl SiaApiClient {
     where
         Self: Send,
     {
-        let req = request.to_http_request(&self.client, &self.conf.url)?;
-        let (status, response_string) = req
-            .request_str()
-            .await
-            .map_err(|e| SiaApiClientError::FetchError(e.to_string()))?;
+        let _req = request.to_http_request(&self.client, &self.conf.url)?;
+        todo!()
+        // let (status, response_string) = req
+        //     .request_str()
+        //     .await
+        //     .map_err(|e| SiaApiClientError::FetchError(e.to_string()))?;
 
-        match status.as_u16() {
-            200 => Ok(serde_json::from_str(&response_string).map_err(SiaApiClientError::SerializationError)?),
-            204 => Ok(
-                R::is_empty_response().ok_or(SiaApiClientError::UnexpectedEmptyResponse {
-                    expected_type: std::any::type_name::<R::Response>().to_string(),
-                })?,
-            ),
-            _ => Err(SiaApiClientError::UnexpectedHttpStatus(status.as_u16())),
-        }
+        // match status.as_u16() {
+        //     200 => Ok(serde_json::from_str(&response_string).map_err(SiaApiClientError::SerializationError)?),
+        //     204 => Ok(
+        //         R::is_empty_response().ok_or(SiaApiClientError::UnexpectedEmptyResponse {
+        //             expected_type: std::any::type_name::<R::Response>().to_string(),
+        //         })?,
+        //     ),
+        //     _ => Err(SiaApiClientError::UnexpectedHttpStatus(status.as_u16())),
+        // }
     }
 
     /// General method for dispatching requests, handling routing and response parsing.
@@ -153,6 +151,17 @@ mod wasm_tests {
 
     fn init_test_env() {
         register_wasm_log();
+    }
+
+
+    #[wasm_bindgen_test]
+    async fn test_dispatcher_invalid_base_url() {
+        let bad_conf = SiaHttpConf {
+            url: Url::parse("http://user:password@example.com").unwrap(),
+            password: "password".to_string(),
+        };
+
+        let client = SiaApiClient::new(bad_conf).await.unwrap();
     }
 
     #[wasm_bindgen_test]
