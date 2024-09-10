@@ -1,4 +1,3 @@
-use crate::http_endpoints::{AddressBalanceRequest, AddressBalanceResponse, ConsensusTipRequest, SiaApiRequest};
 use crate::types::Address;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
