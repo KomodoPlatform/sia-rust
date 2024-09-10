@@ -27,9 +27,11 @@ common = { path = "../../common" }
 once_cell = "1.18.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen = "0.2.86"
 getrandom = { version = "0.2.9", features = ["js"] }
-web-sys = { version = "0.3.55", features = ["RequestMode"] }
+js-sys = "0.3.27"
+wasm-bindgen = "0.2.86"
+wasm-bindgen-futures = "0.4.21"
+web-sys = { version = "0.3.55", features = ["Request", "RequestInit", "RequestMode", "Window"] }
 # web-sys = { version = "0.3.55", features = ["console", "Headers", "Request", "RequestInit", "RequestMode", "Response", "Window"] }
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
