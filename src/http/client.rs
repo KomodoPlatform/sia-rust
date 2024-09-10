@@ -158,7 +158,7 @@ mod wasm_tests {
     #[wasm_bindgen_test]
     async fn test_sia_wasm_client_wip() {
         use crate::transaction::V2Transaction;
-        use crate::http_endpoints::TxpoolBroadcastRequest;
+        use crate::http::endpoints::TxpoolBroadcastRequest;
         init_test_env();
         let client = SiaApiClient::new(CONF.clone()).await.unwrap();
 
