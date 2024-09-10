@@ -1,4 +1,4 @@
-use crate::http_client::{HttpClient, SiaApiClientError};
+use crate::http::client::{HttpClient, SiaApiClientError};
 use crate::transaction::{SiacoinElement, V1Transaction, V2Transaction};
 use crate::types::{Address, BlockID, Currency, Event, H256};
 use serde::de::DeserializeOwned;
