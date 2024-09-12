@@ -84,7 +84,10 @@ impl SiaApiClient {
     where
         Self: Send,
     {
-        let _req = request.to_http_request(&self.client, &self.conf.url)?;
+        let req = request.to_http_request(&self.client, &self.conf.url)?;
+        let resp = req.execute().await.map_err(SiaApiClientError::WasmFetchError)?;
+
+        // TODO match resp.status
         todo!()
     }
 
