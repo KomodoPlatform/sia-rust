@@ -6,6 +6,7 @@ use derive_more::Display;
 use http::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use serde::{Deserialize, Serialize};
 use url::Url;
+use thiserror::Error;
 
 #[cfg(not(target_arch = "wasm32"))] use core::time::Duration;
 #[cfg(not(target_arch = "wasm32"))]
@@ -35,19 +36,19 @@ pub struct SiaApiClient {
 
 // TODO clean up reqwest errors
 // update reqwest to latest for `.with_url()` method
-#[derive(Debug, Display)]
+#[derive(Debug, Display, Error)]
 pub enum SiaApiClientError {
     BuildError(String),
-    UrlParse(url::ParseError),
-    UnexpectedHttpStatus(u16),
-    SerializationError(serde_json::Error),
+    UrlParse(#[from] url::ParseError),
+    UnexpectedHttpStatus(http::StatusCode),
+    SerializationError(#[from] serde_json::Error),
     UnexpectedEmptyResponse {
         expected_type: String,
     },
     #[cfg(target_arch = "wasm32")]
-    FetchError(String),
+    WasmFetchError(#[from] FetchError),
     #[cfg(not(target_arch = "wasm32"))]
-    ReqwestError(ReqwestError),
+    ReqwestError(#[from] ReqwestError),
 }
 
 /// Implements the methods for sending specific requests and handling their responses.
@@ -118,7 +119,7 @@ impl SiaApiClient {
                     expected_type: std::any::type_name::<R::Response>().to_string(),
                 })
             },
-            _ => Err(SiaApiClientError::UnexpectedHttpStatus(response.status().as_u16())),
+            _ => Err(SiaApiClientError::UnexpectedHttpStatus(response.status())),
         }
     }
 
