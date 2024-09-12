@@ -1,4 +1,6 @@
 use crate::http::endpoints::{AddressBalanceRequest, AddressBalanceResponse, ConsensusTipRequest, SiaApiRequest};
+#[cfg(target_arch = "wasm32")]
+use crate::http::wasm::FetchError;
 use crate::types::Address;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
