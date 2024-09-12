@@ -13,7 +13,7 @@ use core::time::Duration;
 #[derive(Clone)]
 pub struct NativeClient {
     pub client: ReqwestClient,
-    pub url: Url,
+    pub base_url: Url,
 }
 
 pub struct NativeDataRequest(pub reqwest::Request);
