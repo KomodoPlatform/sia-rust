@@ -1,10 +1,14 @@
-use http::{HeaderMap, StatusCode};
-use js_sys::Uint8Array;
 use derive_more::Display;
+use http::{HeaderMap, StatusCode};
+use futures::channel::oneshot;
+use js_sys::Uint8Array;
 use std::collections::HashMap;
-use web_sys::{Request as JsRequest, Response as JsResponse, RequestInit, Window, WorkerGlobalScope};
+use serde_json::{Value as JsonValue};
+use serde_wasm_bindgen;
+use thiserror::Error;
 use wasm_bindgen::{JsCast, JsValue};
-use wasm_bindgen_futures::JsFuture;
+use wasm_bindgen_futures::{JsFuture, spawn_local};
+use web_sys::{Request as JsRequest, RequestInit, Response as JsResponse, Window, WorkerGlobalScope};
 
 /// This is loosely based on the "mm2_net" crate found within Komodo DeFi Framework.
 
@@ -19,26 +23,24 @@ pub fn stringify_js_error(error: &JsValue) -> String {
         .unwrap_or_default()
 }
 
-#[derive(Debug, Display)]
+#[derive(Debug, Display, Error)]
 pub enum FetchError {
     #[display(fmt = "Error deserializing '{}' response: {}", uri, error)]
-    ErrorDeserializing { uri: String, error: String },
+    ErrorDeserializing {
+        uri: String,
+        error: String,
+    },
     #[display(fmt = "Transport '{}' error: {}", uri, error)]
-    Transport { uri: String, error: String },
-    InvalidStatusCode(http::status::InvalidStatusCode),
+    Transport {
+        uri: String,
+        error: String,
+    },
+    InvalidStatusCode(#[from] http::status::InvalidStatusCode),
     InvalidHeadersInResponse(String),
+    InvalidBody(String),
     #[display(fmt = "Internal error: {}", _0)]
     Internal(String),
 }
-
-impl From<http::status::InvalidStatusCode> for FetchError {
-    fn from(e: http::status::InvalidStatusCode) -> Self {
-        FetchError::InvalidStatusCode(e)
-    }
-}
-
-/// The result containing either a pair of (HTTP status code, body) or a stringified error.
-pub type FetchResult<T> = Result<(StatusCode, T), FetchError>;
 
 enum FetchMethod {
     Get,
@@ -54,51 +56,80 @@ impl FetchMethod {
     }
 }
 
+#[derive(Clone)]
 pub enum Body {
     Utf8(String),
+    Json(JsonValue),
     Bytes(Vec<u8>),
 }
 
 impl Body {
-    fn into_js_value(self) -> JsValue {
+    fn into_js_value(self) -> Result<JsValue, FetchError> {
         match self {
-            Body::Utf8(string) => JsValue::from_str(&string),
+            Body::Utf8(string) => Ok(JsValue::from_str(&string)),
             Body::Bytes(bytes) => {
                 let js_array = Uint8Array::from(bytes.as_slice());
-                js_array.into()
+                Ok(js_array.into())
+            },
+            Body::Json(json) => {
+                serde_wasm_bindgen::to_value(&json)
+                    .map_err(|e| FetchError::InvalidBody(format!("Failed to serialize body to Json. err: {}", e).to_string()))
             },
         }
     }
 }
 
+pub type FetchResult = Result<FetchResponse, FetchError>;
+
 pub struct FetchResponse {
     pub status: StatusCode,
     pub headers: HashMap<String, String>,
-    pub body: Option<Body>
+    pub body: Option<Body>,
 }
 
 impl FetchResponse {
     pub async fn from_js_response(response: JsResponse) -> Result<Self, FetchError> {
+        let status = StatusCode::from_u16(response.status()).map_err(FetchError::InvalidStatusCode)?;
 
-        let _status = StatusCode::from_u16(response.status()).map_err(FetchError::InvalidStatusCode)?;
-        todo!()
-         // TODO need to bump web-sys version to use .entires()
-        // let headers = response.headers().entries();
+        // TODO newer versions of js_sys allow direct iter over response.headers().entries()
+        let header_js_map = js_sys::Map::from(JsValue::from(response.headers()));
+        let mut header_map = HashMap::new();
 
-        // let mut header_map = HashMap::new();
-        // for header in headers {
-        //     let header = header?;
-        //     let key = header.get(0).as_string().map_err(|e| FetchError::InvalidHeadersInResponse("key is not utf-8".to_string()))?;
-        //     let value = header.get(1).as_string().map_err(|e| FetchError::InvalidHeadersInResponse("value is not utf-8".to_string()))?;
-        //     header_map.insert(key, value);
-        // }
+        for header in header_js_map.entries() {
+            let header = header.map_err(|e| FetchError::InvalidHeadersInResponse(stringify_js_error(&e)))?;
+            let kv = js_sys::Array::from(&header);
+            let key = kv.get(0).as_string().ok_or(FetchError::InvalidHeadersInResponse(
+                "Key is not utf-8 string".to_string(),
+            ))?;
+            let value = kv.get(1).as_string().ok_or(FetchError::InvalidHeadersInResponse(
+                "Value is not utf-8 string".to_string(),
+            ))?;
+            header_map.insert(key, value);
+        }
 
-        // let body = None; // TODO
-        // Ok(FetchResponse {
-        //     status,
-        //     headers: header_map,
-        //     body: None,
-        // })
+        let content_type = header_map.get("content-type").map(|v| v.as_str()).unwrap_or("");
+
+        let body = if content_type.contains("application/json")
+            || content_type.contains("text/")
+        {
+            let text_promise = response.text().map_err(|e| FetchError::Internal(stringify_js_error(&e)))?;
+            let text_js_value = JsFuture::from(text_promise).await.map_err(|e| FetchError::Internal(stringify_js_error(&e)))?;
+            let text = text_js_value.as_string().ok_or_else(|| FetchError::InvalidBody("Failed to convert body to string".to_string()))?;
+            Some(Body::Utf8(text))
+        } else if content_type.contains("application/octet-stream") {
+            let buffer_promise = response.array_buffer().map_err(|e| FetchError::Internal(stringify_js_error(&e)))?;
+            let buffer_js_value = JsFuture::from(buffer_promise).await.map_err(|e| FetchError::Internal(stringify_js_error(&e)))?;
+            let array = js_sys::Uint8Array::new(&buffer_js_value);
+            Some(Body::Bytes(array.to_vec()))
+        } else {
+            // No body or unsupported content-type
+            None
+        };
+        Ok(FetchResponse {
+            status,
+            headers: header_map,
+            body,
+        })
     }
 }
 
@@ -106,7 +137,7 @@ pub struct FetchRequest {
     uri: String,
     method: FetchMethod,
     headers: HashMap<String, String>,
-    body: Option<Body>
+    body: Option<Body>,
 }
 
 impl FetchRequest {
@@ -142,16 +173,17 @@ impl FetchRequest {
         self
     }
 
-    pub async fn fetch(request: Self) -> Result<FetchResponse, FetchError> {
+    async fn fetch(request: Self) -> FetchResult {
         let uri = request.uri;
 
         let mut req_init = RequestInit::new();
         req_init.method(request.method.as_str());
-        req_init.body(request.body.map(Body::into_js_value).as_ref());
+
+        let body = request.body.map(|b| b.into_js_value()).transpose()?;
+        req_init.body(body.as_ref());
 
         let js_request = JsRequest::new_with_str_and_init(&uri, &req_init)
             .map_err(|e| FetchError::Internal(stringify_js_error(&e)))?;
-
 
         for (hkey, hval) in request.headers {
             js_request
@@ -179,6 +211,24 @@ impl FetchRequest {
 
         let fetch_response = FetchResponse::from_js_response(js_response).await?;
         Ok(fetch_response)
+    }
+
+    pub async fn execute(self) -> FetchResult {
+        let (tx, rx) = oneshot::channel();
+        Self::spawn_fetch_request(self, tx);
+        match rx.await {
+            Ok(res) => res,
+            Err(_e) => Err(FetchError::Internal("Spawned future has been canceled".to_owned())),
+        }
+    }
+
+    fn spawn_fetch_request(request: Self, tx: oneshot::Sender<FetchResult>) {
+        let fut = async move {
+            let result = Self::fetch(request).await;
+            tx.send(result).ok();
+        };
+
+        spawn_local(fut);
     }
 }
 
@@ -218,8 +268,11 @@ mod tests {
         let uri = "http://user:password@example.com";
         let mut req_init = RequestInit::new();
         req_init.method("GET");
-        let err = JsRequest::new_with_str_and_init(&uri, &req_init).map_err(|e| FetchError::Internal(stringify_js_error(&e))).unwrap_err();
-        assert!(err.to_string().contains("Request cannot be constructed from a URL that includes credentials"));
+        let err = JsRequest::new_with_str_and_init(&uri, &req_init)
+            .map_err(|e| FetchError::Internal(stringify_js_error(&e)))
+            .unwrap_err();
+        assert!(err
+            .to_string()
+            .contains("Request cannot be constructed from a URL that includes credentials"));
     }
-
 }
