@@ -1,45 +1,100 @@
-use crate::http::endpoints::{AddressBalanceRequest, AddressBalanceResponse, ConsensusTipRequest, SiaApiRequest};
-#[cfg(target_arch = "wasm32")]
-use crate::http::wasm::FetchError;
+use crate::http::endpoints::{AddressBalanceResponse, SiaApiRequest};
+
 use crate::types::Address;
-use base64::engine::general_purpose::STANDARD as BASE64;
-use base64::Engine;
+use async_trait::async_trait;
 use derive_more::Display;
-use http::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use serde::{Deserialize, Serialize};
 use url::Url;
 use thiserror::Error;
+use std::collections::HashMap;
+use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 
-#[cfg(not(target_arch = "wasm32"))] use core::time::Duration;
+
 #[cfg(not(target_arch = "wasm32"))]
-use reqwest::{Client, Error as ReqwestError};
+pub mod native;
 
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct SiaHttpConf {
-    pub url: Url,
-    pub password: String,
-}
+#[cfg(not(target_arch = "wasm32"))]
+use reqwest::Error as ReqwestError;
 
 #[cfg(target_arch = "wasm32")]
-#[derive(Clone, Debug)]
-pub struct HttpClient {
-    pub headers: HeaderMap,
+use crate::http::wasm::FetchError;
+
+pub struct EndpointSchema {
+    pub path_schema: String,                        // The endpoint path template
+    pub path_params: Option<HashMap<String, String>>, // Optional parameters to replace in the path
+    pub query_params: Option<HashMap<String, String>>, // Optional query parameters
+    pub method: http::Method,                             // The HTTP method (e.g., GET, POST)
+}
+
+impl EndpointSchema {
+    // Safely build the URL using percent-encoding for path params
+    pub fn build_url(&self, base_url: &Url) -> Result<Url, ApiClientError> {
+        let mut path = self.path_schema.clone();
+
+        // Replace placeholders in the path with encoded values if path_params are provided
+        if let Some(params) = &self.path_params {
+            for (key, value) in params {
+                let encoded_value = utf8_percent_encode(value, NON_ALPHANUMERIC).to_string();
+                path = path.replace(&format!("{{{}}}", key), &encoded_value);  // Use {} for parameters
+            }
+        }
+
+        // Combine base_url with the constructed path
+        let mut url = base_url.join(&path).map_err(ApiClientError::UrlParse)?;
+
+        // Add query parameters if any
+        if let Some(query_params) = &self.query_params {
+            let mut pairs = url.query_pairs_mut();
+            for (key, value) in query_params {
+                let encoded_value = utf8_percent_encode(value, NON_ALPHANUMERIC).to_string();
+                pairs.append_pair(key, &encoded_value);
+            }
+        }
+
+        Ok(url)
+    }
+}
+
+#[async_trait]
+pub trait ApiClient: Clone {
+    type Request;
+    type Response;
+
+    async fn new(conf: ClientConf) -> Result<Self, ApiClientError> where Self: Sized;
+
+    fn process_schema(&self, schema: EndpointSchema) -> Result<Self::Request, ApiClientError>;
+
+    fn to_data_request<R: SiaApiRequest>(&self, request: R) -> Result<Self::Request, ApiClientError>;
+
+    async fn execute_request(&self, request: Self::Request) -> Result<Self::Response, ApiClientError>;
+
+    // A generic dispatcher should be possible if Execute::Response is a serde deserializable type
+    async fn dispatcher<R: SiaApiRequest>(&self, request: R) -> Result<R::Response, ApiClientError>;
+}
+
+#[async_trait]
+pub trait ApiClientHelpers {
+    async fn current_height(&self) -> Result<u64, ApiClientError>;
+
+    async fn address_balance(&self, address: Address) -> Result<AddressBalanceResponse, ApiClientError>;
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub type HttpClient = Client;
 
-#[derive(Clone, Debug)]
-pub struct SiaApiClient {
-    client: HttpClient,
-    conf: SiaHttpConf,
+
+// FIXME this can add a generic argument to allow client specific configs
+// pub client_specific_config: Option<T>,
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ClientConf {
+    pub url: Url,
+    pub password: String, // FIXME must be Option
+    pub timeout: Option<u64>,
 }
 
 // TODO clean up reqwest errors
 // update reqwest to latest for `.with_url()` method
 #[derive(Debug, Display, Error)]
-pub enum SiaApiClientError {
+pub enum ApiClientError {
     BuildError(String),
     UrlParse(#[from] url::ParseError),
     UnexpectedHttpStatus(http::StatusCode),
@@ -50,80 +105,10 @@ pub enum SiaApiClientError {
     #[cfg(target_arch = "wasm32")]
     WasmFetchError(#[from] FetchError),
     #[cfg(not(target_arch = "wasm32"))]
-    ReqwestError(#[from] ReqwestError),
+    ReqwestError(#[from] ReqwestError), // FIXME remove this; it should be generalized enough to not need arch-specific error types
 }
 
-/// Implements the methods for sending specific requests and handling their responses.
-impl SiaApiClient {
-    /// Constructs a new instance of the API client using the provided base URL and password for authentication.
-    pub async fn new(conf: SiaHttpConf) -> Result<Self, SiaApiClientError> {
-        let mut headers = HeaderMap::new();
-        let auth_value = format!("Basic {}", BASE64.encode(format!(":{}", conf.password)));
-        headers.insert(
-            AUTHORIZATION,
-            HeaderValue::from_str(&auth_value).map_err(|e| SiaApiClientError::BuildError(e.to_string()))?,
-        );
-
-        #[cfg(not(target_arch = "wasm32"))]
-        let client = Client::builder()
-            .default_headers(headers)
-            .timeout(Duration::from_secs(10))
-            .build()
-            .map_err(SiaApiClientError::ReqwestError)?;
-
-        #[cfg(target_arch = "wasm32")]
-        let client = HttpClient { headers };
-
-        let ret = SiaApiClient { client, conf };
-        ret.dispatcher(ConsensusTipRequest).await?;
-        Ok(ret)
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    pub async fn dispatcher<R: SiaApiRequest>(&self, request: R) -> Result<R::Response, SiaApiClientError>
-    where
-        Self: Send,
-    {
-        let req = request.to_http_request(&self.client, &self.conf.url)?;
-        let resp = req.execute().await.map_err(SiaApiClientError::WasmFetchError)?;
-
-        // TODO match resp.status
-        todo!()
-    }
-
-    /// General method for dispatching requests, handling routing and response parsing.
-    #[cfg(not(target_arch = "wasm32"))]
-    pub async fn dispatcher<R: SiaApiRequest>(&self, request: R) -> Result<R::Response, SiaApiClientError> {
-        let req = request.to_http_request(&self.client, &self.conf.url)?;
-        let response = self
-            .client
-            .execute(req)
-            .await
-            .map_err(SiaApiClientError::ReqwestError)?;
-        match response.status() {
-            reqwest::StatusCode::OK => Ok(response
-                .json::<R::Response>()
-                .await
-                .map_err(SiaApiClientError::ReqwestError)?),
-            reqwest::StatusCode::NO_CONTENT => {
-                R::is_empty_response().ok_or(SiaApiClientError::UnexpectedEmptyResponse {
-                    expected_type: std::any::type_name::<R::Response>().to_string(),
-                })
-            },
-            _ => Err(SiaApiClientError::UnexpectedHttpStatus(response.status())),
-        }
-    }
-
-    pub async fn current_height(&self) -> Result<u64, SiaApiClientError> {
-        Ok(self.dispatcher(ConsensusTipRequest).await?.height)
-    }
-
-    pub async fn address_balance(&self, address: Address) -> Result<AddressBalanceResponse, SiaApiClientError> {
-        self.dispatcher(AddressBalanceRequest { address }).await
-    }
-}
-
-#[cfg(test)]
+#[cfg(all(target_arch = "wasm32", test))]
 mod wasm_tests {
     use super::*;
     use common::log::info;
@@ -134,7 +119,7 @@ mod wasm_tests {
 
     wasm_bindgen_test_configure!(run_in_browser);
 
-    static CONF: Lazy<SiaHttpConf> = Lazy::new(|| SiaHttpConf {
+    static CONF: Lazy<ClientConf> = Lazy::new(|| ClientConf {
         url: Url::parse("https://sia-walletd.komodo.earth/").unwrap(),
         password: "password".to_string(),
     });
@@ -143,7 +128,7 @@ mod wasm_tests {
 
     #[wasm_bindgen_test]
     async fn test_dispatcher_invalid_base_url() {
-        let bad_conf = SiaHttpConf {
+        let bad_conf = ClientConf {
             url: Url::parse("http://user:password@example.com").unwrap(),
             password: "password".to_string(),
         };
