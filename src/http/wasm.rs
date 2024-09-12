@@ -11,6 +11,8 @@ use wasm_bindgen_futures::{JsFuture, spawn_local};
 use web_sys::{Request as JsRequest, RequestInit, Response as JsResponse, Window, WorkerGlobalScope};
 
 /// This is loosely based on the "mm2_net" crate found within Komodo DeFi Framework.
+/// There is some extra work involved here because `Send` is required for Komodo DeFi Framework.
+
 
 /// Get only the first line of the error.
 /// Generally, the `JsValue` error contains the stack trace of an error.
