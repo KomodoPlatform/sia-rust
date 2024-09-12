@@ -4,6 +4,7 @@ use crate::types::Address;
 use async_trait::async_trait;
 use derive_more::Display;
 use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
 use url::Url;
 use thiserror::Error;
 use std::collections::HashMap;
@@ -20,10 +21,64 @@ use reqwest::Error as ReqwestError;
 use crate::http::wasm::FetchError;
 
 pub struct EndpointSchema {
-    pub path_schema: String,                        // The endpoint path template
+    // FIXME path_schema can probably be &'static str
+    pub path_schema: String,                        // The endpoint path template 
     pub path_params: Option<HashMap<String, String>>, // Optional parameters to replace in the path
     pub query_params: Option<HashMap<String, String>>, // Optional query parameters
     pub method: http::Method,                             // The HTTP method (e.g., GET, POST)
+    pub body: Body,                               // Optional body for POST and POST-like requests
+}
+
+pub struct EndpointSchemaBuilder {
+    path_schema: String,
+    path_params: Option<HashMap<String, String>>,
+    query_params: Option<HashMap<String, String>>,
+    method: http::Method,
+    body: Body,
+}
+
+impl EndpointSchemaBuilder {
+    pub fn new(path_schema: String, method: http::Method) -> Self {
+        Self {
+            path_schema,
+            path_params: None,
+            query_params: None,
+            method,
+            body: Body::None,
+        }
+    }
+
+    pub fn path_params(mut self, path_params: HashMap<String, String>) -> Self {
+        self.path_params = Some(path_params);
+        self
+    }
+
+    pub fn query_params(mut self, query_params: HashMap<String, String>) -> Self {
+        self.query_params = Some(query_params);
+        self
+    }
+
+    pub fn body(mut self, body: Body) -> Self {
+        self.body = body;
+        self
+    }
+
+    pub fn build(self) -> EndpointSchema {
+        EndpointSchema {
+            path_schema: self.path_schema,
+            path_params: self.path_params,
+            query_params: self.query_params,
+            method: self.method,
+            body: self.body,
+        }
+    }
+}
+
+pub enum Body {
+    Utf8(String),
+    Json(JsonValue),
+    Bytes(Vec<u8>),
+    None
 }
 
 impl EndpointSchema {
