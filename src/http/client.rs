@@ -137,25 +137,20 @@ impl SiaApiClient {
 #[cfg(test)]
 mod wasm_tests {
     use super::*;
-    use wasm_bindgen::prelude::*;
-    use wasm_bindgen_test::*;
     use common::log::info;
     use common::log::wasm_log::register_wasm_log;
     use once_cell::sync::Lazy;
+    use wasm_bindgen::prelude::*;
+    use wasm_bindgen_test::*;
 
     wasm_bindgen_test_configure!(run_in_browser);
 
-    static CONF: Lazy<SiaHttpConf> = Lazy::new(|| {
-        SiaHttpConf {
-            url: Url::parse("https://sia-walletd.komodo.earth/").unwrap(),
-            password: "password".to_string(),
-        }
+    static CONF: Lazy<SiaHttpConf> = Lazy::new(|| SiaHttpConf {
+        url: Url::parse("https://sia-walletd.komodo.earth/").unwrap(),
+        password: "password".to_string(),
     });
 
-    fn init_test_env() {
-        register_wasm_log();
-    }
-
+    fn init_test_env() { register_wasm_log(); }
 
     #[wasm_bindgen_test]
     async fn test_dispatcher_invalid_base_url() {
@@ -169,8 +164,8 @@ mod wasm_tests {
 
     #[wasm_bindgen_test]
     async fn test_sia_wasm_client_wip() {
-        use crate::transaction::V2Transaction;
         use crate::http::endpoints::TxpoolBroadcastRequest;
+        use crate::transaction::V2Transaction;
         init_test_env();
         let client = SiaApiClient::new(CONF.clone()).await.unwrap();
 
@@ -220,12 +215,11 @@ mod wasm_tests {
             "minerFee": "10000000000000000000"
         }
         "#;
-        let tx : V2Transaction = serde_json::from_str(tx_str).unwrap();
+        let tx: V2Transaction = serde_json::from_str(tx_str).unwrap();
         let req = TxpoolBroadcastRequest {
-            transactions: vec!(),
-            v2transactions: vec!(tx),
+            transactions: vec![],
+            v2transactions: vec![tx],
         };
         let resp = client.dispatcher(req).await.unwrap();
-
     }
 }
