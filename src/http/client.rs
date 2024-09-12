@@ -86,20 +86,6 @@ impl SiaApiClient {
     {
         let _req = request.to_http_request(&self.client, &self.conf.url)?;
         todo!()
-        // let (status, response_string) = req
-        //     .request_str()
-        //     .await
-        //     .map_err(|e| SiaApiClientError::FetchError(e.to_string()))?;
-
-        // match status.as_u16() {
-        //     200 => Ok(serde_json::from_str(&response_string).map_err(SiaApiClientError::SerializationError)?),
-        //     204 => Ok(
-        //         R::is_empty_response().ok_or(SiaApiClientError::UnexpectedEmptyResponse {
-        //             expected_type: std::any::type_name::<R::Response>().to_string(),
-        //         })?,
-        //     ),
-        //     _ => Err(SiaApiClientError::UnexpectedHttpStatus(status.as_u16())),
-        // }
     }
 
     /// General method for dispatching requests, handling routing and response parsing.
