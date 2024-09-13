@@ -90,15 +90,7 @@ impl ApiClient for NativeClient {
 }
 
 #[async_trait]
-impl ApiClientHelpers for NativeClient {
-    async fn current_height(&self) -> Result<u64, ApiClientError> {
-        Ok(self.dispatcher(ConsensusTipRequest).await?.height)
-    }
-
-    async fn address_balance(&self, address: Address) -> Result<AddressBalanceResponse, ApiClientError> {
-        self.dispatcher(AddressBalanceRequest { address }).await
-    }
-}
+impl ApiClientHelpers for NativeClient {}
 
 // TODO these tests should not rely on the actual server - mock the server or use docker
 #[cfg(test)]
