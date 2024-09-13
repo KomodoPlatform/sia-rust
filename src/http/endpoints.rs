@@ -14,14 +14,11 @@ const ENDPOINT_TXPOOL_BROADCAST: &str = "api/txpool/broadcast";
 const ENDPOINT_TXPOOL_FEE: &str = "api/txpool/fee";
 const ENDPOINT_TXPOOL_TRANSACTIONS: &str = "api/txpool/transactions";
 
-
 pub trait SiaApiRequest: Send {
     type Response: DeserializeOwned;
 
     // Applicable for requests that return HTTP 204 No Content
-    fn is_empty_response() -> Option<Self::Response> {
-        None
-    }
+    fn is_empty_response() -> Option<Self::Response> { None }
 
     fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError>;
 }
@@ -51,10 +48,7 @@ impl SiaApiRequest for ConsensusTipRequest {
     type Response = ConsensusTipResponse;
 
     fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
-        Ok(
-            EndpointSchemaBuilder::new(ENDPOINT_CONSENSUS_TIP.to_owned(), http::Method::GET)
-                .build()
-        )
+        Ok(EndpointSchemaBuilder::new(ENDPOINT_CONSENSUS_TIP.to_owned(), http::Method::GET).build())
     }
 }
 
@@ -92,7 +86,6 @@ pub struct AddressBalanceRequest {
     pub address: Address,
 }
 
-
 impl SiaApiRequest for AddressBalanceRequest {
     type Response = AddressBalanceResponse;
 
@@ -103,7 +96,7 @@ impl SiaApiRequest for AddressBalanceRequest {
         Ok(
             EndpointSchemaBuilder::new(ENDPOINT_ADDRESSES_BALANCE.to_owned(), http::Method::GET)
                 .path_params(path_params) // Set the path parameters for the address
-                .build()
+                .build(),
         )
     }
 }
@@ -150,8 +143,8 @@ impl SiaApiRequest for GetEventRequest {
 
         Ok(
             EndpointSchemaBuilder::new(ENDPOINT_EVENTS.to_owned(), http::Method::GET)
-                .path_params(path_params)  // Set the path params containing the txid
-                .build()
+                .path_params(path_params) // Set the path params containing the txid
+                .build(),
         )
     }
 }
@@ -172,7 +165,7 @@ pub struct GetEventResponse(pub Event);
 /// # Response
 /// - `[]types.Event` in Go corresponds to `Vec<Event>` in Rust.
 ///   - An event represents an on-chain event capable of influencing the state of a wallet.
-///   - As per comments in the Go source: "Events can either be created by sending Siacoins between 
+///   - As per comments in the Go source: "Events can either be created by sending Siacoins between
 ///     addresses or they can be created by consensus (e.g. a miner payout, a siafund claim, or a contract)."
 ///
 /// # References
@@ -204,9 +197,9 @@ impl SiaApiRequest for AddressesEventsRequest {
 
         Ok(
             EndpointSchemaBuilder::new(ENDPOINT_ADDRESSES_EVENTS.to_owned(), http::Method::GET)
-                .path_params(path_params)    // Set the path params containing the address
-                .query_params(query_params)  // Set the query params for limit and offset
-                .build()
+                .path_params(path_params) // Set the path params containing the address
+                .query_params(query_params) // Set the query params for limit and offset
+                .build(),
         )
     }
 }
@@ -261,9 +254,9 @@ impl SiaApiRequest for GetAddressUtxosRequest {
 
         Ok(
             EndpointSchemaBuilder::new(ENDPOINT_ADDRESSES_UTXOS_SIACOIN.to_owned(), http::Method::GET)
-                .path_params(path_params)   // Set the path params containing the address
+                .path_params(path_params) // Set the path params containing the address
                 .query_params(query_params) // Set the query params for limit and offset
-                .build()
+                .build(),
         )
     }
 }
@@ -309,9 +302,7 @@ pub struct EmptyResponse;
 impl SiaApiRequest for TxpoolBroadcastRequest {
     type Response = EmptyResponse;
 
-    fn is_empty_response() -> Option<Self::Response> {
-        Some(EmptyResponse)
-    }
+    fn is_empty_response() -> Option<Self::Response> { Some(EmptyResponse) }
 
     fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
         // Serialize the transactions into a JSON body
@@ -319,8 +310,8 @@ impl SiaApiRequest for TxpoolBroadcastRequest {
 
         Ok(
             EndpointSchemaBuilder::new(ENDPOINT_TXPOOL_BROADCAST.to_owned(), http::Method::POST)
-                .body(Body::Json(body))  // Set the JSON body for the POST request
-                .build()
+                .body(Body::Json(body)) // Set the JSON body for the POST request
+                .build(),
         )
     }
 }
@@ -359,8 +350,7 @@ impl SiaApiRequest for TxpoolFeeRequest {
 
     fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
         Ok(
-            EndpointSchemaBuilder::new(ENDPOINT_TXPOOL_FEE.to_owned(), http::Method::GET)
-                .build()  // No path_params, query_params, or body needed for this request
+            EndpointSchemaBuilder::new(ENDPOINT_TXPOOL_FEE.to_owned(), http::Method::GET).build(), // No path_params, query_params, or body needed for this request
         )
     }
 }
@@ -387,14 +377,11 @@ pub struct TxpoolTransactionsRequest;
 impl SiaApiRequest for TxpoolTransactionsRequest {
     type Response = EmptyResponse;
 
-    fn is_empty_response() -> Option<Self::Response> {
-        Some(EmptyResponse)
-    }
+    fn is_empty_response() -> Option<Self::Response> { Some(EmptyResponse) }
 
     fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
         Ok(
-            EndpointSchemaBuilder::new(ENDPOINT_TXPOOL_TRANSACTIONS.to_owned(), http::Method::GET)
-                .build()  // No path_params, query_params, or body needed for this request
+            EndpointSchemaBuilder::new(ENDPOINT_TXPOOL_TRANSACTIONS.to_owned(), http::Method::GET).build(), // No path_params, query_params, or body needed for this request
         )
     }
 }

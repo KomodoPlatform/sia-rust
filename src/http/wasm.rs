@@ -1,18 +1,17 @@
 use derive_more::Display;
-use http::{HeaderMap, StatusCode};
 use futures::channel::oneshot;
+use http::{HeaderMap, StatusCode};
 use js_sys::Uint8Array;
-use std::collections::HashMap;
-use serde_json::{Value as JsonValue};
+use serde_json::Value as JsonValue;
 use serde_wasm_bindgen;
+use std::collections::HashMap;
 use thiserror::Error;
 use wasm_bindgen::{JsCast, JsValue};
-use wasm_bindgen_futures::{JsFuture, spawn_local};
+use wasm_bindgen_futures::{spawn_local, JsFuture};
 use web_sys::{Request as JsRequest, RequestInit, Response as JsResponse, Window, WorkerGlobalScope};
 
 /// This is loosely based on the "mm2_net" crate found within Komodo DeFi Framework.
 /// There is some extra work involved here because `Send` is required for Komodo DeFi Framework.
-
 
 /// Get only the first line of the error.
 /// Generally, the `JsValue` error contains the stack trace of an error.
@@ -73,10 +72,9 @@ impl Body {
                 let js_array = Uint8Array::from(bytes.as_slice());
                 Ok(js_array.into())
             },
-            Body::Json(json) => {
-                serde_wasm_bindgen::to_value(&json)
-                    .map_err(|e| FetchError::InvalidBody(format!("Failed to serialize body to Json. err: {}", e).to_string()))
-            },
+            Body::Json(json) => serde_wasm_bindgen::to_value(&json).map_err(|e| {
+                FetchError::InvalidBody(format!("Failed to serialize body to Json. err: {}", e).to_string())
+            }),
         }
     }
 }
@@ -111,16 +109,24 @@ impl FetchResponse {
 
         let content_type = header_map.get("content-type").map(|v| v.as_str()).unwrap_or("");
 
-        let body = if content_type.contains("application/json")
-            || content_type.contains("text/")
-        {
-            let text_promise = response.text().map_err(|e| FetchError::Internal(stringify_js_error(&e)))?;
-            let text_js_value = JsFuture::from(text_promise).await.map_err(|e| FetchError::Internal(stringify_js_error(&e)))?;
-            let text = text_js_value.as_string().ok_or_else(|| FetchError::InvalidBody("Failed to convert body to string".to_string()))?;
+        let body = if content_type.contains("application/json") || content_type.contains("text/") {
+            let text_promise = response
+                .text()
+                .map_err(|e| FetchError::Internal(stringify_js_error(&e)))?;
+            let text_js_value = JsFuture::from(text_promise)
+                .await
+                .map_err(|e| FetchError::Internal(stringify_js_error(&e)))?;
+            let text = text_js_value
+                .as_string()
+                .ok_or_else(|| FetchError::InvalidBody("Failed to convert body to string".to_string()))?;
             Some(Body::Utf8(text))
         } else if content_type.contains("application/octet-stream") {
-            let buffer_promise = response.array_buffer().map_err(|e| FetchError::Internal(stringify_js_error(&e)))?;
-            let buffer_js_value = JsFuture::from(buffer_promise).await.map_err(|e| FetchError::Internal(stringify_js_error(&e)))?;
+            let buffer_promise = response
+                .array_buffer()
+                .map_err(|e| FetchError::Internal(stringify_js_error(&e)))?;
+            let buffer_js_value = JsFuture::from(buffer_promise)
+                .await
+                .map_err(|e| FetchError::Internal(stringify_js_error(&e)))?;
             let array = js_sys::Uint8Array::new(&buffer_js_value);
             Some(Body::Bytes(array.to_vec()))
         } else {

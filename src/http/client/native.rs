@@ -4,10 +4,10 @@ use async_trait::async_trait;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
 use http::header::{HeaderMap, HeaderValue, AUTHORIZATION};
+use reqwest::Client as ReqwestClient;
 use url::Url;
-use reqwest::{Client as ReqwestClient};
 
-use crate::http::client::{ApiClient, ApiClientHelpers, ApiClientError, ClientConf, EndpointSchema};
+use crate::http::client::{ApiClient, ApiClientError, ApiClientHelpers, ClientConf, EndpointSchema};
 use core::time::Duration;
 
 #[derive(Clone)]
@@ -36,8 +36,10 @@ impl ApiClient for NativeClient {
             .build()
             .map_err(ApiClientError::ReqwestError)?;
 
-
-        let ret = NativeClient { client, base_url: conf.url };
+        let ret = NativeClient {
+            client,
+            base_url: conf.url,
+        };
         // Ping the server with ConsensusTipRequest to check if the client is working
         ret.dispatcher(ConsensusTipRequest).await?;
         Ok(ret)
@@ -61,11 +63,18 @@ impl ApiClient for NativeClient {
         let request = self.to_data_request(request)?;
 
         // Execute the request using reqwest client
-        let response = self.client.execute(request).await.map_err(ApiClientError::ReqwestError)?;
+        let response = self
+            .client
+            .execute(request)
+            .await
+            .map_err(ApiClientError::ReqwestError)?;
 
         // Check the response status and return the appropriate result
         match response.status() {
-            reqwest::StatusCode::OK => Ok(response.json::<R::Response>().await.map_err(ApiClientError::ReqwestError)?),
+            reqwest::StatusCode::OK => Ok(response
+                .json::<R::Response>()
+                .await
+                .map_err(ApiClientError::ReqwestError)?),
             reqwest::StatusCode::NO_CONTENT => {
                 if let Some(resp_type) = R::is_empty_response() {
                     Ok(resp_type)
@@ -75,7 +84,7 @@ impl ApiClient for NativeClient {
                     })
                 }
             },
-            _=> Err(ApiClientError::UnexpectedHttpStatus(response.status())),
+            _ => Err(ApiClientError::UnexpectedHttpStatus(response.status())),
         }
     }
 }
@@ -97,8 +106,8 @@ mod tests {
     use super::*;
     use crate::http::endpoints::{AddressBalanceRequest, GetEventRequest};
 
-    use tokio;
     use std::str::FromStr;
+    use tokio;
 
     async fn init_client() -> NativeClient {
         let conf = ClientConf {
@@ -116,9 +125,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_new_client() {
-        let _api_client = init_client().await;
-    }
+    async fn test_new_client() { let _api_client = init_client().await; }
 
     #[tokio::test]
     async fn test_api_consensus_tip() {
@@ -129,7 +136,10 @@ mod tests {
     #[tokio::test]
     async fn test_api_address_balance() {
         let request = AddressBalanceRequest {
-            address: Address::from_str("addr:591fcf237f8854b5653d1ac84ae4c107b37f148c3c7b413f292d48db0c25a8840be0653e411f").unwrap(),
+            address: Address::from_str(
+                "addr:591fcf237f8854b5653d1ac84ae4c107b37f148c3c7b413f292d48db0c25a8840be0653e411f",
+            )
+            .unwrap(),
         };
         let _response = test_dispatch(request).await;
     }

@@ -3,30 +3,27 @@ use crate::http::endpoints::{AddressBalanceResponse, SiaApiRequest};
 use crate::types::Address;
 use async_trait::async_trait;
 use derive_more::Display;
+use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use url::Url;
-use thiserror::Error;
 use std::collections::HashMap;
-use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
+use thiserror::Error;
+use url::Url;
 
-
-#[cfg(not(target_arch = "wasm32"))]
-pub mod native;
+#[cfg(not(target_arch = "wasm32"))] pub mod native;
 
 #[cfg(not(target_arch = "wasm32"))]
 use reqwest::Error as ReqwestError;
 
-#[cfg(target_arch = "wasm32")]
-use crate::http::wasm::FetchError;
+#[cfg(target_arch = "wasm32")] use crate::http::wasm::FetchError;
 
 pub struct EndpointSchema {
     // FIXME path_schema can probably be &'static str
-    pub path_schema: String,                        // The endpoint path template 
-    pub path_params: Option<HashMap<String, String>>, // Optional parameters to replace in the path
+    pub path_schema: String,                           // The endpoint path template
+    pub path_params: Option<HashMap<String, String>>,  // Optional parameters to replace in the path
     pub query_params: Option<HashMap<String, String>>, // Optional query parameters
-    pub method: http::Method,                             // The HTTP method (e.g., GET, POST)
-    pub body: Body,                               // Optional body for POST and POST-like requests
+    pub method: http::Method,                          // The HTTP method (e.g., GET, POST)
+    pub body: Body,                                    // Optional body for POST and POST-like requests
 }
 
 pub struct EndpointSchemaBuilder {
@@ -78,7 +75,7 @@ pub enum Body {
     Utf8(String),
     Json(JsonValue),
     Bytes(Vec<u8>),
-    None
+    None,
 }
 
 impl EndpointSchema {
@@ -90,7 +87,7 @@ impl EndpointSchema {
         if let Some(params) = &self.path_params {
             for (key, value) in params {
                 let encoded_value = utf8_percent_encode(value, NON_ALPHANUMERIC).to_string();
-                path = path.replace(&format!("{{{}}}", key), &encoded_value);  // Use {} for parameters
+                path = path.replace(&format!("{{{}}}", key), &encoded_value); // Use {} for parameters
             }
         }
 
@@ -115,7 +112,9 @@ pub trait ApiClient: Clone {
     type Request;
     type Response;
 
-    async fn new(conf: ClientConf) -> Result<Self, ApiClientError> where Self: Sized;
+    async fn new(conf: ClientConf) -> Result<Self, ApiClientError>
+    where
+        Self: Sized;
 
     fn process_schema(&self, schema: EndpointSchema) -> Result<Self::Request, ApiClientError>;
 
@@ -135,8 +134,6 @@ pub trait ApiClientHelpers {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-
-
 // FIXME this can add a generic argument to allow client specific configs
 // pub client_specific_config: Option<T>,
 #[derive(Clone, Debug, Deserialize, Serialize)]
