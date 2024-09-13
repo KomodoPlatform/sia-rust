@@ -1,4 +1,4 @@
-use crate::http::endpoints::{AddressBalanceResponse, SiaApiRequest};
+use crate::http::endpoints::{AddressBalanceRequest, AddressBalanceResponse, ConsensusTipRequest, SiaApiRequest};
 
 use crate::types::Address;
 use async_trait::async_trait;
@@ -40,10 +40,14 @@ pub trait ApiClient: Clone {
 }
 
 #[async_trait]
-pub trait ApiClientHelpers {
-    async fn current_height(&self) -> Result<u64, ApiClientError>;
+pub trait ApiClientHelpers: ApiClient {
+    async fn current_height(&self) -> Result<u64, ApiClientError> {
+        Ok(self.dispatcher(ConsensusTipRequest).await?.height)
+    }
 
-    async fn address_balance(&self, address: Address) -> Result<AddressBalanceResponse, ApiClientError>;
+    async fn address_balance(&self, address: Address) -> Result<AddressBalanceResponse, ApiClientError> {
+        self.dispatcher(AddressBalanceRequest { address }).await
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
