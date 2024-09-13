@@ -306,7 +306,7 @@ impl SiaApiRequest for TxpoolBroadcastRequest {
 
     fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
         // Serialize the transactions into a JSON body
-        let body = serde_json::to_value(self).map_err(ApiClientError::SerializationError)?;
+        let body = serde_json::to_value(self).map_err(ApiClientError::Serde)?;
 
         Ok(
             EndpointSchemaBuilder::new(ENDPOINT_TXPOOL_BROADCAST.to_owned(), SchemaMethod::Get)
