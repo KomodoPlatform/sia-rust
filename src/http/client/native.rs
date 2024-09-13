@@ -7,7 +7,7 @@ use reqwest::Client as ReqwestClient;
 use serde::Deserialize;
 use url::Url;
 
-use crate::http::client::{ApiClient, ApiClientError, ApiClientHelpers, EndpointSchema};
+use crate::http::client::{ApiClient, ApiClientError, ApiClientHelpers, Body as ClientBody, EndpointSchema};
 use core::time::Duration;
 
 #[derive(Clone)]
@@ -17,8 +17,8 @@ pub struct NativeClient {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct ClientConf {
-    pub url: Url,
+pub struct Conf {
+    pub server_url: Url,
     #[serde(default)]
     pub password: Option<String>,
     #[serde(default)]
@@ -29,7 +29,7 @@ pub struct ClientConf {
 impl ApiClient for NativeClient {
     type Request = reqwest::Request;
     type Response = reqwest::Response;
-    type Conf = ClientConf;
+    type Conf = Conf;
 
     async fn new(conf: Self::Conf) -> Result<Self, ApiClientError> {
         let mut headers = HeaderMap::new();
@@ -49,7 +49,7 @@ impl ApiClient for NativeClient {
 
         let ret = NativeClient {
             client,
-            base_url: conf.url,
+            base_url: conf.server_url,
         };
         // Ping the server with ConsensusTipRequest to check if the client is working
         ret.dispatcher(ConsensusTipRequest).await?;
@@ -109,8 +109,8 @@ mod tests {
     use tokio;
 
     async fn init_client() -> NativeClient {
-        let conf = ClientConf {
-            url: Url::parse("https://sia-walletd.komodo.earth/").unwrap(),
+        let conf = Conf {
+            server_url: Url::parse("https://sia-walletd.komodo.earth/").unwrap(),
             password: None,
             timeout: Some(10),
         };
