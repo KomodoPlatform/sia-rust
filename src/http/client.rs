@@ -10,11 +10,13 @@ use thiserror::Error;
 use url::Url;
 
 #[cfg(not(target_arch = "wasm32"))] pub mod native;
+#[cfg(target_arch = "wasm32")] pub mod wasm;
 
+// FIXME remove these client specific error types
 #[cfg(not(target_arch = "wasm32"))]
 use reqwest::Error as ReqwestError;
 
-#[cfg(target_arch = "wasm32")] use crate::http::wasm_fetch::FetchError;
+#[cfg(target_arch = "wasm32")] use wasm::wasm_fetch::FetchError;
 
 // Client implementation is generalized
 // This allows for different client implementations (e.g., WebSocket, libp2p, etc.)
