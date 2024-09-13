@@ -309,7 +309,7 @@ impl SiaApiRequest for TxpoolBroadcastRequest {
         let body = serde_json::to_value(self).map_err(ApiClientError::Serde)?;
 
         Ok(
-            EndpointSchemaBuilder::new(ENDPOINT_TXPOOL_BROADCAST.to_owned(), SchemaMethod::Get)
+            EndpointSchemaBuilder::new(ENDPOINT_TXPOOL_BROADCAST.to_owned(), SchemaMethod::Post)
                 .body(Body::Json(body)) // Set the JSON body for the POST request
                 .build(),
         )
