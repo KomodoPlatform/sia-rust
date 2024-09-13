@@ -95,11 +95,11 @@ impl From<SchemaMethod> for http::Method {
 }
 
 pub struct EndpointSchema {
-    pub path_schema: String,                           // The endpoint path template (e.g., /api/transactions/{id})
-    pub path_params: Option<HashMap<String, String>>,  // Optional parameters to replace in the path (e.g., /{key} becomes /value)
+    pub path_schema: String, // The endpoint path template (e.g., /api/transactions/{id})
+    pub path_params: Option<HashMap<String, String>>, // Optional parameters to replace in the path (e.g., /{key} becomes /value)
     pub query_params: Option<HashMap<String, String>>, // Optional query parameters to add to the URL (e.g., ?key=value)
-    pub method: SchemaMethod,                          // The method (e.g., Get, Post, Put, Delete)
-    pub body: Body,                                    // Optional body for POST and POST-like requests
+    pub method: SchemaMethod,                         // The method (e.g., Get, Post, Put, Delete)
+    pub body: Body,                                   // Optional body for POST and POST-like requests
 }
 
 pub struct EndpointSchemaBuilder {

@@ -1,15 +1,14 @@
-use crate::http::endpoints::{SiaApiRequest, ConsensusTipRequest};
 use crate::http::client::{ApiClient, ApiClientError, ApiClientHelpers, Body, EndpointSchema, SchemaMethod};
+use crate::http::endpoints::{ConsensusTipRequest, SiaApiRequest};
 
 use async_trait::async_trait;
 use http::StatusCode;
 use serde::Deserialize;
-use url::Url;
 use std::collections::HashMap;
+use url::Url;
 
 pub mod wasm_fetch;
-use wasm_fetch::{FetchRequest, FetchResponse, FetchMethod, Body as FetchBody};
-
+use wasm_fetch::{Body as FetchBody, FetchMethod, FetchRequest, FetchResponse};
 
 #[derive(Clone)]
 pub struct Client {
@@ -20,7 +19,7 @@ pub struct Client {
 #[derive(Clone, Debug, Deserialize)]
 pub struct Conf {
     pub base_url: Url,
-    pub headers:  HashMap<String, String>,
+    pub headers: HashMap<String, String>,
 }
 
 #[async_trait]
@@ -44,7 +43,7 @@ impl ApiClient for Client {
         let method = match schema.method {
             SchemaMethod::Get => FetchMethod::Get,
             SchemaMethod::Post => FetchMethod::Post,
-            _=> return Err(ApiClientError::FixmePlaceholder("Unsupported method".to_string())),
+            _ => return Err(ApiClientError::FixmePlaceholder("Unsupported method".to_string())),
         };
         let body = match schema.body {
             Body::Utf8(body) => Some(FetchBody::Utf8(body)),
@@ -61,22 +60,29 @@ impl ApiClient for Client {
     }
 
     async fn execute_request(&self, request: Self::Request) -> Result<Self::Response, ApiClientError> {
-        request.execute().await.map_err(|e|ApiClientError::FixmePlaceholder(format!("FIXME {}", e)))
+        request
+            .execute()
+            .await
+            .map_err(|e| ApiClientError::FixmePlaceholder(format!("FIXME {}", e)))
     }
 
     // Dispatcher function that converts the request and handles execution
     async fn dispatcher<R: SiaApiRequest>(&self, request: R) -> Result<R::Response, ApiClientError> {
-        let request = self.to_data_request(request)?;  // Convert request to data request
+        let request = self.to_data_request(request)?; // Convert request to data request
 
         // Execute the request
         let response = self.execute_request(request).await?;
-        
+
         match response.status {
             StatusCode::OK => {
                 let response_body = match response.body {
                     Some(FetchBody::Json(body)) => serde_json::from_value(body).map_err(ApiClientError::Serde)?,
                     Some(FetchBody::Utf8(body)) => serde_json::from_str(&body).map_err(ApiClientError::Serde)?,
-                    _ => return Err(ApiClientError::FixmePlaceholder("Unsupported body type in response".to_string())),
+                    _ => {
+                        return Err(ApiClientError::FixmePlaceholder(
+                            "Unsupported body type in response".to_string(),
+                        ))
+                    },
                 };
                 Ok(response_body)
             },

@@ -73,9 +73,8 @@ impl Body {
                 let js_array = Uint8Array::from(bytes.as_slice());
                 Ok(js_array.into())
             },
-            Body::Json(json) => serde_wasm_bindgen::to_value(&json).map_err(|e| {
-                FetchError::InvalidBody(format!("Failed to serialize body to Json. err: {}", e))
-            }),
+            Body::Json(json) => serde_wasm_bindgen::to_value(&json)
+                .map_err(|e| FetchError::InvalidBody(format!("Failed to serialize body to Json. err: {}", e))),
         }
     }
 }
