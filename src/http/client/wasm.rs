@@ -18,7 +18,8 @@ pub struct Client {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Conf {
-    pub base_url: Url,
+    pub server_url: Url,
+    #[serde(default)]
     pub headers: HashMap<String, String>,
 }
 
@@ -30,7 +31,7 @@ impl ApiClient for Client {
 
     async fn new(conf: Self::Conf) -> Result<Self, ApiClientError> {
         let client = Client {
-            base_url: conf.base_url,
+            base_url: conf.server_url,
             headers: conf.headers,
         };
         // Ping the server with ConsensusTipRequest to check if the client is working
