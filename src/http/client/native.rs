@@ -103,6 +103,7 @@ impl ApiClientHelpers for NativeClient {}
 mod tests {
     use super::*;
     use crate::http::endpoints::{AddressBalanceRequest, GetEventRequest};
+    use crate::types::Address;
 
     use std::str::FromStr;
     use tokio;
@@ -110,7 +111,7 @@ mod tests {
     async fn init_client() -> NativeClient {
         let conf = ClientConf {
             url: Url::parse("https://sia-walletd.komodo.earth/").unwrap(),
-            password: "password".to_string(),
+            password: None,
             timeout: Some(10),
         };
         NativeClient::new(conf).await.unwrap()

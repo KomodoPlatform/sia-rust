@@ -6,6 +6,7 @@ use serde_json::Value as JsonValue;
 use serde_wasm_bindgen;
 use std::collections::HashMap;
 use thiserror::Error;
+use url::Url;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::{spawn_local, JsFuture};
 use web_sys::{Request as JsRequest, RequestInit, Response as JsResponse, Window, WorkerGlobalScope};
@@ -43,7 +44,7 @@ pub enum FetchError {
     Internal(String),
 }
 
-enum FetchMethod {
+pub enum FetchMethod {
     Get,
     Post,
 }
@@ -142,25 +143,25 @@ impl FetchResponse {
 }
 
 pub struct FetchRequest {
-    uri: String,
-    method: FetchMethod,
-    headers: HashMap<String, String>,
-    body: Option<Body>,
+    pub uri: Url,
+    pub method: FetchMethod,
+    pub headers: HashMap<String, String>,
+    pub body: Option<Body>,
 }
 
 impl FetchRequest {
-    pub fn get(uri: &str) -> FetchRequest {
+    pub fn get(uri: Url) -> FetchRequest {
         FetchRequest {
-            uri: uri.to_owned(),
+            uri,
             method: FetchMethod::Get,
             headers: HashMap::new(),
             body: None,
         }
     }
 
-    pub fn post(uri: &str) -> FetchRequest {
+    pub fn post(uri: Url) -> FetchRequest {
         FetchRequest {
-            uri: uri.to_owned(),
+            uri,
             method: FetchMethod::Post,
             headers: HashMap::new(),
             body: None,
@@ -182,7 +183,7 @@ impl FetchRequest {
     }
 
     async fn fetch(request: Self) -> FetchResult {
-        let uri = request.uri;
+        let uri = request.uri.to_string();
 
         let mut req_init = RequestInit::new();
         req_init.method(request.method.as_str());
