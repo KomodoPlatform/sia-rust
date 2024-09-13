@@ -61,11 +61,6 @@ impl ApiClient for NativeClient {
         Ok(Self::Request::new(schema.method.into(), url))
     }
 
-    fn to_data_request<R: SiaApiRequest>(&self, request: R) -> Result<Self::Request, ApiClientError> {
-        let schema = request.to_endpoint_schema()?;
-        self.process_schema(schema)
-    }
-
     async fn execute_request(&self, request: Self::Request) -> Result<Self::Response, ApiClientError> {
         self.client.execute(request).await.map_err(ApiClientError::ReqwestError)
     }
