@@ -47,7 +47,7 @@ impl ApiClient for NativeClient {
 
     fn process_schema(&self, schema: EndpointSchema) -> Result<Self::Request, ApiClientError> {
         let url = schema.build_url(&self.base_url)?;
-        Ok(Self::Request::new(schema.method, url))
+        Ok(Self::Request::new(schema.method.into(), url))
     }
 
     fn to_data_request<R: SiaApiRequest>(&self, request: R) -> Result<Self::Request, ApiClientError> {
