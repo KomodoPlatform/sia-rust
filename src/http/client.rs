@@ -4,7 +4,6 @@ use crate::types::Address;
 use async_trait::async_trait;
 use derive_more::Display;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
-use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use thiserror::Error;
@@ -15,7 +14,7 @@ use url::Url;
 #[cfg(not(target_arch = "wasm32"))]
 use reqwest::Error as ReqwestError;
 
-#[cfg(target_arch = "wasm32")] use crate::http::wasm::FetchError;
+#[cfg(target_arch = "wasm32")] use crate::http::wasm_fetch::FetchError;
 
 // Client implementation is generalized
 // This allows for different client implementations (e.g., WebSocket, libp2p, etc.)
@@ -24,8 +23,9 @@ use reqwest::Error as ReqwestError;
 pub trait ApiClient: Clone {
     type Request;
     type Response;
+    type Conf;
 
-    async fn new(conf: ClientConf) -> Result<Self, ApiClientError>
+    async fn new(conf: Self::Conf) -> Result<Self, ApiClientError>
     where
         Self: Sized;
 
@@ -48,16 +48,6 @@ pub trait ApiClientHelpers: ApiClient {
     async fn address_balance(&self, address: Address) -> Result<AddressBalanceResponse, ApiClientError> {
         self.dispatcher(AddressBalanceRequest { address }).await
     }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-// FIXME this can add a generic argument to allow client specific configs
-// pub client_specific_config: Option<T>,
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ClientConf {
-    pub url: Url,
-    pub password: String, // FIXME must be Option
-    pub timeout: Option<u64>,
 }
 
 // TODO clean up reqwest errors
