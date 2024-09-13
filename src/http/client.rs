@@ -56,20 +56,26 @@ pub trait ApiClientHelpers: ApiClient {
     }
 }
 
-// TODO clean up reqwest errors
-// update reqwest to latest for `.with_url()` method
-#[derive(Debug, Display, Error)]
+#[derive(Debug, Error)]
 pub enum ApiClientError {
+    #[error("BuildError error: {0}")]
     BuildError(String),
+    #[error("FixmePlaceholder error: {0}")]
     FixmePlaceholder(String), // FIXME this entire enum needs refactoring to not use client-specific error types
+    #[error("UrlParse error: {0}")]
     UrlParse(#[from] url::ParseError),
-    UnexpectedHttpStatus(http::StatusCode),
+    #[error("UnexpectedHttpStatus error: status:{status} body:{body}")]
+    UnexpectedHttpStatus{ status: http::StatusCode, body: String },
+    #[error("Serde error: {0}")]
     Serde(#[from] serde_json::Error),
+    #[error("UnexpectedEmptyResponse error: {expected_type}")]
     UnexpectedEmptyResponse {
         expected_type: String,
     },
+    #[error("WasmFetchError error: {0}")]
     #[cfg(target_arch = "wasm32")]
     WasmFetchError(#[from] FetchError),
+    #[error("ReqwestError error: {0}")]
     #[cfg(not(target_arch = "wasm32"))]
     ReqwestError(#[from] ReqwestError), // FIXME remove this; it should be generalized enough to not need arch-specific error types
 }

@@ -96,7 +96,20 @@ impl ApiClient for NativeClient {
                     })
                 }
             },
-            _ => Err(ApiClientError::UnexpectedHttpStatus(response.status())),
+            // Handle unexpected statuses eg, 400, 404, 500
+            status => {
+                // Extract the body, using map_err to format the error in case of failure
+                let body = response
+                    .text()
+                    .await
+                    .map_err(|e| format!("Failed to retrieve body: {}", e))
+                    .unwrap_or_else(|e| e);
+
+                Err(ApiClientError::UnexpectedHttpStatus {
+                    status,
+                    body,
+                })
+            }
         }
     }
 }
