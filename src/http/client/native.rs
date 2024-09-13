@@ -1,13 +1,13 @@
-use crate::http::endpoints::{AddressBalanceRequest, AddressBalanceResponse, ConsensusTipRequest, SiaApiRequest};
-use crate::types::Address;
+use crate::http::endpoints::{ConsensusTipRequest, SiaApiRequest};
 use async_trait::async_trait;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
 use http::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use reqwest::Client as ReqwestClient;
+use serde::Deserialize;
 use url::Url;
 
-use crate::http::client::{ApiClient, ApiClientError, ApiClientHelpers, ClientConf, EndpointSchema};
+use crate::http::client::{ApiClient, ApiClientError, ApiClientHelpers, EndpointSchema};
 use core::time::Duration;
 
 #[derive(Clone)]
@@ -16,19 +16,30 @@ pub struct NativeClient {
     pub base_url: Url,
 }
 
+#[derive(Clone, Debug, Deserialize)]
+pub struct ClientConf {
+    pub url: Url,
+    #[serde(default)]
+    pub password: Option<String>,
+    #[serde(default)]
+    pub timeout: Option<u64>,
+}
+
 #[async_trait]
 impl ApiClient for NativeClient {
     type Request = reqwest::Request;
     type Response = reqwest::Response;
+    type Conf = ClientConf;
 
-    async fn new(conf: ClientConf) -> Result<Self, ApiClientError> {
+    async fn new(conf: Self::Conf) -> Result<Self, ApiClientError> {
         let mut headers = HeaderMap::new();
-        let auth_value = format!("Basic {}", BASE64.encode(format!(":{}", conf.password)));
-        headers.insert(
-            AUTHORIZATION,
-            HeaderValue::from_str(&auth_value).map_err(|e| ApiClientError::BuildError(e.to_string()))?,
-        );
-
+        if let Some(password) = &conf.password {
+            let auth_value = format!("Basic {}", BASE64.encode(format!(":{}", password)));
+            headers.insert(
+                AUTHORIZATION,
+                HeaderValue::from_str(&auth_value).map_err(|e| ApiClientError::BuildError(e.to_string()))?,
+            );
+        }
         let timeout = conf.timeout.unwrap_or(10);
         let client = ReqwestClient::builder()
             .default_headers(headers)
