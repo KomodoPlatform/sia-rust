@@ -1,4 +1,4 @@
-use crate::http::client::{ApiClientError, Body, EndpointSchema, EndpointSchemaBuilder};
+use crate::http::client::{ApiClientError, Body, EndpointSchema, EndpointSchemaBuilder, SchemaMethod};
 use crate::transaction::{SiacoinElement, V1Transaction, V2Transaction};
 use crate::types::{Address, BlockID, Currency, Event, H256};
 use serde::de::DeserializeOwned;
@@ -48,7 +48,7 @@ impl SiaApiRequest for ConsensusTipRequest {
     type Response = ConsensusTipResponse;
 
     fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
-        Ok(EndpointSchemaBuilder::new(ENDPOINT_CONSENSUS_TIP.to_owned(), http::Method::GET).build())
+        Ok(EndpointSchemaBuilder::new(ENDPOINT_CONSENSUS_TIP.to_owned(), SchemaMethod::Get).build())
     }
 }
 
@@ -94,7 +94,7 @@ impl SiaApiRequest for AddressBalanceRequest {
         path_params.insert("address".to_owned(), self.address.to_string());
 
         Ok(
-            EndpointSchemaBuilder::new(ENDPOINT_ADDRESSES_BALANCE.to_owned(), http::Method::GET)
+            EndpointSchemaBuilder::new(ENDPOINT_ADDRESSES_BALANCE.to_owned(), SchemaMethod::Get)
                 .path_params(path_params) // Set the path parameters for the address
                 .build(),
         )
@@ -142,7 +142,7 @@ impl SiaApiRequest for GetEventRequest {
         path_params.insert("txid".to_owned(), self.txid.to_string());
 
         Ok(
-            EndpointSchemaBuilder::new(ENDPOINT_EVENTS.to_owned(), http::Method::GET)
+            EndpointSchemaBuilder::new(ENDPOINT_EVENTS.to_owned(), SchemaMethod::Get)
                 .path_params(path_params) // Set the path params containing the txid
                 .build(),
         )
@@ -196,7 +196,7 @@ impl SiaApiRequest for AddressesEventsRequest {
         }
 
         Ok(
-            EndpointSchemaBuilder::new(ENDPOINT_ADDRESSES_EVENTS.to_owned(), http::Method::GET)
+            EndpointSchemaBuilder::new(ENDPOINT_ADDRESSES_EVENTS.to_owned(), SchemaMethod::Get)
                 .path_params(path_params) // Set the path params containing the address
                 .query_params(query_params) // Set the query params for limit and offset
                 .build(),
@@ -253,7 +253,7 @@ impl SiaApiRequest for GetAddressUtxosRequest {
         }
 
         Ok(
-            EndpointSchemaBuilder::new(ENDPOINT_ADDRESSES_UTXOS_SIACOIN.to_owned(), http::Method::GET)
+            EndpointSchemaBuilder::new(ENDPOINT_ADDRESSES_UTXOS_SIACOIN.to_owned(), SchemaMethod::Get)
                 .path_params(path_params) // Set the path params containing the address
                 .query_params(query_params) // Set the query params for limit and offset
                 .build(),
@@ -309,7 +309,7 @@ impl SiaApiRequest for TxpoolBroadcastRequest {
         let body = serde_json::to_value(self).map_err(ApiClientError::SerializationError)?;
 
         Ok(
-            EndpointSchemaBuilder::new(ENDPOINT_TXPOOL_BROADCAST.to_owned(), http::Method::POST)
+            EndpointSchemaBuilder::new(ENDPOINT_TXPOOL_BROADCAST.to_owned(), SchemaMethod::Get)
                 .body(Body::Json(body)) // Set the JSON body for the POST request
                 .build(),
         )
@@ -350,7 +350,7 @@ impl SiaApiRequest for TxpoolFeeRequest {
 
     fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
         Ok(
-            EndpointSchemaBuilder::new(ENDPOINT_TXPOOL_FEE.to_owned(), http::Method::GET).build(), // No path_params, query_params, or body needed for this request
+            EndpointSchemaBuilder::new(ENDPOINT_TXPOOL_FEE.to_owned(), SchemaMethod::Get).build(), // No path_params, query_params, or body needed for this request
         )
     }
 }
@@ -381,7 +381,7 @@ impl SiaApiRequest for TxpoolTransactionsRequest {
 
     fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
         Ok(
-            EndpointSchemaBuilder::new(ENDPOINT_TXPOOL_TRANSACTIONS.to_owned(), http::Method::GET).build(), // No path_params, query_params, or body needed for this request
+            EndpointSchemaBuilder::new(ENDPOINT_TXPOOL_TRANSACTIONS.to_owned(), SchemaMethod::Get).build(), // No path_params, query_params, or body needed for this request
         )
     }
 }
