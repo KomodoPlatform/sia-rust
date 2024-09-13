@@ -61,7 +61,7 @@ impl ApiClient for Client {
     }
 
     async fn execute_request(&self, request: Self::Request) -> Result<Self::Response, ApiClientError> {
-        request.execute().await.map_err(|e|ApiClientError::FixmePlaceholder(format!("FIXME {}", e).to_string()))
+        request.execute().await.map_err(|e|ApiClientError::FixmePlaceholder(format!("FIXME {}", e)))
     }
 
     // Dispatcher function that converts the request and handles execution

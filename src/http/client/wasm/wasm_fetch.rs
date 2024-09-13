@@ -74,7 +74,7 @@ impl Body {
                 Ok(js_array.into())
             },
             Body::Json(json) => serde_wasm_bindgen::to_value(&json).map_err(|e| {
-                FetchError::InvalidBody(format!("Failed to serialize body to Json. err: {}", e).to_string())
+                FetchError::InvalidBody(format!("Failed to serialize body to Json. err: {}", e))
             }),
         }
     }
