@@ -55,6 +55,7 @@ pub trait ApiClientHelpers: ApiClient {
 #[derive(Debug, Display, Error)]
 pub enum ApiClientError {
     BuildError(String),
+    FixmePlaceholder(String), // FIXME this entire enum needs refactoring to not use client-specific error types
     UrlParse(#[from] url::ParseError),
     UnexpectedHttpStatus(http::StatusCode),
     Serde(#[from] serde_json::Error),
