@@ -57,7 +57,7 @@ pub enum ApiClientError {
     BuildError(String),
     UrlParse(#[from] url::ParseError),
     UnexpectedHttpStatus(http::StatusCode),
-    SerializationError(#[from] serde_json::Error),
+    Serde(#[from] serde_json::Error),
     UnexpectedEmptyResponse {
         expected_type: String,
     },
