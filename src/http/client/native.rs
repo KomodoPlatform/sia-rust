@@ -58,7 +58,13 @@ impl ApiClient for NativeClient {
 
     fn process_schema(&self, schema: EndpointSchema) -> Result<Self::Request, ApiClientError> {
         let url = schema.build_url(&self.base_url)?;
-        Ok(Self::Request::new(schema.method.into(), url))
+        let req = match schema.body {
+            ClientBody::None => self.client.request(schema.method.into(), url).build(),
+            ClientBody::Utf8(body) => self.client.request(schema.method.into(), url).body(body).build(),
+            ClientBody::Json(body) => self.client.request(schema.method.into(), url).json(&body).build(),
+            ClientBody::Bytes(body) => self.client.request(schema.method.into(), url).body(body).build(),
+        }.map_err(ApiClientError::ReqwestError)?;
+        Ok(req)
     }
 
     async fn execute_request(&self, request: Self::Request) -> Result<Self::Response, ApiClientError> {
