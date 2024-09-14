@@ -2,7 +2,6 @@ use crate::http::endpoints::{AddressBalanceRequest, AddressBalanceResponse, Cons
 
 use crate::types::Address;
 use async_trait::async_trait;
-use derive_more::Display;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
