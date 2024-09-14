@@ -1,10 +1,10 @@
-use derive_more::Display;
 use futures::channel::oneshot;
 use http::{HeaderMap, StatusCode};
 use js_sys::Uint8Array;
 use serde_json::Value as JsonValue;
 use serde_wasm_bindgen;
 use std::collections::HashMap;
+use std::fmt;
 use thiserror::Error;
 use url::Url;
 use wasm_bindgen::{JsCast, JsValue};
@@ -25,22 +25,30 @@ pub fn stringify_js_error(error: &JsValue) -> String {
         .unwrap_or_default()
 }
 
-#[derive(Debug, Display, Error)]
+#[derive(Debug, Error)]
 pub enum FetchError {
-    #[display(fmt = "Error deserializing '{}' response: {}", uri, error)]
+    #[error("Error deserializing '{uri}' response: {error}")]
     ErrorDeserializing {
         uri: String,
         error: String,
     },
-    #[display(fmt = "Transport '{}' error: {}", uri, error)]
+    
+    #[error("Transport '{uri}' error: {error}")]
     Transport {
         uri: String,
         error: String,
     },
+    
+    #[error("Invalid status code in response")]
     InvalidStatusCode(#[from] http::status::InvalidStatusCode),
+    
+    #[error("Invalid headers in response: {0}")]
     InvalidHeadersInResponse(String),
+    
+    #[error("Invalid body: {0}")]
     InvalidBody(String),
-    #[display(fmt = "Internal error: {}", _0)]
+    
+    #[error("Internal error: {0}")]
     Internal(String),
 }
 
@@ -63,6 +71,16 @@ pub enum Body {
     Utf8(String),
     Json(JsonValue),
     Bytes(Vec<u8>),
+}
+
+impl fmt::Display for Body {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Body::Utf8(text) => write!(f, "Utf8: {}", text),
+            Body::Json(json) => write!(f, "Json: {}", json),
+            Body::Bytes(bytes) => write!(f, "Bytes: {:?}", bytes), // Use Debug formatting for Vec<u8>
+        }
+    }
 }
 
 impl Body {
@@ -205,7 +223,8 @@ impl FetchRequest {
         let future = JsFuture::from(request_promise);
         let resp_value = future.await.map_err(|e| FetchError::Transport {
             uri: uri.clone(),
-            error: stringify_js_error(&e),
+            //error: stringify_js_error(&e),
+            error: format!("Triggers a CORS(I think) error!! {:?}", e).to_string(),
         })?;
         let js_response: JsResponse = match resp_value.dyn_into() {
             Ok(res) => res,
