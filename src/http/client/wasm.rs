@@ -96,7 +96,18 @@ impl ApiClient for Client {
                     })
                 }
             },
-            _ => Err(ApiClientError::UnexpectedHttpStatus(response.status)),
+            status => {
+                // Extract the body, using the Display implementation of Body or an empty string
+                let body = response
+                    .body
+                    .map(|b| format!("{}", b)) // Use Display trait to format Body
+                    .unwrap_or_else(|| "".to_string()); // If body is None, use an empty string
+    
+                Err(ApiClientError::UnexpectedHttpStatus {
+                    status,
+                    body,
+                })
+            }
         }
     }
 }
