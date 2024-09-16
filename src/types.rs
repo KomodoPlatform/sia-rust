@@ -213,6 +213,7 @@ impl Encodable for ChainIndex {
 pub struct EventV1Transaction {
     pub transaction: V1Transaction,
     pub spent_siacoin_elements: Vec<SiacoinElement>,
+    #[serde(default)]
     pub spent_siafund_elements: Vec<SiafundElement>,
 }
 
@@ -223,13 +224,13 @@ pub struct EventV1ContractResolution {
     pub missed: Option<bool>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EventPayout {
     pub siacoin_element: SiacoinElement,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum EventType {
     Miner,
@@ -292,7 +293,9 @@ impl<'de> Deserialize<'de> for Event {
             EventType::V2Transaction => serde_json::from_value::<V2Transaction>(helper.data)
                 .map(EventDataWrapper::V2Transaction)
                 .map_err(serde::de::Error::custom),
-            EventType::V1ContractResolution => unimplemented!(),
+            EventType::V1ContractResolution => {
+                return Err(serde::de::Error::custom("V1ContractResolution not supported"))
+            },
             EventType::V2ContractResolution => serde_json::from_value::<EventV2ContractResolution>(helper.data)
                 .map(|data| EventDataWrapper::V2FileContractResolution(Box::new(data)))
                 .map_err(serde::de::Error::custom),

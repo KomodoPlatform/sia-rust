@@ -1,14 +1,15 @@
-use crate::encoding::{Encodable, Encoder, HexArray64, PrefixedH256, PrefixedPublicKey, PrefixedSignature};
+use crate::encoding::{Encodable, Encoder, HexArray64, PrefixedH256, PrefixedPublicKey, PrefixedSignature, ScoidH256};
 use crate::spend_policy::{SpendPolicy, SpendPolicyHelper, UnlockCondition, UnlockKey};
 use crate::types::{Address, ChainIndex, H256};
 use crate::{Keypair, PublicKey, Signature};
+use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use serde_with::{serde_as, FromInto};
+use std::fmt;
 use std::ops::Deref;
 use std::str::FromStr;
 
-type SiacoinOutputID = H256;
 const V2_REPLAY_PREFIX: u8 = 2;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
@@ -159,7 +160,7 @@ impl Encodable for SatisfiedPolicy {
                 SpendPolicy::UnlockConditions(uc) => {
                     for unlock_key in &uc.unlock_keys {
                         if let UnlockKey::Ed25519(public_key) = unlock_key {
-                            rec(&SpendPolicy::PublicKey(public_key.clone()), encoder, sigi, prei, sp);
+                            rec(&SpendPolicy::PublicKey(*public_key), encoder, sigi, prei, sp);
                         }
                         // else FIXME consider when this is possible, is it always developer error or could it be forced maliciously?
                     }
@@ -179,6 +180,7 @@ pub struct StateElement {
     #[serde_as(as = "FromInto<PrefixedH256>")]
     pub id: H256,
     pub leaf_index: u64,
+    #[serde(default)]
     #[serde_as(as = "Option<Vec<FromInto<PrefixedH256>>>")]
     pub merkle_proof: Option<Vec<H256>>,
 }
@@ -253,9 +255,13 @@ impl Encodable for SiafundInputV2 {
 }
 
 // https://github.com/SiaFoundation/core/blob/6c19657baf738c6b730625288e9b5413f77aa659/types/types.go#L197-L198
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde_as]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct SiacoinInputV1 {
-    pub parent_id: SiacoinOutputID,
+    #[serde(rename = "parentID")]
+    #[serde_as(as = "FromInto<ScoidH256>")]
+    pub parent_id: H256,
+    #[serde(rename = "unlockConditions")]
     pub unlock_condition: UnlockCondition,
 }
 
@@ -336,7 +342,9 @@ pub struct SiacoinOutput {
     pub address: Address,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(default)]
 pub struct CoveredFields {
     pub whole_transaction: bool,
     pub siacoin_inputs: Vec<u64>,
@@ -351,16 +359,53 @@ pub struct CoveredFields {
     pub signatures: Vec<u64>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde_as]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TransactionSignature {
+    #[serde_as(as = "FromInto<PrefixedH256>")]
+    #[serde(rename = "parentID")]
     pub parent_id: H256,
+    #[serde(default)]
     pub public_key_index: u64,
+    #[serde(default)]
     pub timelock: u64,
     pub covered_fields: CoveredFields,
-    pub signature: Vec<u8>,
+    pub signature: V1Signature,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(transparent)]
+pub struct V1Signature(Vec<u8>);
+
+impl<'de> Deserialize<'de> for V1Signature {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct V1SignatureVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for V1SignatureVisitor {
+            type Value = V1Signature;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a base64 encoded string")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                let decoded = base64.decode(value).map_err(serde::de::Error::custom)?;
+                Ok(V1Signature(decoded))
+            }
+        }
+
+        deserializer.deserialize_str(V1SignatureVisitor)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct FileContract {
     pub filesize: u64,
     pub file_merkle_root: H256,
@@ -371,6 +416,26 @@ pub struct FileContract {
     pub missed_proof_outputs: Vec<SiacoinOutput>,
     pub unlock_hash: H256,
     pub revision_number: u64,
+}
+
+impl Encodable for FileContract {
+    fn encode(&self, encoder: &mut Encoder) {
+        encoder.write_u64(self.filesize);
+        self.file_merkle_root.encode(encoder);
+        encoder.write_u64(self.window_start);
+        encoder.write_u64(self.window_end);
+        CurrencyVersion::V1(&self.payout).encode(encoder);
+        encoder.write_u64(self.valid_proof_outputs.len() as u64);
+        for so in &self.valid_proof_outputs {
+            SiacoinOutputVersion::V1(so).encode(encoder);
+        }
+        encoder.write_u64(self.missed_proof_outputs.len() as u64);
+        for so in &self.missed_proof_outputs {
+            SiacoinOutputVersion::V1(so).encode(encoder);
+        }
+        self.unlock_hash.encode(encoder);
+        encoder.write_u64(self.revision_number);
+    }
 }
 
 #[serde_as]
@@ -479,23 +544,57 @@ impl Encodable for Attestation {
     }
 }
 #[serde_as]
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct StorageProof {
     pub parent_id: FileContractID,
     pub leaf: HexArray64,
     pub proof: Vec<H256>,
 }
 
+impl Encodable for StorageProof {
+    fn encode(&self, encoder: &mut Encoder) {
+        self.parent_id.encode(encoder);
+        encoder.write_slice(&self.leaf.0);
+        encoder.write_u64(self.proof.len() as u64);
+        for proof in &self.proof {
+            proof.encode(encoder);
+        }
+    }
+}
+
 type SiafundOutputID = H256;
 type FileContractID = H256;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct FileContractRevision {
     pub parent_id: FileContractID,
     pub unlock_condition: UnlockCondition,
+    #[serde(flatten)]
+    pub file_contract: FileContract,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+impl Encodable for FileContractRevision {
+    fn encode(&self, encoder: &mut Encoder) {
+        self.parent_id.encode(encoder);
+        self.unlock_condition.encode(encoder);
+        encoder.write_u64(self.file_contract.revision_number);
+        encoder.write_u64(self.file_contract.filesize);
+        self.file_contract.file_merkle_root.encode(encoder);
+        encoder.write_u64(self.file_contract.window_start);
+        encoder.write_u64(self.file_contract.window_end);
+        encoder.write_u64(self.file_contract.valid_proof_outputs.len() as u64);
+        for so in &self.file_contract.valid_proof_outputs {
+            SiacoinOutputVersion::V1(so).encode(encoder);
+        }
+        encoder.write_u64(self.file_contract.missed_proof_outputs.len() as u64);
+        for so in &self.file_contract.missed_proof_outputs {
+            SiacoinOutputVersion::V1(so).encode(encoder);
+        }
+        self.file_contract.unlock_hash.encode(encoder);
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct SiafundInputV1 {
     pub parent_id: SiafundOutputID,
     pub unlock_condition: UnlockCondition,
@@ -734,6 +833,19 @@ pub struct FileContractV1 {
     pub unlock_hash: H256,
     pub revision_number: u64,
 }
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[serde(transparent)]
+pub struct V1ArbitraryData {
+    pub data: Vec<Vec<u8>>,
+}
+
+impl Encodable for V1ArbitraryData {
+    fn encode(&self, encoder: &mut Encoder) {
+        encoder.write_u64(self.data.len() as u64);
+        self.data.iter().for_each(|b| encoder.write_slice(b));
+    }
+}
 /*
 While implementing this, we faced two options.
     1.) Treat every field as an Option<>
@@ -742,7 +854,7 @@ While implementing this, we faced two options.
 We chose the latter as it allows for simpler encoding of this struct.
 It is possible this may need to change in later implementations.
 */
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(default, deny_unknown_fields, rename_all = "camelCase")]
 pub struct V1Transaction {
     pub siacoin_inputs: Vec<SiacoinInputV1>,
@@ -753,8 +865,59 @@ pub struct V1Transaction {
     pub siafund_inputs: Vec<SiafundInputV1>,
     pub siafund_outputs: Vec<SiafundOutput>,
     pub miner_fees: Vec<Currency>,
-    pub arbitrary_data: Vec<u8>,
+    pub arbitrary_data: Option<V1ArbitraryData>,
     pub signatures: Vec<TransactionSignature>,
+}
+
+impl V1Transaction {
+    pub fn txid(&self) -> H256 { Encoder::encode_and_hash(&V1TransactionSansSigs(self.clone())) }
+}
+
+impl Encodable for SiafundInputV1 {
+    fn encode(&self, encoder: &mut Encoder) {
+        self.parent_id.encode(encoder);
+        self.unlock_condition.encode(encoder);
+        self.claim_address.encode(encoder);
+    }
+}
+// TODO possible this can just hold a ref to V1Transaction like CurrencyVersion
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct V1TransactionSansSigs(V1Transaction);
+
+impl Deref for V1TransactionSansSigs {
+    type Target = V1Transaction;
+
+    fn deref(&self) -> &Self::Target { &self.0 }
+}
+
+impl Encodable for V1TransactionSansSigs {
+    fn encode(&self, encoder: &mut Encoder) {
+        encoder.write_len_prefixed_vec(&self.siacoin_inputs);
+
+        encoder.write_u64(self.siacoin_outputs.len() as u64);
+        for so in &self.siacoin_outputs {
+            SiacoinOutputVersion::V1(so).encode(encoder);
+        }
+        encoder.write_len_prefixed_vec(&self.file_contracts);
+        encoder.write_len_prefixed_vec(&self.file_contract_revisions);
+        encoder.write_len_prefixed_vec(&self.storage_proofs);
+        encoder.write_len_prefixed_vec(&self.siafund_inputs);
+
+        encoder.write_u64(self.siafund_outputs.len() as u64);
+        for so in &self.siafund_outputs {
+            SiafundOutputVersion::V1(so).encode(encoder);
+        }
+
+        encoder.write_u64(self.miner_fees.len() as u64);
+        for so in &self.miner_fees {
+            CurrencyVersion::V1(so).encode(encoder);
+        }
+
+        match &self.arbitrary_data {
+            Some(data) => data.encode(encoder),
+            None => encoder.write_u64(0u64),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
@@ -1089,4 +1252,8 @@ impl V2TransactionBuilder {
             miner_fee: self.miner_fee,
         }
     }
+}
+
+impl Default for V2TransactionBuilder {
+    fn default() -> Self { V2TransactionBuilder::new() }
 }

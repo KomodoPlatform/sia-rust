@@ -7,6 +7,12 @@ use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 use std::{cmp, fmt, ops, str};
 
+// FIXME; most of this can be removed
+// This is mostly a direct copy of the H256 type from Komodo DeFi Framework
+
+// FIXME H256::from() has unhandled unwrap() calls
+// eg, H256::from("0")
+
 macro_rules! impl_global_hash {
     ($name: ident, $size: expr) => {
         #[derive(Copy)]
