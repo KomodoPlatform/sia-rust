@@ -191,8 +191,6 @@ impl EndpointSchema {
 #[cfg(all(target_arch = "wasm32", test))]
 mod wasm_tests {
     use super::*;
-    use common::log::info;
-    use common::log::wasm_log::register_wasm_log;
     use once_cell::sync::Lazy;
     use wasm_bindgen::prelude::*;
     use wasm_bindgen_test::*;
@@ -203,8 +201,6 @@ mod wasm_tests {
         url: Url::parse("https://sia-walletd.komodo.earth/").unwrap(),
         password: "password".to_string(),
     });
-
-    fn init_test_env() { register_wasm_log(); }
 
     #[wasm_bindgen_test]
     async fn test_dispatcher_invalid_base_url() {
@@ -220,7 +216,6 @@ mod wasm_tests {
     async fn test_sia_wasm_client_wip() {
         use crate::http::endpoints::TxpoolBroadcastRequest;
         use crate::transaction::V2Transaction;
-        init_test_env();
         let client = SiaApiClient::new(CONF.clone()).await.unwrap();
 
         let tx_str = r#"
