@@ -40,3 +40,10 @@ web-sys = { version = "0.3.55", features = ["Request", "RequestInit", "RequestMo
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = { version = "0.3.2" }
+
+# TODO; choose between rustls-tls or native-tls for linux target
+# for linux target, this requires an additional dep, `libssl-dev`(debian)
+# either install libssl-dev in all CI's or use rustls-tls
+# All other targets use the system's default ssl implementation
+[target.x86_64-unknown-linux-gnu.dependencies]
+reqwest = { version = "0.11.9", features = ["json", "rustls-tls"] }
