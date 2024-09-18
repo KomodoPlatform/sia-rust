@@ -297,6 +297,6 @@ mod tests {
             .unwrap_err();
         assert!(err
             .to_string()
-            .contains("Request cannot be constructed from a URL that includes credentials"));
+            .contains("is an url with embedded credentials"));
     }
 }
