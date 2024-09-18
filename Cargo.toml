@@ -14,6 +14,7 @@ serde_with = "1.14.0"
 nom = "6.1.2"
 blake2b_simd = "0.5"
 chrono = { version = "0.4.23", "features" = ["serde"] }
+log = { version = "0.4.19", "features" = ["std"] }
 hex = "0.4.2"
 reqwest = { version = "0.11.9", features = ["json"]}
 base64 = "0.21.2"
@@ -24,10 +25,8 @@ http = "0.2.12"
 async-trait = "0.1.76"
 thiserror = "1.0.40"
 percent-encoding = "2.1.0"
-
 [dev-dependencies]
 once_cell = "1.18.0"
-tokio = "1.28.2"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2.9", features = ["js"] }
@@ -41,6 +40,10 @@ web-sys = { version = "0.3.55", features = ["Request", "RequestInit", "RequestMo
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = { version = "0.3.2" }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+tokio = "1.28.2"
+
 
 # TODO; choose between rustls-tls or native-tls for linux target
 # for linux target, this requires an additional dep, `libssl-dev`(debian)
