@@ -223,8 +223,7 @@ impl FetchRequest {
         let future = JsFuture::from(request_promise);
         let resp_value = future.await.map_err(|e| FetchError::Transport {
             uri: uri.clone(),
-            //error: stringify_js_error(&e),
-            error: format!("Triggers a CORS(I think) error!! {:?}", e).to_string(),
+            error: stringify_js_error(&e),
         })?;
         let js_response: JsResponse = match resp_value.dyn_into() {
             Ok(res) => res,
@@ -233,8 +232,6 @@ impl FetchRequest {
                 return Err(FetchError::Internal(error));
             },
         };
-        let _status = StatusCode::from_u16(js_response.status()).map_err(FetchError::InvalidStatusCode)?;
-        let _headers = js_response.headers();
 
         let fetch_response = FetchResponse::from_js_response(js_response).await?;
         Ok(fetch_response)
