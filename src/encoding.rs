@@ -41,7 +41,7 @@ impl Encoder {
 
     /// writes a length-prefixed []byte to the underlying stream.
     pub fn write_len_prefixed_bytes(&mut self, data: &[u8]) {
-        self.buffer.extend_from_slice(&data.len().to_le_bytes());
+        self.buffer.extend_from_slice(&(data.len() as u64).to_le_bytes());
         self.buffer.extend_from_slice(data);
     }
 
