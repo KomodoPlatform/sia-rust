@@ -42,7 +42,7 @@ web-sys = { version = "0.3.55", features = ["Request", "RequestInit", "RequestMo
 wasm-bindgen-test = { version = "0.3.2" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
-tokio = "1.28.2"
+tokio = { version = "1.28.2", features = ["rt", "macros"] }
 
 
 # TODO; choose between rustls-tls or native-tls for linux target
