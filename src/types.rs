@@ -18,6 +18,9 @@ use std::str::FromStr;
 mod hash;
 pub use hash::Hash256;
 
+mod signature;
+pub use signature::{Signature, SignatureError}; // FIXME only export Signature
+
 const ADDRESS_HASH_LENGTH: usize = 32;
 const ADDRESS_CHECKSUM_LENGTH: usize = 6;
 
