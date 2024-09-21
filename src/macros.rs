@@ -1,4 +1,5 @@
-// Run a block of unit tests on both wasm32 and non-wasm32 targets
+/// Run a block of unit tests on both wasm32 and non-wasm32 targets
+/// Can only be used once per scope due to wasm_bindgen initialization
 #[cfg(test)]
 macro_rules! cross_target_tests {
     ($($test_fn:item)*) => {
