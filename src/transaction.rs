@@ -1,4 +1,4 @@
-use crate::encoding::{Encodable, Encoder, HexArray64, PrefixedH256, PrefixedPublicKey, PrefixedSignature, ScoidH256};
+use crate::encoding::{Encodable, Encoder, HexArray64, PrefixedPublicKey, PrefixedSignature, ScoidH256};
 use crate::spend_policy::{SpendPolicy, SpendPolicyHelper, UnlockCondition, UnlockKey};
 use crate::types::{Address, ChainIndex, H256};
 use crate::{Keypair, PublicKey, Signature};
@@ -177,11 +177,9 @@ impl Encodable for SatisfiedPolicy {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct StateElement {
-    #[serde_as(as = "FromInto<PrefixedH256>")]
     pub id: H256,
     pub leaf_index: u64,
     #[serde(default)]
-    #[serde_as(as = "Option<Vec<FromInto<PrefixedH256>>>")]
     pub merkle_proof: Option<Vec<H256>>,
 }
 
@@ -363,7 +361,6 @@ pub struct CoveredFields {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransactionSignature {
-    #[serde_as(as = "FromInto<PrefixedH256>")]
     #[serde(rename = "parentID")]
     pub parent_id: H256,
     #[serde(default)]
@@ -443,7 +440,6 @@ impl Encodable for FileContract {
 #[serde(rename_all = "camelCase")]
 pub struct V2FileContract {
     pub filesize: u64,
-    #[serde_as(as = "FromInto<PrefixedH256>")]
     pub file_merkle_root: H256,
     pub proof_height: u64,
     pub expiration_height: u64,

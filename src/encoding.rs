@@ -193,64 +193,6 @@ impl From<PublicKey> for PrefixedPublicKey {
     fn from(public_key: PublicKey) -> Self { PrefixedPublicKey(public_key) }
 }
 
-/// This wrapper allows us to use H256 internally but still serde as "h:" prefixed string
-#[derive(Clone, Debug, PartialEq)]
-pub struct PrefixedH256(pub H256);
-
-// FIXME this code pattern is reoccuring in many places and should be generalized with helpers or macros
-impl<'de> Deserialize<'de> for PrefixedH256 {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct PrefixedH256Visitor;
-
-        impl<'de> serde::de::Visitor<'de> for PrefixedH256Visitor {
-            type Value = PrefixedH256;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a string prefixed with 'h:' and followed by a 64-character hex string")
-            }
-
-            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                if let Some(hex_str) = value.strip_prefix("h:") {
-                    H256::from_str(hex_str)
-                        .map(PrefixedH256)
-                        .map_err(|_| E::invalid_value(serde::de::Unexpected::Str(value), &self))
-                } else {
-                    Err(E::invalid_value(serde::de::Unexpected::Str(value), &self))
-                }
-            }
-        }
-
-        deserializer.deserialize_str(PrefixedH256Visitor)
-    }
-}
-
-impl Serialize for PrefixedH256 {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&format!("{}", self))
-    }
-}
-
-impl fmt::Display for PrefixedH256 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "h:{}", self.0) }
-}
-
-impl From<PrefixedH256> for H256 {
-    fn from(sia_hash: PrefixedH256) -> Self { sia_hash.0 }
-}
-
-impl From<H256> for PrefixedH256 {
-    fn from(h256: H256) -> Self { PrefixedH256(h256) }
-}
-
 /// This wrapper allows us to use H256 internally but still serde as "scoid:" prefixed string
 #[derive(Clone, Debug, PartialEq)]
 pub struct ScoidH256(pub H256);

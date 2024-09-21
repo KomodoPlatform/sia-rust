@@ -1,5 +1,5 @@
 use crate::blake2b_internal::{public_key_leaf, sigs_required_leaf, standard_unlock_hash, timelock_leaf, Accumulator};
-use crate::encoding::{Encodable, Encoder, PrefixedH256, PrefixedPublicKey};
+use crate::encoding::{Encodable, Encoder, PrefixedPublicKey};
 use crate::specifier::Specifier;
 use crate::transaction::{Preimage, SatisfiedPolicy};
 use crate::types::{Address, H256};
@@ -33,7 +33,7 @@ pub enum SpendPolicyHelper {
     Above(u64),
     After(u64),
     Pk(PrefixedPublicKey),
-    H(PrefixedH256),
+    H(H256),
     Thresh { n: u8, of: Vec<SpendPolicyHelper> },
     Opaque(Address),
     Uc(UnlockCondition), // For v1 compatibility
@@ -45,7 +45,7 @@ impl From<SpendPolicyHelper> for SpendPolicy {
             SpendPolicyHelper::Above(height) => SpendPolicy::Above(height),
             SpendPolicyHelper::After(time) => SpendPolicy::After(time),
             SpendPolicyHelper::Pk(pk) => SpendPolicy::PublicKey(pk.0),
-            SpendPolicyHelper::H(hash) => SpendPolicy::Hash(hash.0),
+            SpendPolicyHelper::H(hash) => SpendPolicy::Hash(hash),
             SpendPolicyHelper::Thresh { n, of } => SpendPolicy::Threshold {
                 n,
                 of: of.into_iter().map(SpendPolicy::from).collect(),
@@ -62,7 +62,7 @@ impl From<SpendPolicy> for SpendPolicyHelper {
             SpendPolicy::Above(height) => SpendPolicyHelper::Above(height),
             SpendPolicy::After(time) => SpendPolicyHelper::After(time),
             SpendPolicy::PublicKey(pk) => SpendPolicyHelper::Pk(PrefixedPublicKey(pk)),
-            SpendPolicy::Hash(hash) => SpendPolicyHelper::H(PrefixedH256(hash)),
+            SpendPolicy::Hash(hash) => SpendPolicyHelper::H(hash),
             SpendPolicy::Threshold { n, of } => SpendPolicyHelper::Thresh {
                 n,
                 of: of.into_iter().map(SpendPolicyHelper::from).collect(),
