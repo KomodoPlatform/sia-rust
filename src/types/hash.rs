@@ -17,7 +17,7 @@ pub enum ParseHashError {
 pub struct Hash256(pub [u8; 32]);
 
 impl Hash256 {
-    pub const fn const_default() -> Hash256 { Hash256([0; 32]) }
+    const fn const_default() -> Hash256 { Hash256([0; 32]) }
 
     // Method for parsing a hex string without the "h:" prefix
     pub fn from_str_no_prefix(hex_str: &str) -> Result<Self, ParseHashError> {
