@@ -4,7 +4,7 @@ use std::str::FromStr;
 use std::fmt;
 use thiserror::Error;
 
-#[derive(Debug, Deserialize, Serialize, Error)]
+#[derive(Debug, Error)]
 pub enum ParseHashError {
     #[error("expected hex string prefixed with 'h:', found {0}")]
     InvalidPrefix(String),
