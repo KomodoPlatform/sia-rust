@@ -1,7 +1,5 @@
 use crate::blake2b_internal::standard_unlock_hash;
-use crate::encoding::{Encodable, Encoder, PrefixedH256};
-pub use crate::hash::H256;
-pub use crate::transaction::Currency;
+use crate::encoding::{Encodable, Encoder};
 use crate::transaction::{FileContractElementV1, SiacoinElement, SiafundElement, StateElement, V1Transaction,
                          V2FileContractResolution, V2Transaction};
 use crate::PublicKey;
@@ -10,7 +8,6 @@ use chrono::{DateTime, Utc};
 use hex::FromHexError;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
-use serde_with::{serde_as, FromInto};
 use std::convert::From;
 use std::convert::TryInto;
 use std::fmt;
@@ -124,7 +121,7 @@ impl FromStr for Address {
             return Err(ParseAddressError::InvalidChecksum);
         }
 
-        Ok(Address(H256::from(address_bytes)))
+        Ok(Address(H256(address_bytes)))
     }
 }
 
@@ -170,7 +167,7 @@ impl<'de> Deserialize<'de> for BlockID {
                 E: serde::de::Error,
             {
                 if let Some(hex_str) = value.strip_prefix("bid:") {
-                    H256::from_str(hex_str)
+                    H256::from_str_no_prefix(hex_str)
                         .map(BlockID)
                         .map_err(|_| E::invalid_value(serde::de::Unexpected::Str(value), &self))
                 } else {
@@ -193,7 +190,7 @@ impl Serialize for BlockID {
 }
 
 impl fmt::Display for BlockID {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "bid:{}", self.0) }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "bid:{:02x}", self.0) }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -245,10 +242,8 @@ pub enum EventType {
     V2ContractResolution,
 }
 
-#[serde_as]
 #[derive(Clone, Debug, Serialize)]
 pub struct Event {
-    #[serde_as(as = "FromInto<PrefixedH256>")]
     pub id: H256,
     pub index: ChainIndex,
     pub timestamp: DateTime<Utc>,
@@ -268,7 +263,7 @@ impl<'de> Deserialize<'de> for Event {
     {
         #[derive(Deserialize, Debug)]
         struct EventHelper {
-            id: PrefixedH256,
+            id: H256,
             index: ChainIndex,
             timestamp: DateTime<Utc>,
             #[serde(rename = "maturityHeight")]
