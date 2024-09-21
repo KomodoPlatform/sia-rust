@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize, Deserializer, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
-use std::str::FromStr;
 use std::fmt;
+use std::str::FromStr;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -104,27 +104,126 @@ impl FromStr for Hash256 {
 impl TryFrom<&str> for Hash256 {
     type Error = ParseHashError;
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Hash256::from_str(value)
-    }
+    fn try_from(value: &str) -> Result<Self, Self::Error> { Hash256::from_str(value) }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::str::FromStr;
+    use serde_json;
 
-    cross_target_test! {
-        fn test_placeholder_fixme() {
-            let str_reversed = "h:00000000839a8e6886ab5951d76f411475428afc90947ee320161bbf18eb6048";
-            match Hash256::from_str(str_reversed) {
-                Ok(reversed_hash) => assert_eq!(format!("{:?}", reversed_hash), str_reversed),
-                _ => panic!("unexpected"),
+    cross_target_tests! {
+        fn test_default() {
+            let hash = Hash256::try_from("h:0000000000000000000000000000000000000000000000000000000000000000").unwrap();
+            assert_eq!(hash, Hash256::default());
+        }
+
+        fn test_valid() {
+            let hash = Hash256::try_from("h:c0ffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee").unwrap();
+            assert_eq!(hash.to_string(), "h:c0ffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
+        }
+
+        fn test_display() {
+            let hash = Hash256::try_from("h:c0ffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee").unwrap();
+            assert_eq!(hash.to_string(), "h:c0ffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
+        }
+
+        fn test_debug() {
+            let hash = Hash256::try_from("h:c0ffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee").unwrap();
+            assert_eq!(format!("{:?}", hash), "h:c0ffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
+        }
+
+        fn test_serialize() {
+            let hash = Hash256::try_from("h:c0ffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee").unwrap();
+            let serialized = serde_json::to_string(&hash).unwrap();
+            assert_eq!(&serialized, r#""h:c0ffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee""#);
+        }
+
+        fn test_deserialize() {
+            let hash = Hash256::try_from("h:c0ffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee").unwrap();
+            let deserialized: Hash256 = serde_json::from_str(r#""h:c0ffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee""#).unwrap();
+            assert_eq!(deserialized, hash);
+        }
+
+        fn test_deserialize_missing_prefix() {
+            let err  = serde_json::from_str::<Hash256>(r#""c0ffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee""#).expect_err("no prefix");
+            format!("{:?}", err).contains("expected a string prefixed with 'h:' and followed by a 32 byte hex string");
+        }
+
+        fn test_missing_prefix() {
+            let test_case = "c0ffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+            let err = Hash256::try_from(test_case).expect_err("no prefix");
+            match err {
+                ParseHashError::InvalidPrefix(ref e) if test_case == e => (),
+                _ => panic!("unexpected error: {:?}", err),
             }
+        }
 
-            let str_reversed = "XXXYYY";
-            if Hash256::from_str(str_reversed).is_ok() {
-                panic!("unexpected");
+        fn test_corrupt_prefix() {
+            let test_case = ":c0ffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+            let err = Hash256::try_from(test_case).expect_err("no prefix");
+            match err {
+                ParseHashError::InvalidPrefix(ref e) if test_case == e => (),
+                _ => panic!("unexpected error: {:?}", err),
+            }
+        }
+
+        fn test_wrong_prefix() {
+            let test_case = "i:c0ffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+            let err = Hash256::try_from(test_case).expect_err("wrong prefix");
+            match err {
+                ParseHashError::InvalidPrefix(ref e) if test_case == e => (),
+                _ => panic!("unexpected error: {:?}", err),
+            }
+        }
+
+        fn test_invalid_hex() {
+            let err = Hash256::try_from("h:c0ffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeg").expect_err("no prefix");
+            let expected = "c0ffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeg";
+            match err {
+                ParseHashError::InvalidHex(ref e) if expected == e => (),
+                _ => panic!("unexpected error: {:?}", err),
+            }
+        }
+
+        fn test_invalid_length() {
+            let err = Hash256::try_from("h:badc0de").expect_err("invalid length");
+            let expected = "badc0de";
+            match err {
+                ParseHashError::InvalidLength(ref e) if expected == e => (),
+                _ => panic!("unexpected error: {:?}", err),
+            }
+        }
+
+        fn test_from_str_no_prefix_valid() {
+            let hash = Hash256::from_str_no_prefix("0000000000000000000000000000000000000000000000000000000000000000").unwrap();
+            assert_eq!(hash, Hash256::default())
+        }
+        
+        fn test_from_str_no_prefix_invalid_length() {
+            let err = Hash256::from_str_no_prefix("badc0de").expect_err("invalid length");
+            let expected = "badc0de";
+            match err {
+                ParseHashError::InvalidLength(ref e) if expected == e => (),
+                _ => panic!("unexpected error: {:?}", err),
+            }
+        }
+
+        fn test_from_str_no_prefix_invalid_hex() {
+            let err = Hash256::from_str_no_prefix("g00000000000000000000000000000000000000000000000000000000000000e").expect_err("invalid hex");
+            let expected = "g00000000000000000000000000000000000000000000000000000000000000e";
+            match err {
+                ParseHashError::InvalidHex(ref e) if expected == e => (),
+                _ => panic!("unexpected error: {:?}", err),
+            }
+        }
+
+        fn test_from_str_no_prefix_invalid_has_prefix() {
+            let err = Hash256::from_str_no_prefix("h:c0ffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee").expect_err("invalid hex");
+            let expected = "h:c0ffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+            match err {
+                ParseHashError::InvalidLength(ref e) if expected == e => (),
+                _ => panic!("unexpected error: {:?}", err),
             }
         }
     }
