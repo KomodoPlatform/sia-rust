@@ -64,13 +64,11 @@ pub enum ApiClientError {
     #[error("UrlParse error: {0}")]
     UrlParse(#[from] url::ParseError),
     #[error("UnexpectedHttpStatus error: status:{status} body:{body}")]
-    UnexpectedHttpStatus{ status: http::StatusCode, body: String },
+    UnexpectedHttpStatus { status: http::StatusCode, body: String },
     #[error("Serde error: {0}")]
     Serde(#[from] serde_json::Error),
     #[error("UnexpectedEmptyResponse error: {expected_type}")]
-    UnexpectedEmptyResponse {
-        expected_type: String,
-    },
+    UnexpectedEmptyResponse { expected_type: String },
     #[error("WasmFetchError error: {0}")]
     #[cfg(target_arch = "wasm32")]
     WasmFetchError(#[from] FetchError),

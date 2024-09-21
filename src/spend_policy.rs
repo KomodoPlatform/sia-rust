@@ -238,7 +238,12 @@ pub fn spend_policy_atomic_swap(alice: PublicKey, bob: PublicKey, lock_time: u64
     }
 }
 
-pub fn spend_policy_atomic_swap_success(alice: PublicKey, bob: PublicKey, lock_time: u64, hash: Hash256) -> SpendPolicy {
+pub fn spend_policy_atomic_swap_success(
+    alice: PublicKey,
+    bob: PublicKey,
+    lock_time: u64,
+    hash: Hash256,
+) -> SpendPolicy {
     match spend_policy_atomic_swap(alice, bob, lock_time, hash) {
         SpendPolicy::Threshold { n, mut of } => {
             of[1] = of[1].opacify();

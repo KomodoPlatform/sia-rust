@@ -102,12 +102,9 @@ impl ApiClient for Client {
                     .body
                     .map(|b| format!("{}", b)) // Use Display trait to format Body
                     .unwrap_or_else(|| "".to_string()); // If body is None, use an empty string
-    
-                Err(ApiClientError::UnexpectedHttpStatus {
-                    status,
-                    body,
-                })
-            }
+
+                Err(ApiClientError::UnexpectedHttpStatus { status, body })
+            },
         }
     }
 }
@@ -122,10 +119,10 @@ impl ApiClientHelpers for Client {}
 mod wasm_tests {
     use super::*;
     use blake2b_simd::Hash;
+    use log::info;
     use once_cell::sync::Lazy;
     use wasm_bindgen::prelude::*;
     use wasm_bindgen_test::*;
-    use log::info;
 
     wasm_bindgen_test_configure!(run_in_browser);
 
@@ -192,11 +189,11 @@ mod wasm_tests {
             v2transactions: vec![tx],
         };
         match client.dispatcher(req).await.expect_err("Expected HTTP 400 error") {
-            ApiClientError::UnexpectedHttpStatus { status: StatusCode::BAD_REQUEST, body } => {
-                ()
-            },
+            ApiClientError::UnexpectedHttpStatus {
+                status: StatusCode::BAD_REQUEST,
+                body,
+            } => (),
             e => panic!("Unexpected error: {:?}", e),
         }
-        
     }
 }

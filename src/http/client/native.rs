@@ -63,7 +63,8 @@ impl ApiClient for NativeClient {
             ClientBody::Utf8(body) => self.client.request(schema.method.into(), url).body(body).build(),
             ClientBody::Json(body) => self.client.request(schema.method.into(), url).json(&body).build(),
             ClientBody::Bytes(body) => self.client.request(schema.method.into(), url).body(body).build(),
-        }.map_err(ApiClientError::ReqwestError)?;
+        }
+        .map_err(ApiClientError::ReqwestError)?;
         Ok(req)
     }
 
@@ -105,11 +106,8 @@ impl ApiClient for NativeClient {
                     .map_err(|e| format!("Failed to retrieve body: {}", e))
                     .unwrap_or_else(|e| e);
 
-                Err(ApiClientError::UnexpectedHttpStatus {
-                    status,
-                    body,
-                })
-            }
+                Err(ApiClientError::UnexpectedHttpStatus { status, body })
+            },
         }
     }
 }

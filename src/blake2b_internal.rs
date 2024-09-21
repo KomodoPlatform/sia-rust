@@ -6,7 +6,7 @@ use blake2b_simd::Params;
 use std::default::Default;
 
 #[cfg(test)] use hex;
-#[cfg(test)] use std::convert::{TryInto, TryFrom};
+#[cfg(test)] use std::convert::{TryFrom, TryInto};
 
 const LEAF_HASH_PREFIX: [u8; 1] = [0u8];
 const NODE_HASH_PREFIX: [u8; 1] = [1u8];
