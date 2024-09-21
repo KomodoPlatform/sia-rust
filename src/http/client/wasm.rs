@@ -135,7 +135,7 @@ mod wasm_tests {
     });
 
     #[wasm_bindgen_test]
-    async fn test_sia_wasm_client_wip() {
+    async fn test_sia_wasm_client_client_error() {
         use crate::http::endpoints::TxpoolBroadcastRequest;
         use crate::transaction::V2Transaction;
         let client = Client::new(CONF.clone()).await.unwrap();
@@ -191,6 +191,12 @@ mod wasm_tests {
             transactions: vec![],
             v2transactions: vec![tx],
         };
-        let resp = client.dispatcher(req).await.unwrap();
+        match client.dispatcher(req).await.expect_err("Expected HTTP 400 error") {
+            ApiClientError::UnexpectedHttpStatus { status: StatusCode::BAD_REQUEST, body } => {
+                ()
+            },
+            e => panic!("Unexpected error: {:?}", e),
+        }
+        
     }
 }
