@@ -1,6 +1,7 @@
 use crate::spend_policy::{spend_policy_atomic_swap_success, SpendPolicy, SpendPolicyHelper, UnlockCondition, UnlockKey};
 use crate::types::{Address, H256};
 use crate::PublicKey;
+use std::convert::TryFrom;
 use std::str::FromStr;
 
 #[test]
@@ -59,7 +60,7 @@ fn test_serde_spend_policy_hash() {
         "policy": "h:0102030000000000000000000000000000000000000000000000000000000000"
     }
     );
-    let hash = H256::from("0102030000000000000000000000000000000000000000000000000000000000");
+    let hash = H256::try_from("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap();
     let spend_policy_deser: SpendPolicy = serde_json::from_value::<SpendPolicyHelper>(j).unwrap().into();
     let spend_policy = SpendPolicy::Hash(hash);
 
@@ -93,7 +94,7 @@ fn test_serde_spend_policy_threshold() {
     )
     .unwrap();
 
-    let secret_hash = H256::from("0100000000000000000000000000000000000000000000000000000000000000");
+    let secret_hash = H256::try_from("h:0100000000000000000000000000000000000000000000000000000000000000").unwrap();
     let spend_policy = spend_policy_atomic_swap_success(alice_pubkey, bob_pubkey, 77777777, secret_hash);
 
     let j = json!(

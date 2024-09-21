@@ -6,7 +6,7 @@ use blake2b_simd::Params;
 use std::default::Default;
 
 #[cfg(test)] use hex;
-#[cfg(test)] use std::convert::TryInto;
+#[cfg(test)] use std::convert::{TryInto, TryFrom};
 
 const LEAF_HASH_PREFIX: [u8; 1] = [0u8];
 const NODE_HASH_PREFIX: [u8; 1] = [1u8];
@@ -129,8 +129,10 @@ pub fn standard_unlock_hash(pubkey: &PublicKey) -> H256 {
 
 pub fn hash_blake2b_single(preimage: &[u8]) -> H256 {
     let hash = Params::new().hash_length(32).to_state().update(preimage).finalize();
-    let ret_array = hash.as_bytes();
-    ret_array[0..32].into()
+    let mut array = [0u8; 32];
+    debug_assert!(hash.as_bytes().len() == 32);
+    array.copy_from_slice(hash.as_bytes());
+    H256(array)
 }
 
 fn hash_blake2b_pair(prefix: &[u8], leaf1: &[u8], leaf2: &[u8]) -> H256 {
@@ -141,8 +143,10 @@ fn hash_blake2b_pair(prefix: &[u8], leaf1: &[u8], leaf2: &[u8]) -> H256 {
         .update(leaf1)
         .update(leaf2)
         .finalize();
-    let ret_array = hash.as_bytes();
-    ret_array[0..32].into()
+    let mut array = [0u8; 32];
+    debug_assert!(hash.as_bytes().len() == 32);
+    array.copy_from_slice(hash.as_bytes());
+    H256(array)
 }
 
 #[test]
@@ -150,7 +154,7 @@ fn test_accumulator_new() {
     let default_accumulator = Accumulator::default();
 
     let expected = Accumulator {
-        trees: [H256::from("0000000000000000000000000000000000000000000000000000000000000000"); 64],
+        trees: [H256::default(); 64],
         num_leaves: 0,
     };
     assert_eq!(default_accumulator, expected)
@@ -176,7 +180,7 @@ fn test_accumulator_root() {
     let sigs_required_leaf = sigs_required_leaf(1u64);
     accumulator.add_leaf(sigs_required_leaf);
 
-    let expected = H256::from("72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d");
+    let expected = H256::try_from("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
     assert_eq!(accumulator.root(), expected);
 }
 
@@ -198,7 +202,7 @@ fn test_accumulator_add_leaf_standard_unlock_hash() {
     accumulator.add_leaf(sigs_required_leaf);
 
     let root = accumulator.root();
-    let expected = H256::from("72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d");
+    let expected = H256::try_from("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
     assert_eq!(root, expected)
 }
 
@@ -227,7 +231,7 @@ fn test_accumulator_add_leaf_2of2_multisig_unlock_hash() {
     accumulator.add_leaf(sigs_required_leaf);
 
     let root = accumulator.root();
-    let expected = H256::from("1e94357817d236167e54970a8c08bbd41b37bfceeeb52f6c1ce6dd01d50ea1e7");
+    let expected = H256::try_from("h:1e94357817d236167e54970a8c08bbd41b37bfceeeb52f6c1ce6dd01d50ea1e7").unwrap();
     assert_eq!(root, expected)
 }
 
@@ -256,7 +260,7 @@ fn test_accumulator_add_leaf_1of2_multisig_unlock_hash() {
     accumulator.add_leaf(sigs_required_leaf);
 
     let root = accumulator.root();
-    let expected = H256::from("d7f84e3423da09d111a17f64290c8d05e1cbe4cab2b6bed49e3a4d2f659f0585");
+    let expected = H256::try_from("h:d7f84e3423da09d111a17f64290c8d05e1cbe4cab2b6bed49e3a4d2f659f0585").unwrap();
     assert_eq!(root, expected)
 }
 
@@ -268,7 +272,7 @@ fn test_standard_unlock_hash() {
     .unwrap();
 
     let hash = standard_unlock_hash(&pubkey);
-    let expected = H256::from("72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d");
+    let expected = H256::try_from("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
     assert_eq!(hash, expected)
 }
 
@@ -284,28 +288,28 @@ fn test_hash_blake2b_pair() {
         .unwrap();
 
     let hash = hash_blake2b_pair(&NODE_HASH_PREFIX, &left, &right);
-    let expected = H256::from("72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d");
+    let expected = H256::try_from("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
     assert_eq!(hash, expected)
 }
 
 #[test]
 fn test_timelock_leaf() {
     let hash = timelock_leaf(0);
-    let expected = H256::from(STANDARD_TIMELOCK_BLAKE2B_HASH);
+    let expected = H256(STANDARD_TIMELOCK_BLAKE2B_HASH);
     assert_eq!(hash, expected)
 }
 
 #[test]
 fn test_sigs_required_leaf() {
     let hash = sigs_required_leaf(1u64);
-    let expected = H256::from(STANDARD_SIGS_REQUIRED_BLAKE2B_HASH);
+    let expected = H256(STANDARD_SIGS_REQUIRED_BLAKE2B_HASH);
     assert_eq!(hash, expected)
 }
 
 #[test]
 fn test_hash_blake2b_single() {
     let hash = hash_blake2b_single(&hex::decode("006564323535313900000000000000000020000000000000000102030000000000000000000000000000000000000000000000000000000000").unwrap());
-    let expected = H256::from("21ce940603a2ee3a283685f6bfb4b122254894fd1ed3eb59434aadbf00c75d5b");
+    let expected = H256::try_from("h:21ce940603a2ee3a283685f6bfb4b122254894fd1ed3eb59434aadbf00c75d5b").unwrap();
     assert_eq!(hash, expected)
 }
 
@@ -317,6 +321,6 @@ fn test_public_key_leaf() {
     .unwrap();
 
     let hash = public_key_leaf(&UnlockKey::Ed25519(pubkey));
-    let expected = H256::from("21ce940603a2ee3a283685f6bfb4b122254894fd1ed3eb59434aadbf00c75d5b");
+    let expected = H256::try_from("h:21ce940603a2ee3a283685f6bfb4b122254894fd1ed3eb59434aadbf00c75d5b").unwrap();
     assert_eq!(hash, expected)
 }
