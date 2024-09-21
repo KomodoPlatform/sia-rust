@@ -199,7 +199,7 @@ mod tests {
             let hash = Hash256::from_str_no_prefix("0000000000000000000000000000000000000000000000000000000000000000").unwrap();
             assert_eq!(hash, Hash256::default())
         }
-        
+
         fn test_from_str_no_prefix_invalid_length() {
             let err = Hash256::from_str_no_prefix("badc0de").expect_err("invalid length");
             let expected = "badc0de";
