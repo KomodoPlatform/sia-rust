@@ -1,6 +1,6 @@
 use crate::blake2b_internal::hash_blake2b_single;
 use crate::types::Hash256;
-use crate::{PublicKey, Signature};
+use crate::PublicKey;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::From;
 use std::convert::{TryFrom, TryInto};
@@ -81,62 +81,7 @@ pub trait Encodable {
     fn encode(&self, encoder: &mut Encoder);
 }
 
-/// This wrapper allows us to use Signature internally but still serde as "sig:" prefixed string
-#[derive(Debug)]
-pub struct PrefixedSignature(pub Signature);
 
-impl<'de> Deserialize<'de> for PrefixedSignature {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct PrefixedSignatureVisitor;
-
-        impl<'de> serde::de::Visitor<'de> for PrefixedSignatureVisitor {
-            type Value = PrefixedSignature;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a string prefixed with 'sig:' and followed by a 128-character hex string")
-            }
-
-            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                if let Some(hex_str) = value.strip_prefix("sig:") {
-                    Signature::from_str(hex_str)
-                        .map(PrefixedSignature)
-                        .map_err(|_| E::invalid_value(serde::de::Unexpected::Str(value), &self))
-                } else {
-                    Err(E::invalid_value(serde::de::Unexpected::Str(value), &self))
-                }
-            }
-        }
-
-        deserializer.deserialize_str(PrefixedSignatureVisitor)
-    }
-}
-
-impl Serialize for PrefixedSignature {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&format!("{}", self))
-    }
-}
-
-impl fmt::Display for PrefixedSignature {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "sig:{:x}", self.0) }
-}
-
-impl From<PrefixedSignature> for Signature {
-    fn from(sia_hash: PrefixedSignature) -> Self { sia_hash.0 }
-}
-
-impl From<Signature> for PrefixedSignature {
-    fn from(signature: Signature) -> Self { PrefixedSignature(signature) }
-}
 
 /// This wrapper allows us to use PublicKey internally but still serde as "ed25519:" prefixed string
 #[derive(Clone, Debug, PartialEq)]

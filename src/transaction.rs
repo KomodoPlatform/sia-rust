@@ -1,4 +1,4 @@
-use crate::encoding::{Encodable, Encoder, HexArray64, PrefixedPublicKey, PrefixedSignature, ScoidH256};
+use crate::encoding::{Encodable, Encoder, HexArray64, PrefixedPublicKey, ScoidH256};
 use crate::spend_policy::{SpendPolicy, SpendPolicyHelper, UnlockCondition, UnlockKey};
 use crate::types::{Address, ChainIndex, Hash256};
 use crate::{Keypair, PublicKey, Signature};
@@ -113,7 +113,6 @@ pub type Preimage = Vec<u8>;
 pub struct SatisfiedPolicy {
     #[serde_as(as = "FromInto<SpendPolicyHelper>")]
     pub policy: SpendPolicy,
-    #[serde_as(as = "Vec<FromInto<PrefixedSignature>>")]
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub signatures: Vec<Signature>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -173,7 +172,6 @@ impl Encodable for SatisfiedPolicy {
     }
 }
 
-#[serde_as]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct StateElement {
@@ -357,7 +355,6 @@ pub struct CoveredFields {
     pub signatures: Vec<u64>,
 }
 
-#[serde_as]
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransactionSignature {
@@ -452,9 +449,7 @@ pub struct V2FileContract {
     #[serde_as(as = "FromInto<PrefixedPublicKey>")]
     pub host_public_key: PublicKey,
     pub revision_number: u64,
-    #[serde_as(as = "FromInto<PrefixedSignature>")]
     pub renter_signature: Signature,
-    #[serde_as(as = "FromInto<PrefixedSignature>")]
     pub host_signature: Signature,
 }
 
@@ -539,7 +534,7 @@ impl Encodable for Attestation {
         self.signature.encode(encoder);
     }
 }
-#[serde_as]
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct StorageProof {
     pub parent_id: FileContractID,
@@ -718,7 +713,6 @@ impl Encodable for V2FileContractFinalization {
     fn encode(&self, encoder: &mut Encoder) { self.0.encode(encoder); }
 }
 
-#[serde_as]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct V2FileContractRenewal {
@@ -726,9 +720,7 @@ pub struct V2FileContractRenewal {
     new_contract: V2FileContract,
     renter_rollover: Currency,
     host_rollover: Currency,
-    #[serde_as(as = "FromInto<PrefixedSignature>")]
     renter_signature: Signature,
-    #[serde_as(as = "FromInto<PrefixedSignature>")]
     host_signature: Signature,
 }
 
