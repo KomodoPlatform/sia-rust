@@ -1,7 +1,7 @@
 use crate::encoding::{Encodable, Encoder, HexArray64, PrefixedPublicKey, ScoidH256};
 use crate::spend_policy::{SpendPolicy, SpendPolicyHelper, UnlockCondition, UnlockKey};
-use crate::types::{Address, ChainIndex, Hash256};
-use crate::{Keypair, PublicKey, Signature};
+use crate::types::{Address, ChainIndex, Hash256, Signature};
+use crate::{Keypair, PublicKey};
 use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
