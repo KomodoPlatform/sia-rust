@@ -1,6 +1,6 @@
 use crate::encoding::{Encodable, Encoder, HexArray64, PrefixedPublicKey, PrefixedSignature, ScoidH256};
 use crate::spend_policy::{SpendPolicy, SpendPolicyHelper, UnlockCondition, UnlockKey};
-use crate::types::{Address, ChainIndex, H256};
+use crate::types::{Address, ChainIndex, Hash256};
 use crate::{Keypair, PublicKey, Signature};
 use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -177,10 +177,10 @@ impl Encodable for SatisfiedPolicy {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct StateElement {
-    pub id: H256,
+    pub id: Hash256,
     pub leaf_index: u64,
     #[serde(default)]
-    pub merkle_proof: Option<Vec<H256>>,
+    pub merkle_proof: Option<Vec<Hash256>>,
 }
 
 impl Encodable for StateElement {
@@ -258,7 +258,7 @@ impl Encodable for SiafundInputV2 {
 pub struct SiacoinInputV1 {
     #[serde(rename = "parentID")]
     #[serde_as(as = "FromInto<ScoidH256>")]
-    pub parent_id: H256,
+    pub parent_id: Hash256,
     #[serde(rename = "unlockConditions")]
     pub unlock_condition: UnlockCondition,
 }
@@ -362,7 +362,7 @@ pub struct CoveredFields {
 #[serde(rename_all = "camelCase")]
 pub struct TransactionSignature {
     #[serde(rename = "parentID")]
-    pub parent_id: H256,
+    pub parent_id: Hash256,
     #[serde(default)]
     pub public_key_index: u64,
     #[serde(default)]
@@ -405,13 +405,13 @@ impl<'de> Deserialize<'de> for V1Signature {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct FileContract {
     pub filesize: u64,
-    pub file_merkle_root: H256,
+    pub file_merkle_root: Hash256,
     pub window_start: u64,
     pub window_end: u64,
     pub payout: Currency,
     pub valid_proof_outputs: Vec<SiacoinOutput>,
     pub missed_proof_outputs: Vec<SiacoinOutput>,
-    pub unlock_hash: H256,
+    pub unlock_hash: Hash256,
     pub revision_number: u64,
 }
 
@@ -440,7 +440,7 @@ impl Encodable for FileContract {
 #[serde(rename_all = "camelCase")]
 pub struct V2FileContract {
     pub filesize: u64,
-    pub file_merkle_root: H256,
+    pub file_merkle_root: Hash256,
     pub proof_height: u64,
     pub expiration_height: u64,
     pub renter_output: SiacoinOutput,
@@ -544,7 +544,7 @@ impl Encodable for Attestation {
 pub struct StorageProof {
     pub parent_id: FileContractID,
     pub leaf: HexArray64,
-    pub proof: Vec<H256>,
+    pub proof: Vec<Hash256>,
 }
 
 impl Encodable for StorageProof {
@@ -558,8 +558,8 @@ impl Encodable for StorageProof {
     }
 }
 
-type SiafundOutputID = H256;
-type FileContractID = H256;
+type SiafundOutputID = Hash256;
+type FileContractID = Hash256;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct FileContractRevision {
@@ -764,7 +764,7 @@ impl Encodable for V2FileContractRenewal {
 pub struct V2StorageProof {
     proof_index: ChainIndexElement,
     leaf: HexArray64,
-    proof: Vec<H256>,
+    proof: Vec<Hash256>,
 }
 
 impl V2StorageProof {
@@ -820,13 +820,13 @@ pub struct FileContractElementV1 {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FileContractV1 {
     pub filesize: u64,
-    pub file_merkle_root: H256,
+    pub file_merkle_root: Hash256,
     pub window_start: u64,
     pub window_end: u64,
     pub payout: Currency,
     pub valid_proof_outputs: Vec<SiacoinOutput>,
     pub missed_proof_outputs: Vec<SiacoinOutput>,
-    pub unlock_hash: H256,
+    pub unlock_hash: Hash256,
     pub revision_number: u64,
 }
 
@@ -866,7 +866,7 @@ pub struct V1Transaction {
 }
 
 impl V1Transaction {
-    pub fn txid(&self) -> H256 { Encoder::encode_and_hash(&V1TransactionSansSigs(self.clone())) }
+    pub fn txid(&self) -> Hash256 { Encoder::encode_and_hash(&V1TransactionSansSigs(self.clone())) }
 }
 
 impl Encodable for SiafundInputV1 {
@@ -952,7 +952,7 @@ impl V2Transaction {
         }
     }
 
-    pub fn input_sig_hash(&self) -> H256 {
+    pub fn input_sig_hash(&self) -> Hash256 {
         let mut encoder = Encoder::default();
         encoder.write_distinguisher("sig/input");
         encoder.write_u8(V2_REPLAY_PREFIX);
@@ -960,7 +960,7 @@ impl V2Transaction {
         encoder.hash()
     }
 
-    pub fn txid(&self) -> H256 {
+    pub fn txid(&self) -> Hash256 {
         let mut encoder = Encoder::default();
         encoder.write_distinguisher("id/transaction");
         self.encode(&mut encoder);
@@ -1199,7 +1199,7 @@ impl V2TransactionBuilder {
         self
     }
 
-    pub fn input_sig_hash(&self) -> H256 {
+    pub fn input_sig_hash(&self) -> Hash256 {
         let mut encoder = Encoder::default();
         encoder.write_distinguisher("sig/input");
         encoder.write_u8(V2_REPLAY_PREFIX);

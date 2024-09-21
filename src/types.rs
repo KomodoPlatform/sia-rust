@@ -16,7 +16,7 @@ use std::fmt;
 use std::str::FromStr;
 
 mod hash;
-pub use hash::H256;
+pub use hash::Hash256;
 
 const ADDRESS_HASH_LENGTH: usize = 32;
 const ADDRESS_CHECKSUM_LENGTH: usize = 6;
@@ -24,7 +24,7 @@ const ADDRESS_CHECKSUM_LENGTH: usize = 6;
 // TODO this could probably include the checksum within the data type
 // generating the checksum on the fly is how Sia Go does this however
 #[derive(Debug, Clone, PartialEq)]
-pub struct Address(pub H256);
+pub struct Address(pub Hash256);
 
 impl Serialize for Address {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -123,7 +123,7 @@ impl FromStr for Address {
             return Err(ParseAddressError::InvalidChecksum);
         }
 
-        Ok(Address(H256(address_bytes)))
+        Ok(Address(Hash256(address_bytes)))
     }
 }
 
@@ -140,14 +140,14 @@ pub fn v1_standard_address_from_pubkey(pubkey: &PublicKey) -> Address {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct BlockID(pub H256);
+pub struct BlockID(pub Hash256);
 
-impl From<BlockID> for H256 {
+impl From<BlockID> for Hash256 {
     fn from(sia_hash: BlockID) -> Self { sia_hash.0 }
 }
 
-impl From<H256> for BlockID {
-    fn from(h256: H256) -> Self { BlockID(h256) }
+impl From<Hash256> for BlockID {
+    fn from(h256: Hash256) -> Self { BlockID(h256) }
 }
 
 impl<'de> Deserialize<'de> for BlockID {
@@ -169,7 +169,7 @@ impl<'de> Deserialize<'de> for BlockID {
                 E: serde::de::Error,
             {
                 if let Some(hex_str) = value.strip_prefix("bid:") {
-                    H256::from_str_no_prefix(hex_str)
+                    Hash256::from_str_no_prefix(hex_str)
                         .map(BlockID)
                         .map_err(|_| E::invalid_value(serde::de::Unexpected::Str(value), &self))
                 } else {
@@ -205,7 +205,7 @@ pub struct ChainIndex {
 impl Encodable for ChainIndex {
     fn encode(&self, encoder: &mut Encoder) {
         encoder.write_u64(self.height);
-        let block_id: H256 = self.id.clone().into();
+        let block_id: Hash256 = self.id.clone().into();
         block_id.encode(encoder);
     }
 }
@@ -246,7 +246,7 @@ pub enum EventType {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Event {
-    pub id: H256,
+    pub id: Hash256,
     pub index: ChainIndex,
     pub timestamp: DateTime<Utc>,
     #[serde(rename = "maturityHeight")]
@@ -265,7 +265,7 @@ impl<'de> Deserialize<'de> for Event {
     {
         #[derive(Deserialize, Debug)]
         struct EventHelper {
-            id: H256,
+            id: Hash256,
             index: ChainIndex,
             timestamp: DateTime<Utc>,
             #[serde(rename = "maturityHeight")]

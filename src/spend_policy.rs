@@ -2,7 +2,7 @@ use crate::blake2b_internal::{public_key_leaf, sigs_required_leaf, standard_unlo
 use crate::encoding::{Encodable, Encoder, PrefixedPublicKey};
 use crate::specifier::Specifier;
 use crate::transaction::{Preimage, SatisfiedPolicy};
-use crate::types::{Address, H256};
+use crate::types::{Address, Hash256};
 use crate::{PublicKey, Signature};
 use nom::bytes::complete::{take_until, take_while, take_while_m_n};
 use nom::character::complete::char;
@@ -20,7 +20,7 @@ pub enum SpendPolicy {
     Above(u64),
     After(u64),
     PublicKey(PublicKey),
-    Hash(H256),
+    Hash(Hash256),
     Threshold { n: u8, of: Vec<SpendPolicy> },
     Opaque(Address),
     UnlockConditions(UnlockCondition), // For v1 compatibility
@@ -33,7 +33,7 @@ pub enum SpendPolicyHelper {
     Above(u64),
     After(u64),
     Pk(PrefixedPublicKey),
-    H(H256),
+    H(Hash256),
     Thresh { n: u8, of: Vec<SpendPolicyHelper> },
     Opaque(Address),
     Uc(UnlockCondition), // For v1 compatibility
@@ -162,7 +162,7 @@ impl SpendPolicy {
 
     pub fn public_key(pk: PublicKey) -> Self { SpendPolicy::PublicKey(pk) }
 
-    pub fn hash(h: H256) -> Self { SpendPolicy::Hash(h) }
+    pub fn hash(h: Hash256) -> Self { SpendPolicy::Hash(h) }
 
     pub fn threshold(n: u8, of: Vec<SpendPolicy>) -> Self { SpendPolicy::Threshold { n, of } }
 
@@ -218,7 +218,7 @@ impl SatisfyPolicy for () {
     }
 }
 
-pub fn spend_policy_atomic_swap(alice: PublicKey, bob: PublicKey, lock_time: u64, hash: H256) -> SpendPolicy {
+pub fn spend_policy_atomic_swap(alice: PublicKey, bob: PublicKey, lock_time: u64, hash: Hash256) -> SpendPolicy {
     let policy_after = SpendPolicy::After(lock_time);
     let policy_hash = SpendPolicy::Hash(hash);
 
@@ -238,7 +238,7 @@ pub fn spend_policy_atomic_swap(alice: PublicKey, bob: PublicKey, lock_time: u64
     }
 }
 
-pub fn spend_policy_atomic_swap_success(alice: PublicKey, bob: PublicKey, lock_time: u64, hash: H256) -> SpendPolicy {
+pub fn spend_policy_atomic_swap_success(alice: PublicKey, bob: PublicKey, lock_time: u64, hash: Hash256) -> SpendPolicy {
     match spend_policy_atomic_swap(alice, bob, lock_time, hash) {
         SpendPolicy::Threshold { n, mut of } => {
             of[1] = of[1].opacify();
@@ -248,7 +248,7 @@ pub fn spend_policy_atomic_swap_success(alice: PublicKey, bob: PublicKey, lock_t
     }
 }
 
-pub fn spend_policy_atomic_swap_refund(alice: PublicKey, bob: PublicKey, lock_time: u64, hash: H256) -> SpendPolicy {
+pub fn spend_policy_atomic_swap_refund(alice: PublicKey, bob: PublicKey, lock_time: u64, hash: Hash256) -> SpendPolicy {
     match spend_policy_atomic_swap(alice, bob, lock_time, hash) {
         SpendPolicy::Threshold { n, mut of } => {
             of[0] = of[0].opacify();
@@ -422,7 +422,7 @@ impl UnlockCondition {
         }
     }
 
-    pub fn unlock_hash(&self) -> H256 {
+    pub fn unlock_hash(&self) -> Hash256 {
         // almost all UnlockConditions are standard, so optimize for that case
         if let UnlockKey::Ed25519(public_key) = &self.unlock_keys[0] {
             if self.timelock == 0 && self.unlock_keys.len() == 1 && self.signatures_required == 1 {

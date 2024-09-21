@@ -4,7 +4,7 @@ use crate::spend_policy::{spend_policy_atomic_swap_refund, spend_policy_atomic_s
 use crate::transaction::{Attestation, Currency, CurrencyVersion, FileContractRevisionV2, SatisfiedPolicy,
                          SiacoinElement, SiacoinInputV1, SiacoinInputV2, SiacoinOutput, SiacoinOutputVersion,
                          StateElement, V2FileContract, V2FileContractElement, V2Transaction};
-use crate::types::{v1_standard_address_from_pubkey, Address, H256};
+use crate::types::{v1_standard_address_from_pubkey, Address, Hash256};
 use crate::{PublicKey, Signature};
 use std::convert::TryFrom;
 use std::str::FromStr;
@@ -18,12 +18,12 @@ fn test_siacoin_input_encode() {
     let unlock_condition = UnlockCondition::new(vec![public_key], 0, 1);
 
     let vin = SiacoinInputV1 {
-        parent_id: H256::try_from("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
+        parent_id: Hash256::try_from("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
         unlock_condition,
     };
 
     let hash = Encoder::encode_and_hash(&vin);
-    let expected = H256::try_from("h:1d4b77aaa82c71ca68843210679b380f9638f8bec7addf0af16a6536dd54d6b4").unwrap();
+    let expected = Hash256::try_from("h:1d4b77aaa82c71ca68843210679b380f9638f8bec7addf0af16a6536dd54d6b4").unwrap();
     assert_eq!(hash, expected);
 }
 
@@ -32,7 +32,7 @@ fn test_siacoin_currency_encode_v1() {
     let currency: Currency = 1.into();
 
     let hash = Encoder::encode_and_hash(&CurrencyVersion::V1(&currency));
-    let expected = H256::try_from("h:a1cc3a97fc1ebfa23b0b128b153a29ad9f918585d1d8a32354f547d8451b7826").unwrap();
+    let expected = Hash256::try_from("h:a1cc3a97fc1ebfa23b0b128b153a29ad9f918585d1d8a32354f547d8451b7826").unwrap();
     assert_eq!(hash, expected);
 }
 
@@ -41,7 +41,7 @@ fn test_siacoin_currency_encode_v2() {
     let currency: Currency = 1.into();
 
     let hash = Encoder::encode_and_hash(&CurrencyVersion::V2(&currency));
-    let expected = H256::try_from("h:a3865e5e284e12e0ea418e73127db5d1092bfb98ed372ca9a664504816375e1d").unwrap();
+    let expected = Hash256::try_from("h:a3865e5e284e12e0ea418e73127db5d1092bfb98ed372ca9a664504816375e1d").unwrap();
     assert_eq!(hash, expected);
 }
 
@@ -50,7 +50,7 @@ fn test_siacoin_currency_encode_v1_max() {
     let currency = Currency(u128::MAX);
 
     let hash = Encoder::encode_and_hash(&CurrencyVersion::V1(&currency));
-    let expected = H256::try_from("h:4b9ed7269cb15f71ddf7238172a593a8e7ffe68b12c1bf73d67ac8eec44355bb").unwrap();
+    let expected = Hash256::try_from("h:4b9ed7269cb15f71ddf7238172a593a8e7ffe68b12c1bf73d67ac8eec44355bb").unwrap();
     assert_eq!(hash, expected);
 }
 
@@ -59,7 +59,7 @@ fn test_siacoin_currency_encode_v2_max() {
     let currency = Currency(u128::MAX);
 
     let hash = Encoder::encode_and_hash(&CurrencyVersion::V2(&currency));
-    let expected = H256::try_from("h:681467b3337425fd38fa3983531ca1a6214de9264eebabdf9c9bc5d157d202b4").unwrap();
+    let expected = Hash256::try_from("h:681467b3337425fd38fa3983531ca1a6214de9264eebabdf9c9bc5d157d202b4").unwrap();
     assert_eq!(hash, expected);
 }
 
@@ -72,7 +72,7 @@ fn test_siacoin_output_encode_v1() {
     };
 
     let hash = Encoder::encode_and_hash(&SiacoinOutputVersion::V1(&vout));
-    let expected = H256::try_from("h:3253c57e76600721f2bdf03497a71ed47c09981e22ef49aed92e40da1ea91b28").unwrap();
+    let expected = Hash256::try_from("h:3253c57e76600721f2bdf03497a71ed47c09981e22ef49aed92e40da1ea91b28").unwrap();
     assert_eq!(hash, expected);
 }
 
@@ -85,18 +85,18 @@ fn test_siacoin_output_encode_v2() {
     };
 
     let hash = Encoder::encode_and_hash(&SiacoinOutputVersion::V2(&vout));
-    let expected = H256::try_from("h:c278eceae42f594f5f4ca52c8a84b749146d08af214cc959ed2aaaa916eaafd3").unwrap();
+    let expected = Hash256::try_from("h:c278eceae42f594f5f4ca52c8a84b749146d08af214cc959ed2aaaa916eaafd3").unwrap();
     assert_eq!(hash, expected);
 }
 
 #[test]
 fn test_siacoin_element_encode() {
     let state_element = StateElement {
-        id: H256::try_from("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
+        id: Hash256::try_from("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
         leaf_index: 1,
         merkle_proof: Some(vec![
-            H256::try_from("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
-            H256::try_from("h:0708090000000000000000000000000000000000000000000000000000000000").unwrap(),
+            Hash256::try_from("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
+            Hash256::try_from("h:0708090000000000000000000000000000000000000000000000000000000000").unwrap(),
         ]),
     };
     let siacoin_element = SiacoinElement {
@@ -112,48 +112,48 @@ fn test_siacoin_element_encode() {
     };
 
     let hash = Encoder::encode_and_hash(&siacoin_element);
-    let expected = H256::try_from("h:3c867a54b7b3de349c56585f25a4365f31d632c3e42561b615055c77464d889e").unwrap();
+    let expected = Hash256::try_from("h:3c867a54b7b3de349c56585f25a4365f31d632c3e42561b615055c77464d889e").unwrap();
     assert_eq!(hash, expected);
 }
 
 #[test]
 fn test_state_element_encode() {
     let state_element = StateElement {
-        id: H256::try_from("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
+        id: Hash256::try_from("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
         leaf_index: 1,
         merkle_proof: Some(vec![
-            H256::try_from("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
-            H256::try_from("h:0708090000000000000000000000000000000000000000000000000000000000").unwrap(),
+            Hash256::try_from("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
+            Hash256::try_from("h:0708090000000000000000000000000000000000000000000000000000000000").unwrap(),
         ]),
     };
 
     let hash = Encoder::encode_and_hash(&state_element);
-    let expected = H256::try_from("h:bf6d7b74fb1e15ec4e86332b628a450e387c45b54ea98e57a6da8c9af317e468").unwrap();
+    let expected = Hash256::try_from("h:bf6d7b74fb1e15ec4e86332b628a450e387c45b54ea98e57a6da8c9af317e468").unwrap();
     assert_eq!(hash, expected);
 }
 
 #[test]
 fn test_state_element_encode_null_merkle_proof() {
     let state_element = StateElement {
-        id: H256::try_from("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
+        id: Hash256::try_from("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
         leaf_index: 1,
         merkle_proof: None,
     };
 
     let hash = Encoder::encode_and_hash(&state_element);
-    let expected = H256::try_from("h:d69bc48bc797aff93050447aff0a3f7c4d489705378c122cd123841fe7778a3e").unwrap();
+    let expected = Hash256::try_from("h:d69bc48bc797aff93050447aff0a3f7c4d489705378c122cd123841fe7778a3e").unwrap();
     assert_eq!(hash, expected);
 }
 
 #[test]
 fn test_siacoin_input_encode_v1() {
     let vin = SiacoinInputV1 {
-        parent_id: H256::default(),
+        parent_id: Hash256::default(),
         unlock_condition: UnlockCondition::new(vec![], 0, 0),
     };
 
     let hash = Encoder::encode_and_hash(&vin);
-    let expected = H256::try_from("h:2f806f905436dc7c5079ad8062467266e225d8110a3c58d17628d609cb1c99d0").unwrap();
+    let expected = Hash256::try_from("h:2f806f905436dc7c5079ad8062467266e225d8110a3c58d17628d609cb1c99d0").unwrap();
     assert_eq!(hash, expected);
 }
 
@@ -163,7 +163,7 @@ fn test_signature_encode() {
         &hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
 
     let hash = Encoder::encode_and_hash(&signature);
-    let expected = H256::try_from("h:1e6952fe04eb626ae759a0090af2e701ba35ee6ad15233a2e947cb0f7ae9f7c7").unwrap();
+    let expected = Hash256::try_from("h:1e6952fe04eb626ae759a0090af2e701ba35ee6ad15233a2e947cb0f7ae9f7c7").unwrap();
     assert_eq!(hash, expected);
 }
 
@@ -186,13 +186,13 @@ fn test_satisfied_policy_encode_public_key() {
     };
 
     let hash = Encoder::encode_and_hash(&satisfied_policy);
-    let expected = H256::try_from("h:51832be911c7382502a2011cbddf1a9f689c4ca08c6a83ae3d021fb0dc781822").unwrap();
+    let expected = Hash256::try_from("h:51832be911c7382502a2011cbddf1a9f689c4ca08c6a83ae3d021fb0dc781822").unwrap();
     assert_eq!(hash, expected);
 }
 
 #[test]
 fn test_satisfied_policy_encode_hash_empty() {
-    let policy = SpendPolicy::Hash(H256::default());
+    let policy = SpendPolicy::Hash(Hash256::default());
 
     let satisfied_policy = SatisfiedPolicy {
         policy,
@@ -201,14 +201,14 @@ fn test_satisfied_policy_encode_hash_empty() {
     };
 
     let hash = Encoder::encode_and_hash(&satisfied_policy);
-    let expected = H256::try_from("h:86b4b84950016d711732617d2501bd22e41614535f2705a65bd5b0e95c992a44").unwrap();
+    let expected = Hash256::try_from("h:86b4b84950016d711732617d2501bd22e41614535f2705a65bd5b0e95c992a44").unwrap();
     assert_eq!(hash, expected);
 }
 
 // Adding a signature to SatisfiedPolicy of PolicyHash should have no effect
 #[test]
 fn test_satisfied_policy_encode_hash_frivulous_signature() {
-    let policy = SpendPolicy::Hash(H256::default());
+    let policy = SpendPolicy::Hash(Hash256::default());
 
     let satisfied_policy = SatisfiedPolicy {
         policy,
@@ -218,13 +218,13 @@ fn test_satisfied_policy_encode_hash_frivulous_signature() {
     };
 
     let hash = Encoder::encode_and_hash(&satisfied_policy);
-    let expected = H256::try_from("h:7424653d0ca3ffded9a029bebe75f9ae9c99b5f284e23e9d07c0b03456f724f9").unwrap();
+    let expected = Hash256::try_from("h:7424653d0ca3ffded9a029bebe75f9ae9c99b5f284e23e9d07c0b03456f724f9").unwrap();
     assert_eq!(hash, expected);
 }
 
 #[test]
 fn test_satisfied_policy_encode_hash() {
-    let policy = SpendPolicy::Hash(H256::default());
+    let policy = SpendPolicy::Hash(Hash256::default());
 
     let satisfied_policy = SatisfiedPolicy {
         policy,
@@ -233,7 +233,7 @@ fn test_satisfied_policy_encode_hash() {
     };
 
     let hash = Encoder::encode_and_hash(&satisfied_policy);
-    let expected = H256::try_from("h:7424653d0ca3ffded9a029bebe75f9ae9c99b5f284e23e9d07c0b03456f724f9").unwrap();
+    let expected = Hash256::try_from("h:7424653d0ca3ffded9a029bebe75f9ae9c99b5f284e23e9d07c0b03456f724f9").unwrap();
     assert_eq!(hash, expected);
 }
 
@@ -258,7 +258,7 @@ fn test_satisfied_policy_encode_unlock_condition_standard() {
     };
 
     let hash = Encoder::encode_and_hash(&satisfied_policy);
-    let expected = H256::try_from("h:c749f9ac53395ec557aed7e21d202f76a58e0de79222e5756b27077e9295931f").unwrap();
+    let expected = Hash256::try_from("h:c749f9ac53395ec557aed7e21d202f76a58e0de79222e5756b27077e9295931f").unwrap();
     assert_eq!(hash, expected);
 }
 
@@ -295,13 +295,13 @@ fn test_satisfied_policy_encode_unlock_condition_complex() {
     };
 
     let hash = Encoder::encode_and_hash(&satisfied_policy);
-    let expected = H256::try_from("h:13806b6c13a97478e476e0e5a0469c9d0ad8bf286bec0ada992e363e9fc60901").unwrap();
+    let expected = Hash256::try_from("h:13806b6c13a97478e476e0e5a0469c9d0ad8bf286bec0ada992e363e9fc60901").unwrap();
     assert_eq!(hash, expected);
 }
 
 #[test]
 fn test_satisfied_policy_encode_threshold_simple() {
-    let sub_policy = SpendPolicy::Hash(H256::default());
+    let sub_policy = SpendPolicy::Hash(Hash256::default());
     let policy = SpendPolicy::Threshold {
         n: 1,
         of: vec![sub_policy],
@@ -314,7 +314,7 @@ fn test_satisfied_policy_encode_threshold_simple() {
     };
 
     let hash = Encoder::encode_and_hash(&satisfied_policy);
-    let expected = H256::try_from("h:50f4808b0661f56842472aed259136a43ed2bd7d59a88a3be28de9883af4a92d").unwrap();
+    let expected = Hash256::try_from("h:50f4808b0661f56842472aed259136a43ed2bd7d59a88a3be28de9883af4a92d").unwrap();
     assert_eq!(hash, expected);
 }
 
@@ -329,7 +329,7 @@ fn test_satisfied_policy_encode_threshold_atomic_swap_success() {
     )
     .unwrap();
 
-    let secret_hash = H256::try_from("h:0100000000000000000000000000000000000000000000000000000000000000").unwrap();
+    let secret_hash = Hash256::try_from("h:0100000000000000000000000000000000000000000000000000000000000000").unwrap();
 
     let policy = spend_policy_atomic_swap_success(alice_pubkey, bob_pubkey, 77777777, secret_hash);
     let signature = Signature::from_bytes(
@@ -342,7 +342,7 @@ fn test_satisfied_policy_encode_threshold_atomic_swap_success() {
     };
 
     let hash = Encoder::encode_and_hash(&satisfied_policy);
-    let expected = H256::try_from("h:c835e516bbf76602c897a9160c17bfe0e4a8bc9044f62b3e5e45a381232a2f86").unwrap();
+    let expected = Hash256::try_from("h:c835e516bbf76602c897a9160c17bfe0e4a8bc9044f62b3e5e45a381232a2f86").unwrap();
     assert_eq!(hash, expected);
 }
 
@@ -357,7 +357,7 @@ fn test_satisfied_policy_encode_threshold_atomic_swap_refund() {
     )
     .unwrap();
 
-    let secret_hash = H256::try_from("h:0100000000000000000000000000000000000000000000000000000000000000").unwrap();
+    let secret_hash = Hash256::try_from("h:0100000000000000000000000000000000000000000000000000000000000000").unwrap();
 
     let policy = spend_policy_atomic_swap_refund(alice_pubkey, bob_pubkey, 77777777, secret_hash);
     let signature = Signature::from_bytes(
@@ -370,13 +370,13 @@ fn test_satisfied_policy_encode_threshold_atomic_swap_refund() {
     };
 
     let hash = Encoder::encode_and_hash(&satisfied_policy);
-    let expected = H256::try_from("h:8975e8cf990d5a20d9ec3dae18ed3b3a0c92edf967a8d93fcdef6a1eb73bb348").unwrap();
+    let expected = Hash256::try_from("h:8975e8cf990d5a20d9ec3dae18ed3b3a0c92edf967a8d93fcdef6a1eb73bb348").unwrap();
     assert_eq!(hash, expected);
 }
 
 #[test]
 fn test_siacoin_input_encode_v2() {
-    let sub_policy = SpendPolicy::Hash(H256::default());
+    let sub_policy = SpendPolicy::Hash(Hash256::default());
     let policy = SpendPolicy::Threshold {
         n: 1,
         of: vec![sub_policy],
@@ -391,9 +391,9 @@ fn test_siacoin_input_encode_v2() {
     let vin = SiacoinInputV2 {
         parent: SiacoinElement {
             state_element: StateElement {
-                id: H256::default(),
+                id: Hash256::default(),
                 leaf_index: 0,
-                merkle_proof: Some(vec![H256::default()]),
+                merkle_proof: Some(vec![Hash256::default()]),
             },
             siacoin_output: SiacoinOutput {
                 value: 1.into(),
@@ -405,7 +405,7 @@ fn test_siacoin_input_encode_v2() {
     };
 
     let hash = Encoder::encode_and_hash(&vin);
-    let expected = H256::try_from("h:a8ab11b91ee19ce68f2d608bd4d19212841842f0c50151ae4ccb8e9db68cd6c4").unwrap();
+    let expected = Hash256::try_from("h:a8ab11b91ee19ce68f2d608bd4d19212841842f0c50151ae4ccb8e9db68cd6c4").unwrap();
     assert_eq!(hash, expected);
 }
 
@@ -426,7 +426,7 @@ fn test_attestation_encode() {
     };
 
     let hash = Encoder::encode_and_hash(&attestation);
-    let expected = H256::try_from("h:b28b32c6f91d1b57ab4a9ea9feecca16b35bb8febdee6a0162b22979415f519d").unwrap();
+    let expected = Hash256::try_from("h:b28b32c6f91d1b57ab4a9ea9feecca16b35bb8febdee6a0162b22979415f519d").unwrap();
     assert_eq!(hash, expected);
 }
 
@@ -460,7 +460,7 @@ fn test_file_contract_v2_encode() {
 
     let file_contract_v2 = V2FileContract {
         filesize: 1,
-        file_merkle_root: H256::default(),
+        file_merkle_root: Hash256::default(),
         proof_height: 1,
         expiration_height: 1,
         renter_output: vout0,
@@ -475,7 +475,7 @@ fn test_file_contract_v2_encode() {
     };
 
     let hash = Encoder::encode_and_hash(&file_contract_v2);
-    let expected = H256::try_from("h:6171a8d8ec31e06f80d46efbd1aecf2c5a7c344b5f2a2d4f660654b0cb84113c").unwrap();
+    let expected = Hash256::try_from("h:6171a8d8ec31e06f80d46efbd1aecf2c5a7c344b5f2a2d4f660654b0cb84113c").unwrap();
     assert_eq!(hash, expected);
 }
 
@@ -509,7 +509,7 @@ fn test_file_contract_element_v2_encode() {
 
     let file_contract_v2 = V2FileContract {
         filesize: 1,
-        file_merkle_root: H256::default(),
+        file_merkle_root: Hash256::default(),
         proof_height: 1,
         expiration_height: 1,
         renter_output: vout0,
@@ -524,11 +524,11 @@ fn test_file_contract_element_v2_encode() {
     };
 
     let state_element = StateElement {
-        id: H256::try_from("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
+        id: Hash256::try_from("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
         leaf_index: 1,
         merkle_proof: Some(vec![
-            H256::try_from("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
-            H256::try_from("h:0708090000000000000000000000000000000000000000000000000000000000").unwrap(),
+            Hash256::try_from("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
+            Hash256::try_from("h:0708090000000000000000000000000000000000000000000000000000000000").unwrap(),
         ]),
     };
 
@@ -538,7 +538,7 @@ fn test_file_contract_element_v2_encode() {
     };
 
     let hash = Encoder::encode_and_hash(&file_contract_element_v2);
-    let expected = H256::try_from("h:4cde411635118b2b7e1b019c659a2327ada53b303da0e46524e604d228fcd039").unwrap();
+    let expected = Hash256::try_from("h:4cde411635118b2b7e1b019c659a2327ada53b303da0e46524e604d228fcd039").unwrap();
     assert_eq!(hash, expected);
 }
 
@@ -572,7 +572,7 @@ fn test_file_contract_revision_v2_encode() {
 
     let file_contract_v2 = V2FileContract {
         filesize: 1,
-        file_merkle_root: H256::default(),
+        file_merkle_root: Hash256::default(),
         proof_height: 1,
         expiration_height: 1,
         renter_output: vout0,
@@ -587,11 +587,11 @@ fn test_file_contract_revision_v2_encode() {
     };
 
     let state_element = StateElement {
-        id: H256::try_from("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
+        id: Hash256::try_from("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
         leaf_index: 1,
         merkle_proof: Some(vec![
-            H256::try_from("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
-            H256::try_from("h:0708090000000000000000000000000000000000000000000000000000000000").unwrap(),
+            Hash256::try_from("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
+            Hash256::try_from("h:0708090000000000000000000000000000000000000000000000000000000000").unwrap(),
         ]),
     };
 
@@ -606,7 +606,7 @@ fn test_file_contract_revision_v2_encode() {
     };
 
     let hash = Encoder::encode_and_hash(&file_contract_revision_v2);
-    let expected = H256::try_from("h:22d5d1fd8c2762758f6b6ecf7058d73524ef209ac5a64f160b71ce91677db9a6").unwrap();
+    let expected = Hash256::try_from("h:22d5d1fd8c2762758f6b6ecf7058d73524ef209ac5a64f160b71ce91677db9a6").unwrap();
     assert_eq!(hash, expected);
 }
 
@@ -666,7 +666,7 @@ fn test_v2_transaction_sig_hash() {
 
     let tx = serde_json::from_value::<V2Transaction>(j).unwrap();
     let hash = tx.input_sig_hash();
-    let expected = H256::try_from("h:ef2f59bb25300bed9accbdcd95e1a2bd9f146ab6b474002670dc908ad68aacac").unwrap();
+    let expected = Hash256::try_from("h:ef2f59bb25300bed9accbdcd95e1a2bd9f146ab6b474002670dc908ad68aacac").unwrap();
     assert_eq!(hash, expected);
 }
 

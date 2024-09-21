@@ -1,7 +1,7 @@
 use crate::blake2b_internal::standard_unlock_hash;
 use crate::encoding::Encoder;
 use crate::spend_policy::{SpendPolicy, UnlockCondition};
-use crate::types::{Address, H256};
+use crate::types::{Address, Hash256};
 use crate::PublicKey;
 use std::convert::TryFrom;
 use std::str::FromStr;
@@ -19,7 +19,7 @@ fn test_unlock_condition_unlock_hash_2of2_multisig() {
     let unlock_condition = UnlockCondition::new(vec![pubkey, pubkey2], 0, 2);
 
     let hash = unlock_condition.unlock_hash();
-    let expected = H256::try_from("h:1e94357817d236167e54970a8c08bbd41b37bfceeeb52f6c1ce6dd01d50ea1e7").unwrap();
+    let expected = Hash256::try_from("h:1e94357817d236167e54970a8c08bbd41b37bfceeeb52f6c1ce6dd01d50ea1e7").unwrap();
     assert_eq!(hash, expected);
 }
 
@@ -36,7 +36,7 @@ fn test_unlock_condition_unlock_hash_1of2_multisig() {
     let unlock_condition = UnlockCondition::new(vec![pubkey, pubkey2], 0, 1);
 
     let hash = unlock_condition.unlock_hash();
-    let expected = H256::try_from("h:d7f84e3423da09d111a17f64290c8d05e1cbe4cab2b6bed49e3a4d2f659f0585").unwrap();
+    let expected = Hash256::try_from("h:d7f84e3423da09d111a17f64290c8d05e1cbe4cab2b6bed49e3a4d2f659f0585").unwrap();
     assert_eq!(hash, expected);
 }
 
@@ -45,7 +45,7 @@ fn test_spend_policy_encode_above() {
     let policy = SpendPolicy::above(1);
 
     let hash = Encoder::encode_and_hash(&policy);
-    let expected = H256::try_from("h:bebf6cbdfb440a92e3e5d832ac30fe5d226ff6b352ed3a9398b7d35f086a8ab6").unwrap();
+    let expected = Hash256::try_from("h:bebf6cbdfb440a92e3e5d832ac30fe5d226ff6b352ed3a9398b7d35f086a8ab6").unwrap();
     assert_eq!(hash, expected);
 
     let address = policy.address();
@@ -58,7 +58,7 @@ fn test_spend_policy_encode_above() {
 fn test_spend_policy_encode_after() {
     let policy = SpendPolicy::after(1);
     let hash = Encoder::encode_and_hash(&policy);
-    let expected = H256::try_from("h:07b0f28eafd87a082ad11dc4724e1c491821260821a30bec68254444f97d9311").unwrap();
+    let expected = Hash256::try_from("h:07b0f28eafd87a082ad11dc4724e1c491821260821a30bec68254444f97d9311").unwrap();
     assert_eq!(hash, expected);
 
     let address = policy.address();
@@ -76,7 +76,7 @@ fn test_spend_policy_encode_pubkey() {
     let policy = SpendPolicy::PublicKey(pubkey);
 
     let hash = Encoder::encode_and_hash(&policy);
-    let expected = H256::try_from("h:4355c8f80f6e5a98b70c9c2f9a22f17747989b4744783c90439b2b034f698bfe").unwrap();
+    let expected = Hash256::try_from("h:4355c8f80f6e5a98b70c9c2f9a22f17747989b4744783c90439b2b034f698bfe").unwrap();
     assert_eq!(hash, expected);
 
     let address = policy.address();
@@ -87,11 +87,11 @@ fn test_spend_policy_encode_pubkey() {
 
 #[test]
 fn test_spend_policy_encode_hash() {
-    let hash = H256::try_from("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap();
+    let hash = Hash256::try_from("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap();
     let policy = SpendPolicy::Hash(hash);
 
     let hash = Encoder::encode_and_hash(&policy);
-    let expected = H256::try_from("h:9938967aefa6cbecc1f1620d2df5170d6811d4b2f47a879b621c1099a3b0628a").unwrap();
+    let expected = Hash256::try_from("h:9938967aefa6cbecc1f1620d2df5170d6811d4b2f47a879b621c1099a3b0628a").unwrap();
     assert_eq!(hash, expected);
 
     let address = policy.address();
@@ -108,7 +108,7 @@ fn test_spend_policy_encode_threshold() {
     };
 
     let hash = Encoder::encode_and_hash(&policy);
-    let expected = H256::try_from("h:7d792df6cd0b5e0f795287b3bf4087bbcc4c1bd0c52880a552cdda3e5e33d802").unwrap();
+    let expected = Hash256::try_from("h:7d792df6cd0b5e0f795287b3bf4087bbcc4c1bd0c52880a552cdda3e5e33d802").unwrap();
     assert_eq!(hash, expected);
 
     let address = policy.address();
@@ -150,7 +150,7 @@ fn test_unlock_condition_encode() {
     let unlock_condition = UnlockCondition::new(vec![pubkey], 0, 1);
 
     let hash = Encoder::encode_and_hash(&unlock_condition);
-    let expected = H256::try_from("h:5d49bae37b97c86573a1525246270c180464acf33d63cc2ac0269ef9a8cb9d98").unwrap();
+    let expected = Hash256::try_from("h:5d49bae37b97c86573a1525246270c180464acf33d63cc2ac0269ef9a8cb9d98").unwrap();
     assert_eq!(hash, expected);
 }
 
@@ -162,7 +162,7 @@ fn test_public_key_encode() {
     .unwrap();
 
     let hash = Encoder::encode_and_hash(&public_key);
-    let expected = H256::try_from("h:d487326614f066416308bf6aa4e5041d1949928e4b26ede98e3cebb36a3b1726").unwrap();
+    let expected = Hash256::try_from("h:d487326614f066416308bf6aa4e5041d1949928e4b26ede98e3cebb36a3b1726").unwrap();
     assert_eq!(hash, expected);
 }
 
@@ -175,7 +175,7 @@ fn test_unlock_condition_unlock_hash_standard() {
     let unlock_condition = UnlockCondition::new(vec![pubkey], 0, 1);
 
     let hash = unlock_condition.unlock_hash();
-    let expected = H256::try_from("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
+    let expected = Hash256::try_from("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
     assert_eq!(hash, expected);
 
     let hash = standard_unlock_hash(&pubkey);

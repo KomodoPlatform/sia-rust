@@ -164,9 +164,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_api_events() {
-        use crate::types::H256;
+        use crate::types::Hash256;
         let request = GetEventRequest {
-            txid: H256::from_str("h:77c5ae2220eac76dd841e365bb14fcba5499977e6483472b96f4a83bcdd6c892").unwrap(),
+            txid: Hash256::from_str("h:77c5ae2220eac76dd841e365bb14fcba5499977e6483472b96f4a83bcdd6c892").unwrap(),
         };
         let _response = test_dispatch(request).await;
     }
