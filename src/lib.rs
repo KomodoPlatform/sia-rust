@@ -1,3 +1,6 @@
+#[macro_use]
+mod macros;
+
 use derive_more::Display;
 use ed25519_dalek::{Keypair as Ed25519Keypair, PublicKey as Ed25519PublicKey, SecretKey,
                     Signature as Ed25519Signature, SignatureError as Ed25519SignatureError, Signer};
@@ -8,7 +11,6 @@ use std::str::FromStr;
 
 pub mod blake2b_internal;
 pub mod encoding;
-pub mod hash;
 pub mod http;
 pub mod specifier;
 pub mod spend_policy;
