@@ -1,5 +1,6 @@
 use crate::blake2b_internal::standard_unlock_hash;
 use crate::encoding::{Encodable, Encoder};
+ // FIXME expose these types or the entire module
 use crate::transaction::{FileContractElementV1, SiacoinElement, SiafundElement, StateElement, V1Transaction,
                          V2FileContractResolution, V2Transaction};
 use crate::PublicKey;
