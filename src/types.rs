@@ -3,6 +3,7 @@ use crate::encoding::{Encodable, Encoder};
  // FIXME expose these types or the entire module
 use crate::transaction::{FileContractElementV1, SiacoinElement, SiafundElement, StateElement, V1Transaction,
                          V2FileContractResolution, V2Transaction};
+pub use crate::transaction::Currency; // FIXME should be imported via the transaction module
 use crate::PublicKey;
 use blake2b_simd::Params;
 use chrono::{DateTime, Utc};
