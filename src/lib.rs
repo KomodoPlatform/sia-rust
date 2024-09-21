@@ -27,6 +27,7 @@ pub enum KeypairError {
 #[macro_use]
 extern crate serde_json;
 
+// FIXME move everything below this to types mod
 pub struct Keypair(pub Ed25519Keypair);
 
 impl Keypair {
