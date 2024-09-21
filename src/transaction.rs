@@ -1212,7 +1212,7 @@ impl V2TransactionBuilder {
                         for p in &uc.unlock_keys {
                             match p {
                                 UnlockKey::Ed25519(pk) if pk == &keypair.public() => {
-                                    si.satisfied_policy.signatures.push(sig)
+                                    si.satisfied_policy.signatures.push(sig.clone())
                                 },
                                 _ => (),
                             }
