@@ -16,6 +16,9 @@ use std::convert::TryInto;
 use std::fmt;
 use std::str::FromStr;
 
+mod hash;
+pub use hash::H256;
+
 const ADDRESS_HASH_LENGTH: usize = 32;
 const ADDRESS_CHECKSUM_LENGTH: usize = 6;
 
