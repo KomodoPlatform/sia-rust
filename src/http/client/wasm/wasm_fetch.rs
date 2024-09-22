@@ -276,7 +276,7 @@ mod tests {
         let uri = "http://example.com";
         let mut req_init = RequestInit::new();
         req_init.method("GET");
-        let js_request = JsRequest::new_with_str_and_init(&uri, &req_init).unwrap();
+        let _js_request = JsRequest::new_with_str_and_init(&uri, &req_init).unwrap();
     }
 
     // further unit tests could be implemented for the Err case based on the spec

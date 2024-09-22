@@ -118,10 +118,7 @@ impl ApiClientHelpers for Client {}
 #[cfg(all(target_arch = "wasm32", test))]
 mod wasm_tests {
     use super::*;
-    use blake2b_simd::Hash;
-    use log::info;
     use once_cell::sync::Lazy;
-    use wasm_bindgen::prelude::*;
     use wasm_bindgen_test::*;
 
     wasm_bindgen_test_configure!(run_in_browser);
@@ -134,7 +131,7 @@ mod wasm_tests {
     #[wasm_bindgen_test]
     async fn test_sia_wasm_client_client_error() {
         use crate::http::endpoints::TxpoolBroadcastRequest;
-        use crate::transaction::V2Transaction;
+        use crate::types::V2Transaction;
         let client = Client::new(CONF.clone()).await.unwrap();
 
         let tx_str = r#"
@@ -191,7 +188,7 @@ mod wasm_tests {
         match client.dispatcher(req).await.expect_err("Expected HTTP 400 error") {
             ApiClientError::UnexpectedHttpStatus {
                 status: StatusCode::BAD_REQUEST,
-                body,
+                body: _,
             } => (),
             e => panic!("Unexpected error: {:?}", e),
         }
