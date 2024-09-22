@@ -4,8 +4,7 @@ use crate::spend_policy::{spend_policy_atomic_swap_refund, spend_policy_atomic_s
 use crate::transaction::{Attestation, Currency, CurrencyVersion, FileContractRevisionV2, SatisfiedPolicy,
                          SiacoinElement, SiacoinInputV1, SiacoinInputV2, SiacoinOutput, SiacoinOutputVersion,
                          StateElement, V2FileContract, V2FileContractElement, V2Transaction};
-use crate::types::{v1_standard_address_from_pubkey, Address, Hash256};
-use crate::{PublicKey, Signature};
+use crate::types::{v1_standard_address_from_pubkey, Address, Hash256, PublicKey, Keypair, Signature};
 use std::convert::TryFrom;
 use std::str::FromStr;
 
@@ -672,7 +671,6 @@ fn test_v2_transaction_sig_hash() {
 
 #[test]
 fn test_v2_transaction_signing() {
-    use crate::{Keypair, Signature};
     let j = json!(
         {
             "siacoinInputs": [
