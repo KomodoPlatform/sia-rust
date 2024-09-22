@@ -1,6 +1,6 @@
 use curve25519_dalek::edwards::CompressedEdwardsY;
-use ed25519_dalek::{Keypair as Ed25519Keypair, PublicKey as Ed25519PublicKey, SecretKey,
-                    SignatureError as Ed25519SignatureError, Signer};
+use ed25519_dalek::{ExpandedSecretKey, PublicKey as Ed25519PublicKey, SecretKey,
+                    SignatureError as Ed25519SignatureError, Signer, Verifier};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use thiserror::Error;
@@ -21,20 +21,50 @@ pub enum KeypairError {
     PublicKeyParseBytes(Ed25519SignatureError),
 }
 
-pub struct Keypair(pub Ed25519Keypair);
+pub struct Keypair {
+    pub public: PublicKey,
+    private: PrivateKey,
+}
+
+impl Signer<Signature> for Keypair {
+    /// Sign a message with this keypair's secret key.
+    fn try_sign(&self, message: &[u8]) -> Result<Signature, Ed25519SignatureError> {
+        let expanded: ExpandedSecretKey = (&self.private.0).into();
+        Ok(Signature::new(expanded.sign(&message, &self.public.0)))
+    }
+}
+
+impl Verifier<Signature> for Keypair {
+    /// Verify a signature on a message with this keypair's public key.
+    fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), Ed25519SignatureError> {
+        self.public.0.verify(message, &signature.0)
+    }
+}
 
 impl Keypair {
     pub fn from_private_bytes(bytes: &[u8]) -> Result<Self, KeypairError> {
         let secret = SecretKey::from_bytes(bytes).map_err(KeypairError::InvalidSecretKey)?;
-        let public = Ed25519PublicKey::from(&secret);
-        Ok(Keypair(Ed25519Keypair { secret, public }))
+        let public = PublicKey(Ed25519PublicKey::from(&secret));
+        let private = PrivateKey(secret);
+        Ok(Keypair{ public, private })
     }
 
-    pub fn sign(&self, message: &[u8]) -> Signature { Signature::new(self.0.sign(message)) }
+    pub fn sign(&self, message: &[u8]) -> Signature { Signer::sign(self, message) }
+
+    pub fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), Ed25519SignatureError> { Verifier::verify(self, message, signature) }
 }
+
+struct PrivateKey(SecretKey);
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PublicKey(pub Ed25519PublicKey);
+
+impl Verifier<Signature> for PublicKey {
+    /// Verify a signature on a message with this keypair's public key.
+    fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), Ed25519SignatureError> {
+        self.0.verify(message, &signature.0)
+    }
+}
 
 impl PublicKey {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, KeypairError> {

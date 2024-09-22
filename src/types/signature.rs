@@ -1,5 +1,6 @@
 use curve25519_dalek::edwards::CompressedEdwardsY;
 use ed25519_dalek::{Signature as Ed25519Signature, SIGNATURE_LENGTH};
+use ed25519_dalek::ed25519::signature::{Error as SignatureCrateError, Signature as SignatureTrait};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::str::FromStr;
@@ -16,7 +17,22 @@ pub enum SignatureError {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Signature(Ed25519Signature);
+pub struct Signature(pub Ed25519Signature);
+
+// trait bound of Signer for Keypair
+impl SignatureTrait for Signature {
+    fn from_bytes(bytes: &[u8]) -> Result<Self, SignatureCrateError> {
+        // Delegate to the inner type's implementation
+        Ed25519Signature::from_bytes(bytes).map(Signature)
+    }
+}
+
+// trait bound of signature_crate::Signature
+impl AsRef<[u8]> for Signature {
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_ref()
+    }
+}
 
 impl Signature {
     pub fn new(signature: Ed25519Signature) -> Self { Signature(signature) }
@@ -50,7 +66,6 @@ impl Signature {
     pub fn validate_r_point(&self) -> bool {
         let r_bytes = &self.0.to_bytes()[0..SIGNATURE_LENGTH / 2];
 
-        println!("r_bytes len: {}", r_bytes.len());
         // Create a CompressedEdwardsY point from the first 32 bytes
         CompressedEdwardsY::from_slice(r_bytes).decompress().is_some()
     }
