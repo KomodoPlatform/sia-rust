@@ -1,4 +1,4 @@
-use crate::encoding::{Encodable, Encoder, PrefixedPublicKey};
+use crate::encoding::{Encodable, Encoder};
 use crate::spend_policy::{SpendPolicy, SpendPolicyHelper, UnlockCondition, UnlockKey};
 use crate::types::{Address, ChainIndex, Hash256, Keypair, PublicKey, Signature};
 use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
@@ -487,7 +487,6 @@ impl Encodable for FileContract {
     }
 }
 
-#[serde_as]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct V2FileContract {
@@ -499,9 +498,7 @@ pub struct V2FileContract {
     pub host_output: SiacoinOutput,
     pub missed_host_value: Currency,
     pub total_collateral: Currency,
-    #[serde_as(as = "FromInto<PrefixedPublicKey>")]
     pub renter_public_key: PublicKey,
-    #[serde_as(as = "FromInto<PrefixedPublicKey>")]
     pub host_public_key: PublicKey,
     pub revision_number: u64,
     pub renter_signature: Signature,

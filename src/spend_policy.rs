@@ -1,5 +1,5 @@
 use crate::blake2b_internal::{public_key_leaf, sigs_required_leaf, standard_unlock_hash, timelock_leaf, Accumulator};
-use crate::encoding::{Encodable, Encoder, PrefixedPublicKey};
+use crate::encoding::{Encodable, Encoder};
 use crate::specifier::Specifier;
 use crate::transaction::{Preimage, SatisfiedPolicy};
 use crate::types::{Address, Hash256, PublicKey, Signature};
@@ -25,13 +25,14 @@ pub enum SpendPolicy {
     UnlockConditions(UnlockCondition), // For v1 compatibility
 }
 
+// FIXME this can now be fully removed now that Prefixed* types are removed
 /// Helper to serialize/deserialize SpendPolicy with prefixed PublicKey and H256
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 #[serde(tag = "type", content = "policy", rename_all = "camelCase")]
 pub enum SpendPolicyHelper {
     Above(u64),
     After(u64),
-    Pk(PrefixedPublicKey),
+    Pk(PublicKey),
     H(Hash256),
     Thresh { n: u8, of: Vec<SpendPolicyHelper> },
     Opaque(Address),
@@ -43,7 +44,7 @@ impl From<SpendPolicyHelper> for SpendPolicy {
         match helper {
             SpendPolicyHelper::Above(height) => SpendPolicy::Above(height),
             SpendPolicyHelper::After(time) => SpendPolicy::After(time),
-            SpendPolicyHelper::Pk(pk) => SpendPolicy::PublicKey(pk.0),
+            SpendPolicyHelper::Pk(pk) => SpendPolicy::PublicKey(pk),
             SpendPolicyHelper::H(hash) => SpendPolicy::Hash(hash),
             SpendPolicyHelper::Thresh { n, of } => SpendPolicy::Threshold {
                 n,
@@ -60,7 +61,7 @@ impl From<SpendPolicy> for SpendPolicyHelper {
         match policy {
             SpendPolicy::Above(height) => SpendPolicyHelper::Above(height),
             SpendPolicy::After(time) => SpendPolicyHelper::After(time),
-            SpendPolicy::PublicKey(pk) => SpendPolicyHelper::Pk(PrefixedPublicKey(pk)),
+            SpendPolicy::PublicKey(pk) => SpendPolicyHelper::Pk(pk),
             SpendPolicy::Hash(hash) => SpendPolicyHelper::H(hash),
             SpendPolicy::Threshold { n, of } => SpendPolicyHelper::Thresh {
                 n,

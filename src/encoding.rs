@@ -1,8 +1,5 @@
 use crate::blake2b_internal::hash_blake2b_single;
-use crate::types::{Hash256, PublicKey};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::convert::From;
-use std::fmt;
+use crate::types::Hash256;
 
 // https://github.com/SiaFoundation/core/blob/092850cc52d3d981b19c66cd327b5d945b3c18d3/types/encoding.go#L16
 // TODO go implementation limits this to 1024 bytes, should we?
@@ -54,61 +51,6 @@ impl Encoder {
 
 pub trait Encodable {
     fn encode(&self, encoder: &mut Encoder);
-}
-
-/// This wrapper allows us to use PublicKey internally but still serde as "ed25519:" prefixed string
-#[derive(Clone, Debug, PartialEq)]
-pub struct PrefixedPublicKey(pub PublicKey);
-
-impl<'de> Deserialize<'de> for PrefixedPublicKey {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct PrefixedPublicKeyVisitor;
-
-        impl<'de> serde::de::Visitor<'de> for PrefixedPublicKeyVisitor {
-            type Value = PrefixedPublicKey;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a string prefixed with 'ed25519:' and followed by a 64-character hex string")
-            }
-
-            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                if let Some(hex_str) = value.strip_prefix("ed25519:") {
-                    let bytes =
-                        hex::decode(hex_str).map_err(|_| E::invalid_value(serde::de::Unexpected::Str(value), &self))?;
-                    PublicKey::from_bytes(&bytes)
-                        .map(PrefixedPublicKey)
-                        .map_err(|_| E::invalid_value(serde::de::Unexpected::Str(value), &self))
-                } else {
-                    Err(E::invalid_value(serde::de::Unexpected::Str(value), &self))
-                }
-            }
-        }
-
-        deserializer.deserialize_str(PrefixedPublicKeyVisitor)
-    }
-}
-
-impl Serialize for PrefixedPublicKey {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&format!("ed25519:{}", hex::encode(self.0.as_bytes())))
-    }
-}
-
-impl From<PrefixedPublicKey> for PublicKey {
-    fn from(sia_public_key: PrefixedPublicKey) -> Self { sia_public_key.0 }
-}
-
-impl From<PublicKey> for PrefixedPublicKey {
-    fn from(public_key: PublicKey) -> Self { PrefixedPublicKey(public_key) }
 }
 
 impl Encodable for Hash256 {
