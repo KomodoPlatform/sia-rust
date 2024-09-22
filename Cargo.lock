@@ -1312,6 +1312,7 @@ dependencies = [
  "base64 0.21.7",
  "blake2b_simd",
  "chrono",
+ "curve25519-dalek",
  "derive_more",
  "ed25519-dalek",
  "futures",
