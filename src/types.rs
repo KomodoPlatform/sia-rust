@@ -1,8 +1,5 @@
 use crate::blake2b_internal::standard_unlock_hash;
 use crate::encoding::{Encodable, Encoder};
-// FIXME expose these types or the entire module
-use crate::transaction::{FileContractElementV1, SiacoinElement, SiafundElement, StateElement, V1Transaction,
-                         V2FileContractResolution, V2Transaction};
 use blake2b_simd::Params;
 use chrono::{DateTime, Utc};
 use hex::FromHexError;
@@ -21,6 +18,15 @@ pub use signature::{Signature, SignatureError};
 
 mod keypair;
 pub use keypair::{Keypair, KeypairError, PublicKey};
+
+mod spend_policy;
+pub use spend_policy::*;
+
+mod transaction;
+pub use transaction::*;
+
+mod specifier;
+pub use specifier::*;
 
 const ADDRESS_HASH_LENGTH: usize = 32;
 const ADDRESS_CHECKSUM_LENGTH: usize = 6;

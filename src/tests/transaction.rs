@@ -1,10 +1,8 @@
 use crate::encoding::Encoder;
-use crate::spend_policy::{spend_policy_atomic_swap_refund, spend_policy_atomic_swap_success, SpendPolicy,
-                          UnlockCondition};
-use crate::transaction::{Attestation, Currency, CurrencyVersion, FileContractRevisionV2, SatisfiedPolicy,
-                         SiacoinElement, SiacoinInputV1, SiacoinInputV2, SiacoinOutput, SiacoinOutputVersion,
-                         StateElement, V2FileContract, V2FileContractElement, V2Transaction};
-use crate::types::{v1_standard_address_from_pubkey, Address, Hash256, Keypair, PublicKey, Signature};
+use crate::types::{Address, Hash256, Keypair, PublicKey, Signature, Attestation, Currency, CurrencyVersion, FileContractRevisionV2, SatisfiedPolicy,
+    SiacoinElement, SiacoinInputV1, SiacoinInputV2, SiacoinOutput, SiacoinOutputVersion,
+    StateElement, V2FileContract, V2FileContractElement, V2Transaction, spend_policy_atomic_swap_refund, spend_policy_atomic_swap_success, SpendPolicy,
+    UnlockCondition};
 use std::convert::TryFrom;
 use std::str::FromStr;
 

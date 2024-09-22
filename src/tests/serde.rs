@@ -1,6 +1,4 @@
-use crate::spend_policy::UnlockKey;
-use crate::transaction::{SiacoinElement, SiacoinOutput, StateElement, V2Transaction};
-use crate::types::{Address, BlockID, Event, Hash256};
+use crate::types::{Address, BlockID, Event, Hash256, UnlockKey, SiacoinElement, SiacoinOutput, StateElement, V2Transaction};
 
 // Ensure the original value matches the value after round-trip (serialize -> deserialize -> serialize)
 macro_rules! test_serde {

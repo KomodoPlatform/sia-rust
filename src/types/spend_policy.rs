@@ -1,8 +1,6 @@
 use crate::blake2b_internal::{public_key_leaf, sigs_required_leaf, standard_unlock_hash, timelock_leaf, Accumulator};
 use crate::encoding::{Encodable, Encoder};
-use crate::specifier::Specifier;
-use crate::transaction::{Preimage, SatisfiedPolicy};
-use crate::types::{Address, Hash256, PublicKey, Signature};
+use crate::types::{Address, Hash256, PublicKey, Signature, Specifier, Preimage, SatisfiedPolicy};
 use nom::bytes::complete::{take_until, take_while, take_while_m_n};
 use nom::character::complete::char;
 use nom::combinator::all_consuming;

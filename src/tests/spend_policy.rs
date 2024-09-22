@@ -1,5 +1,4 @@
-use crate::spend_policy::{spend_policy_atomic_swap_success, SpendPolicy, UnlockCondition, UnlockKey};
-use crate::types::{Address, Hash256, PublicKey};
+use crate::types::{Address, Hash256, PublicKey, spend_policy_atomic_swap_success, SpendPolicy, UnlockCondition, UnlockKey};
 use std::convert::TryFrom;
 use std::str::FromStr;
 

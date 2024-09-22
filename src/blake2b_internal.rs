@@ -1,6 +1,4 @@
-use crate::specifier::Specifier;
-use crate::spend_policy::UnlockKey;
-use crate::types::{Hash256, PublicKey};
+use crate::types::{Hash256, PublicKey, Specifier, UnlockKey};
 use blake2b_simd::Params;
 use std::default::Default;
 
