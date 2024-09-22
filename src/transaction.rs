@@ -329,7 +329,6 @@ impl<'a> Encodable for SiacoinOutputVersion<'a> {
     }
 }
 
-/// This wrapper allows us to use H256 internally but still serde as "scoid:" prefixed string
 #[derive(Clone, Debug, PartialEq)]
 pub struct SiacoinOutputId(pub Hash256);
 
@@ -339,9 +338,9 @@ impl<'de> Deserialize<'de> for SiacoinOutputId {
     where
         D: Deserializer<'de>,
     {
-        struct ScoidH256Visitor;
+        struct SiacoinOutputIdVisitor;
 
-        impl<'de> serde::de::Visitor<'de> for ScoidH256Visitor {
+        impl<'de> serde::de::Visitor<'de> for SiacoinOutputIdVisitor {
             type Value = SiacoinOutputId;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -362,7 +361,7 @@ impl<'de> Deserialize<'de> for SiacoinOutputId {
             }
         }
 
-        deserializer.deserialize_str(ScoidH256Visitor)
+        deserializer.deserialize_str(SiacoinOutputIdVisitor)
     }
 }
 
@@ -376,7 +375,7 @@ impl Serialize for SiacoinOutputId {
 }
 
 impl fmt::Display for SiacoinOutputId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "h:{}", self.0) }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "scoid:{:02x}", self.0) }
 }
 
 impl From<SiacoinOutputId> for Hash256 {
