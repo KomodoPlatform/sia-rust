@@ -1,7 +1,6 @@
 use crate::blake2b_internal::standard_unlock_hash;
 use crate::encoding::{Encodable, Encoder};
 // FIXME expose these types or the entire module
-pub use crate::transaction::Currency; // FIXME should be imported via the transaction module
 use crate::transaction::{FileContractElementV1, SiacoinElement, SiafundElement, StateElement, V1Transaction,
                          V2FileContractResolution, V2Transaction};
 use blake2b_simd::Params;

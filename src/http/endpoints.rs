@@ -1,6 +1,6 @@
 use crate::http::client::{ApiClientError, Body, EndpointSchema, EndpointSchemaBuilder, SchemaMethod};
-use crate::transaction::{SiacoinElement, V1Transaction, V2Transaction};
-use crate::types::{Address, BlockID, Currency, Event, Hash256};
+use crate::transaction::{SiacoinElement, V1Transaction, V2Transaction, Currency};
+use crate::types::{Address, BlockID, Event, Hash256};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
