@@ -46,12 +46,14 @@ impl Keypair {
         let secret = SecretKey::from_bytes(bytes).map_err(KeypairError::InvalidSecretKey)?;
         let public = PublicKey(Ed25519PublicKey::from(&secret));
         let private = PrivateKey(secret);
-        Ok(Keypair{ public, private })
+        Ok(Keypair { public, private })
     }
 
     pub fn sign(&self, message: &[u8]) -> Signature { Signer::sign(self, message) }
 
-    pub fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), Ed25519SignatureError> { Verifier::verify(self, message, signature) }
+    pub fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), Ed25519SignatureError> {
+        Verifier::verify(self, message, signature)
+    }
 }
 
 struct PrivateKey(SecretKey);
@@ -71,7 +73,7 @@ impl PublicKey {
         let public_key = Ed25519PublicKey::from_bytes(bytes)
             .map(PublicKey)
             .map_err(KeypairError::PublicKeyParseBytes)?;
-        
+
         match public_key.validate_point() {
             true => Ok(public_key),
             false => Err(KeypairError::PublicKeyCorruptPoint(hex::encode(bytes))),
@@ -81,7 +83,9 @@ impl PublicKey {
     /// Check if public key is a valid point on the Ed25519 curve
     pub fn validate_point(&self) -> bool {
         // Create a CompressedEdwardsY point from the first 32 bytes
-        CompressedEdwardsY::from_slice(&self.0.to_bytes()).decompress().is_some()
+        CompressedEdwardsY::from_slice(&self.0.to_bytes())
+            .decompress()
+            .is_some()
     }
 
     pub fn as_bytes(&self) -> &[u8] { self.0.as_bytes() }
@@ -148,7 +152,5 @@ impl fmt::Display for PublicKey {
 }
 
 impl fmt::LowerHex for PublicKey {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", hex::encode(self.as_bytes()))
-    }
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{}", hex::encode(self.as_bytes())) }
 }

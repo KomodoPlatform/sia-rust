@@ -1,6 +1,6 @@
 use curve25519_dalek::edwards::CompressedEdwardsY;
-use ed25519_dalek::{Signature as Ed25519Signature, SIGNATURE_LENGTH};
 use ed25519_dalek::ed25519::signature::{Error as SignatureCrateError, Signature as SignatureTrait};
+use ed25519_dalek::{Signature as Ed25519Signature, SIGNATURE_LENGTH};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::str::FromStr;
@@ -29,9 +29,7 @@ impl SignatureTrait for Signature {
 
 // trait bound of signature_crate::Signature
 impl AsRef<[u8]> for Signature {
-    fn as_ref(&self) -> &[u8] {
-        self.0.as_ref()
-    }
+    fn as_ref(&self) -> &[u8] { self.0.as_ref() }
 }
 
 impl Signature {
