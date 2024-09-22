@@ -176,48 +176,50 @@ impl SatisfyPolicy for () {
     }
 }
 
-pub fn spend_policy_atomic_swap(alice: PublicKey, bob: PublicKey, lock_time: u64, hash: Hash256) -> SpendPolicy {
-    let policy_after = SpendPolicy::After(lock_time);
-    let policy_hash = SpendPolicy::Hash(hash);
-
-    let policy_success = SpendPolicy::Threshold {
-        n: 2,
-        of: vec![SpendPolicy::PublicKey(alice), policy_hash],
-    };
-
-    let policy_refund = SpendPolicy::Threshold {
-        n: 2,
-        of: vec![SpendPolicy::PublicKey(bob), policy_after],
-    };
-
-    SpendPolicy::Threshold {
-        n: 1,
-        of: vec![policy_success, policy_refund],
+impl SpendPolicy {
+    pub fn atomic_swap(alice: PublicKey, bob: PublicKey, lock_time: u64, hash: Hash256) -> Self {
+        let policy_after = SpendPolicy::After(lock_time);
+        let policy_hash = SpendPolicy::Hash(hash);
+    
+        let policy_success = SpendPolicy::Threshold {
+            n: 2,
+            of: vec![SpendPolicy::PublicKey(alice), policy_hash],
+        };
+    
+        let policy_refund = SpendPolicy::Threshold {
+            n: 2,
+            of: vec![SpendPolicy::PublicKey(bob), policy_after],
+        };
+    
+        SpendPolicy::Threshold {
+            n: 1,
+            of: vec![policy_success, policy_refund],
+        }
     }
-}
 
-pub fn spend_policy_atomic_swap_success(
-    alice: PublicKey,
-    bob: PublicKey,
-    lock_time: u64,
-    hash: Hash256,
-) -> SpendPolicy {
-    match spend_policy_atomic_swap(alice, bob, lock_time, hash) {
-        SpendPolicy::Threshold { n, mut of } => {
-            of[1] = of[1].opacify();
-            SpendPolicy::Threshold { n, of }
-        },
-        _ => unreachable!(),
+    pub fn atomic_swap_success(
+        alice: PublicKey,
+        bob: PublicKey,
+        lock_time: u64,
+        hash: Hash256,
+    ) -> Self {
+        match Self::atomic_swap(alice, bob, lock_time, hash) {
+            SpendPolicy::Threshold { n, mut of } => {
+                of[1] = of[1].opacify();
+                SpendPolicy::Threshold { n, of }
+            },
+            _ => unreachable!(),
+        }
     }
-}
 
-pub fn spend_policy_atomic_swap_refund(alice: PublicKey, bob: PublicKey, lock_time: u64, hash: Hash256) -> SpendPolicy {
-    match spend_policy_atomic_swap(alice, bob, lock_time, hash) {
-        SpendPolicy::Threshold { n, mut of } => {
-            of[0] = of[0].opacify();
-            SpendPolicy::Threshold { n, of }
-        },
-        _ => unreachable!(),
+    pub fn atomic_swap_refund(alice: PublicKey, bob: PublicKey, lock_time: u64, hash: Hash256) -> Self {
+        match Self::atomic_swap(alice, bob, lock_time, hash) {
+            SpendPolicy::Threshold { n, mut of } => {
+                of[0] = of[0].opacify();
+                SpendPolicy::Threshold { n, of }
+            },
+            _ => unreachable!(),
+        }
     }
 }
 

@@ -2,7 +2,7 @@
 
 #[cfg(test)]
 mod test {
-    use crate::types::{Address, Hash256, PublicKey, spend_policy_atomic_swap_success, SpendPolicy, UnlockCondition, UnlockKey};
+    use crate::types::{Address, Hash256, PublicKey, SpendPolicy, UnlockCondition, UnlockKey};
     use std::convert::TryFrom;
     use std::str::FromStr;
 
@@ -92,7 +92,7 @@ mod test {
             .unwrap();
 
             let secret_hash = Hash256::try_from("h:0100000000000000000000000000000000000000000000000000000000000000").unwrap();
-            let spend_policy = spend_policy_atomic_swap_success(alice_pubkey, bob_pubkey, 77777777, secret_hash);
+            let spend_policy = SpendPolicy::atomic_swap_success(alice_pubkey, bob_pubkey, 77777777, secret_hash);
 
             let j = json!(
                 {
