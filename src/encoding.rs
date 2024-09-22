@@ -9,7 +9,6 @@ use std::fmt;
 #[serde(try_from = "String", into = "String")]
 pub struct Leaf(#[serde(with = "hex")] pub [u8; 64]);
 
-
 impl TryFrom<String> for Leaf {
     type Error = hex::FromHexError;
 
@@ -75,8 +74,6 @@ impl Encoder {
 pub trait Encodable {
     fn encode(&self, encoder: &mut Encoder);
 }
-
-
 
 /// This wrapper allows us to use PublicKey internally but still serde as "ed25519:" prefixed string
 #[derive(Clone, Debug, PartialEq)]

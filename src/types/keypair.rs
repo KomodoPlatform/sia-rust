@@ -1,5 +1,6 @@
 use derive_more::Display;
-use ed25519_dalek::{Keypair as Ed25519Keypair, PublicKey as Ed25519PublicKey, SecretKey, SignatureError as Ed25519SignatureError, Signer};
+use ed25519_dalek::{Keypair as Ed25519Keypair, PublicKey as Ed25519PublicKey, SecretKey,
+                    SignatureError as Ed25519SignatureError, Signer};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::ops::Deref;

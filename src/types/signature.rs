@@ -1,9 +1,9 @@
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::str::FromStr;
-use std::fmt;
-use thiserror::Error;
-use ed25519_dalek::{Signature as Ed25519Signature, SIGNATURE_LENGTH};
 use curve25519_dalek::edwards::CompressedEdwardsY;
+use ed25519_dalek::{Signature as Ed25519Signature, SIGNATURE_LENGTH};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::fmt;
+use std::str::FromStr;
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum SignatureError {
@@ -48,7 +48,7 @@ impl Signature {
 
     /// Check if R value is a valid point on the Ed25519 curve
     pub fn validate_r_point(&self) -> bool {
-        let r_bytes = &self.0.to_bytes()[0..SIGNATURE_LENGTH/2];
+        let r_bytes = &self.0.to_bytes()[0..SIGNATURE_LENGTH / 2];
 
         println!("r_bytes len: {}", r_bytes.len());
         // Create a CompressedEdwardsY point from the first 32 bytes
@@ -114,7 +114,6 @@ impl FromStr for Signature {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -123,9 +122,7 @@ mod tests {
     const VALID_STR: &str = "sig:f43380794a6384e3d24d9908143c05dd37aaac8959efb65d986feb70fe289a5e26b84e0ac712af01a2f85f8727da18aae13a599a51fb066d098591e40cb26902";
     const VALID_JSON_STR: &str = r#""sig:f43380794a6384e3d24d9908143c05dd37aaac8959efb65d986feb70fe289a5e26b84e0ac712af01a2f85f8727da18aae13a599a51fb066d098591e40cb26902""#;
 
-    fn valid_signature() -> Signature {
-        Signature::from_str(VALID_STR).unwrap()
-    }
+    fn valid_signature() -> Signature { Signature::from_str(VALID_STR).unwrap() }
 
     cross_target_tests! {
         fn test_display() {

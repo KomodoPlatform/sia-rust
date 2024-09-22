@@ -1,6 +1,6 @@
 use crate::encoding::{Encodable, Encoder, Leaf, PrefixedPublicKey};
 use crate::spend_policy::{SpendPolicy, SpendPolicyHelper, UnlockCondition, UnlockKey};
-use crate::types::{Address, ChainIndex, Hash256, Signature, Keypair, PublicKey};
+use crate::types::{Address, ChainIndex, Hash256, Keypair, PublicKey, Signature};
 use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
@@ -1261,7 +1261,9 @@ impl V2TransactionBuilder {
             let sig = keypair.sign(&sig_hash.0);
             for si in &mut self.siacoin_inputs {
                 match &si.satisfied_policy.policy {
-                    SpendPolicy::PublicKey(pk) if pk == &keypair.public() => si.satisfied_policy.signatures.push(sig.clone()),
+                    SpendPolicy::PublicKey(pk) if pk == &keypair.public() => {
+                        si.satisfied_policy.signatures.push(sig.clone())
+                    },
                     SpendPolicy::UnlockConditions(uc) => {
                         for p in &uc.unlock_keys {
                             match p {

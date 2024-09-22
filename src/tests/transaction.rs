@@ -4,7 +4,7 @@ use crate::spend_policy::{spend_policy_atomic_swap_refund, spend_policy_atomic_s
 use crate::transaction::{Attestation, Currency, CurrencyVersion, FileContractRevisionV2, SatisfiedPolicy,
                          SiacoinElement, SiacoinInputV1, SiacoinInputV2, SiacoinOutput, SiacoinOutputVersion,
                          StateElement, V2FileContract, V2FileContractElement, V2Transaction};
-use crate::types::{v1_standard_address_from_pubkey, Address, Hash256, PublicKey, Keypair, Signature};
+use crate::types::{v1_standard_address_from_pubkey, Address, Hash256, Keypair, PublicKey, Signature};
 use std::convert::TryFrom;
 use std::str::FromStr;
 
@@ -17,7 +17,9 @@ fn test_siacoin_input_encode() {
     let unlock_condition = UnlockCondition::new(vec![public_key], 0, 1);
 
     let vin = SiacoinInputV1 {
-        parent_id: Hash256::try_from("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap().into(),
+        parent_id: Hash256::try_from("h:0405060000000000000000000000000000000000000000000000000000000000")
+            .unwrap()
+            .into(),
         unlock_condition,
     };
 
