@@ -122,7 +122,3 @@ impl fmt::LowerHex for PublicKey {
         write!(f, "{}", hex::encode(self.as_bytes()))
     }
 }
-
-impl Keypair {
-    pub fn public(&self) -> PublicKey { PublicKey(self.0.public) }
-}
