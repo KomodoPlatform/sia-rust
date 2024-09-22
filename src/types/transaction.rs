@@ -329,7 +329,6 @@ impl<'a> Encodable for SiacoinOutputVersion<'a> {
 #[derive(Clone, Debug, PartialEq)]
 pub struct SiacoinOutputId(pub Hash256);
 
-// FIXME this code pattern is reoccuring in many places and should be generalized with helpers or macros
 impl<'de> Deserialize<'de> for SiacoinOutputId {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
