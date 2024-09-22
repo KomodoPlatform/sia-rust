@@ -4,7 +4,6 @@ use crate::encoding::{Encodable, Encoder};
 pub use crate::transaction::Currency; // FIXME should be imported via the transaction module
 use crate::transaction::{FileContractElementV1, SiacoinElement, SiafundElement, StateElement, V1Transaction,
                          V2FileContractResolution, V2Transaction};
-use crate::PublicKey;
 use blake2b_simd::Params;
 use chrono::{DateTime, Utc};
 use hex::FromHexError;
@@ -16,10 +15,13 @@ use std::fmt;
 use std::str::FromStr;
 
 mod hash;
-pub use hash::Hash256;
+pub use hash::{Hash256, ParseHashError};
 
 mod signature;
-pub use signature::{Signature, SignatureError}; // FIXME only export Signature
+pub use signature::{Signature, SignatureError};
+
+mod keypair;
+pub use keypair::{Keypair, KeypairError, PublicKey};
 
 const ADDRESS_HASH_LENGTH: usize = 32;
 const ADDRESS_CHECKSUM_LENGTH: usize = 6;

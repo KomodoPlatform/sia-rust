@@ -1,6 +1,5 @@
 use crate::blake2b_internal::hash_blake2b_single;
-use crate::types::Hash256;
-use crate::PublicKey;
+use crate::types::{Hash256, PublicKey};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::From;
 use std::convert::{TryFrom, TryInto};
