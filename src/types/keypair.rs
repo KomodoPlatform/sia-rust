@@ -113,10 +113,6 @@ impl Serialize for PublicKey {
     }
 }
 
-impl From<Ed25519PublicKey> for PublicKey {
-    fn from(public_key: Ed25519PublicKey) -> Self { PublicKey(public_key) }
-}
-
 impl fmt::Display for PublicKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "ed25519:{:02x}", self) }
 }
