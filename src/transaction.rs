@@ -1,4 +1,4 @@
-use crate::encoding::{Encodable, Encoder, HexArray64, PrefixedPublicKey, ScoidH256};
+use crate::encoding::{Encodable, Encoder, HexArray64, PrefixedPublicKey, SiacoinOutputId};
 use crate::spend_policy::{SpendPolicy, SpendPolicyHelper, UnlockCondition, UnlockKey};
 use crate::types::{Address, ChainIndex, Hash256, Signature, Keypair, PublicKey};
 use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
