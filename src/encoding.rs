@@ -9,9 +9,6 @@ use std::fmt;
 #[serde(try_from = "String", into = "String")]
 pub struct HexArray64(#[serde(with = "hex")] pub [u8; 64]);
 
-impl AsRef<[u8]> for HexArray64 {
-    fn as_ref(&self) -> &[u8] { &self.0 }
-}
 
 impl TryFrom<String> for HexArray64 {
     type Error = hex::FromHexError;
