@@ -23,6 +23,10 @@ const STANDARD_SIGS_REQUIRED_BLAKE2B_HASH: [u8; 32] = [
     0x5a, 0xb4, 0xe1, 0xa7, 0x6e, 0x62, 0x4a, 0x87, 0x98, 0xcb, 0x63, 0x49, 0x7b,
 ];
 
+// FIXME remove direct indexing of arrays or add sanity checks to prevent out of bound access
+
+/// Directly ported from Sia core
+/// https://github.com/SiaFoundation/core/blob/0f61e58ab7ea932da7e9f710c592d595406356c6/internal/blake2b/blake2b.go#L66
 #[derive(Debug, PartialEq)]
 pub struct Accumulator {
     trees: [Hash256; 64],
@@ -31,8 +35,9 @@ pub struct Accumulator {
 
 impl Default for Accumulator {
     fn default() -> Self {
+        // Initialize all bytes to zero
         Accumulator {
-            trees: [Hash256::default(); 64], // Initialize all bytes to zero
+            trees: std::array::from_fn(|_| Hash256::default()),
             num_leaves: 0,
         }
     }
@@ -61,7 +66,7 @@ impl Accumulator {
         if i == 64 {
             return Hash256::default(); // Return all zeros if no leaves
         }
-        let mut root = self.trees[i as usize];
+        let mut root = self.trees[i as usize].clone();
         for j in i + 1..64 {
             if self.has_tree_at_height(j) {
                 root = hash_blake2b_pair(&NODE_HASH_PREFIX, &self.trees[j as usize].0, &root.0);
@@ -153,7 +158,7 @@ fn test_accumulator_new() {
     let default_accumulator = Accumulator::default();
 
     let expected = Accumulator {
-        trees: [Hash256::default(); 64],
+        trees: std::array::from_fn(|_| Hash256::default()),
         num_leaves: 0,
     };
     assert_eq!(default_accumulator, expected)
