@@ -32,16 +32,14 @@ impl PublicKey {
         let public_key = Ed25519PublicKey::from_bytes(bytes)?;
         Ok(PublicKey(public_key))
     }
+
+    pub fn as_bytes(&self) -> &[u8] { self.0.as_bytes() }
+
+    pub fn to_bytes(&self) -> [u8; 32] { self.0.to_bytes() }
 }
 
 impl From<Ed25519PublicKey> for PublicKey {
     fn from(public_key: Ed25519PublicKey) -> Self { PublicKey(public_key) }
-}
-
-impl Deref for PublicKey {
-    type Target = Ed25519PublicKey;
-
-    fn deref(&self) -> &Self::Target { &self.0 }
 }
 
 impl fmt::Display for PublicKey {
