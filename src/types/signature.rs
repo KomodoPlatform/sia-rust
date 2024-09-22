@@ -2,14 +2,17 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::str::FromStr;
 use std::fmt;
 use thiserror::Error;
-use ed25519_dalek::Signature as Ed25519Signature;
+use ed25519_dalek::{Signature as Ed25519Signature, SIGNATURE_LENGTH};
+use curve25519_dalek::edwards::CompressedEdwardsY;
 
 #[derive(Debug, Error)]
 pub enum SignatureError {
-    #[error("expected 64 byte hex string prefixed with 'sig:', found {0}")]
+    #[error("parsing error: expected 64 byte hex string ed25519 signature prefixed with 'sig:', found {0}")]
     Parse(#[from] ed25519_dalek::ed25519::Error),
-    #[error("expected 64 byte hex string prefixed with 'sig:',, found {0}")]
+    #[error("invalid prefix: expected 64 byte hex string ed25519 signature prefixed with 'sig:', found {0}")]
     InvalidPrefix(String),
+    #[error("corrupt R point: expected 64 byte hex string ed25519 signature prefixed with 'sig:', found {0}")]
+    CorruptRPoint(String),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -19,18 +22,37 @@ impl Signature {
     pub fn new(signature: Ed25519Signature) -> Self { Signature(signature) }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, SignatureError> {
-        Ed25519Signature::from_bytes(bytes)
+        let signature = Ed25519Signature::from_bytes(bytes)
             .map(Signature)
-            .map_err(SignatureError::Parse)
+            .map_err(SignatureError::Parse)?;
+
+        match signature.validate_r_point() {
+            true => Ok(signature),
+            false => Err(SignatureError::CorruptRPoint(hex::encode(bytes))),
+        }
     }
 
-    pub fn to_bytes(&self) -> [u8; 64] { self.0.to_bytes() }
+    pub fn to_bytes(&self) -> [u8; SIGNATURE_LENGTH] { self.0.to_bytes() }
 
     // Method for parsing a hex string without the "sig:" prefix
     pub fn from_str_no_prefix(hex_str: &str) -> Result<Self, SignatureError> {
-        Ed25519Signature::from_str(hex_str)
+        let signature = Ed25519Signature::from_str(hex_str)
             .map(Signature)
-            .map_err(SignatureError::Parse)
+            .map_err(SignatureError::Parse)?;
+
+        match signature.validate_r_point() {
+            true => Ok(signature),
+            false => Err(SignatureError::CorruptRPoint(hex_str.to_string())),
+        }
+    }
+
+    /// Check if R value is a valid point on the Ed25519 curve
+    pub fn validate_r_point(&self) -> bool {
+        let r_bytes = &self.0.to_bytes()[0..SIGNATURE_LENGTH/2];
+
+        println!("r_bytes len: {}", r_bytes.len());
+        // Create a CompressedEdwardsY point from the first 32 bytes
+        CompressedEdwardsY::from_slice(r_bytes).decompress().is_some()
     }
 }
 
