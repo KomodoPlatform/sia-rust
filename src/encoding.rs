@@ -2,26 +2,7 @@ use crate::blake2b_internal::hash_blake2b_single;
 use crate::types::{Hash256, PublicKey};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::From;
-use std::convert::{TryFrom, TryInto};
 use std::fmt;
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(try_from = "String", into = "String")]
-pub struct Leaf(#[serde(with = "hex")] pub [u8; 64]);
-
-impl TryFrom<String> for Leaf {
-    type Error = hex::FromHexError;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        let bytes = hex::decode(value)?;
-        let array = bytes.try_into().map_err(|_| hex::FromHexError::InvalidStringLength)?;
-        Ok(Leaf(array))
-    }
-}
-
-impl From<Leaf> for String {
-    fn from(value: Leaf) -> Self { hex::encode(value.0) }
-}
 
 // https://github.com/SiaFoundation/core/blob/092850cc52d3d981b19c66cd327b5d945b3c18d3/types/encoding.go#L16
 // TODO go implementation limits this to 1024 bytes, should we?

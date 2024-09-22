@@ -1,10 +1,11 @@
-use crate::encoding::{Encodable, Encoder, Leaf, PrefixedPublicKey};
+use crate::encoding::{Encodable, Encoder, PrefixedPublicKey};
 use crate::spend_policy::{SpendPolicy, SpendPolicyHelper, UnlockCondition, UnlockKey};
 use crate::types::{Address, ChainIndex, Hash256, Keypair, PublicKey, Signature};
 use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use serde_with::{serde_as, FromInto};
+use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::ops::Deref;
 use std::str::FromStr;
@@ -587,6 +588,24 @@ impl Encodable for Attestation {
         encoder.write_len_prefixed_bytes(&self.value);
         self.signature.encode(encoder);
     }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(try_from = "String", into = "String")]
+pub struct Leaf(#[serde(with = "hex")] pub [u8; 64]);
+
+impl TryFrom<String> for Leaf {
+    type Error = hex::FromHexError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let bytes = hex::decode(value)?;
+        let array = bytes.try_into().map_err(|_| hex::FromHexError::InvalidStringLength)?;
+        Ok(Leaf(array))
+    }
+}
+
+impl From<Leaf> for String {
+    fn from(value: Leaf) -> Self { hex::encode(value.0) }
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
