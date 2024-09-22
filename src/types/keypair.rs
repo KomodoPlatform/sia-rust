@@ -33,7 +33,7 @@ impl Keypair {
     pub fn sign(&self, message: &[u8]) -> Signature { Signature::new(self.0.sign(message)) }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct PublicKey(pub Ed25519PublicKey);
 
 impl PublicKey {
