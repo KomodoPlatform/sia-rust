@@ -13,7 +13,7 @@ pub enum ParseHashError {
     #[error("invalid length: expected 32 byte hex string prefixed with 'h:', found {0}")]
     InvalidLength(String),
 }
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct Hash256(pub [u8; 32]);
 
 impl Hash256 {
