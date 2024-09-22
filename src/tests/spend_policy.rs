@@ -1,4 +1,4 @@
-use crate::spend_policy::{spend_policy_atomic_swap_success, SpendPolicy, SpendPolicyHelper, UnlockCondition, UnlockKey};
+use crate::spend_policy::{spend_policy_atomic_swap_success, SpendPolicy, UnlockCondition, UnlockKey};
 use crate::types::{Address, Hash256, PublicKey};
 use std::convert::TryFrom;
 use std::str::FromStr;
@@ -12,7 +12,7 @@ fn test_serde_spend_policy_above() {
       }
     );
 
-    let spend_policy_deser = serde_json::from_value::<SpendPolicyHelper>(j).unwrap().into();
+    let spend_policy_deser = serde_json::from_value::<SpendPolicy>(j).unwrap().into();
     let spend_policy = SpendPolicy::Above(100);
 
     assert_eq!(spend_policy, spend_policy_deser);
@@ -27,7 +27,7 @@ fn test_serde_spend_policy_after() {
       }
     );
 
-    let spend_policy_deser = serde_json::from_value::<SpendPolicyHelper>(j).unwrap().into();
+    let spend_policy_deser = serde_json::from_value::<SpendPolicy>(j).unwrap().into();
     let spend_policy = SpendPolicy::After(200);
 
     assert_eq!(spend_policy, spend_policy_deser);
@@ -45,7 +45,7 @@ fn test_serde_spend_policy_public_key() {
         &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
     )
     .unwrap();
-    let spend_policy_deser: SpendPolicy = serde_json::from_value::<SpendPolicyHelper>(j).unwrap().into();
+    let spend_policy_deser: SpendPolicy = serde_json::from_value::<SpendPolicy>(j).unwrap().into();
     let spend_policy = SpendPolicy::PublicKey(pubkey);
 
     assert_eq!(spend_policy, spend_policy_deser);
@@ -60,7 +60,7 @@ fn test_serde_spend_policy_hash() {
     }
     );
     let hash = Hash256::try_from("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap();
-    let spend_policy_deser: SpendPolicy = serde_json::from_value::<SpendPolicyHelper>(j).unwrap().into();
+    let spend_policy_deser: SpendPolicy = serde_json::from_value::<SpendPolicy>(j).unwrap().into();
     let spend_policy = SpendPolicy::Hash(hash);
 
     assert_eq!(spend_policy, spend_policy_deser);
@@ -76,7 +76,7 @@ fn test_serde_spend_policy_opaque() {
     );
     let address =
         Address::from_str("addr:f72e84ee9e344e424a6764068ffd7fdce4b4e50609892c6801bc1ead79d3ae0d71791b277a3a").unwrap();
-    let spend_policy_deser: SpendPolicy = serde_json::from_value::<SpendPolicyHelper>(j).unwrap().into();
+    let spend_policy_deser: SpendPolicy = serde_json::from_value::<SpendPolicy>(j).unwrap().into();
     let spend_policy = SpendPolicy::Opaque(address);
 
     assert_eq!(spend_policy, spend_policy_deser);
@@ -127,7 +127,7 @@ fn test_serde_spend_policy_threshold() {
         }
     );
 
-    let spend_policy_deser: SpendPolicy = serde_json::from_value::<SpendPolicyHelper>(j).unwrap().into();
+    let spend_policy_deser: SpendPolicy = serde_json::from_value::<SpendPolicy>(j).unwrap().into();
 
     assert_eq!(spend_policy, spend_policy_deser);
 }
@@ -158,7 +158,7 @@ fn test_serde_spend_policy_unlock_conditions_standard() {
         signatures_required: 1,
     };
 
-    let spend_policy_deser: SpendPolicy = serde_json::from_value::<SpendPolicyHelper>(j).unwrap().into();
+    let spend_policy_deser: SpendPolicy = serde_json::from_value::<SpendPolicy>(j).unwrap().into();
     let spend_policy = SpendPolicy::UnlockConditions(uc);
 
     assert_eq!(spend_policy, spend_policy_deser);

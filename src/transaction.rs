@@ -1,10 +1,9 @@
 use crate::encoding::{Encodable, Encoder};
-use crate::spend_policy::{SpendPolicy, SpendPolicyHelper, UnlockCondition, UnlockKey};
+use crate::spend_policy::{SpendPolicy, UnlockCondition, UnlockKey};
 use crate::types::{Address, ChainIndex, Hash256, Keypair, PublicKey, Signature};
 use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
-use serde_with::{serde_as, FromInto};
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::ops::Deref;
@@ -107,11 +106,9 @@ impl<'a> Encodable for CurrencyVersion<'a> {
 
 pub type Preimage = Vec<u8>;
 
-#[serde_as]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct SatisfiedPolicy {
-    #[serde_as(as = "FromInto<SpendPolicyHelper>")]
     pub policy: SpendPolicy,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub signatures: Vec<Signature>,

@@ -15,62 +15,22 @@ use std::str::FromStr;
 const POLICY_VERSION: u8 = 1u8;
 
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(tag = "type", content = "policy")]
 pub enum SpendPolicy {
+    #[serde(rename = "above")]
     Above(u64),
+    #[serde(rename = "after")]
     After(u64),
+    #[serde(rename = "pk")]
     PublicKey(PublicKey),
+    #[serde(rename = "h")]
     Hash(Hash256),
+    #[serde(rename = "thresh")]
     Threshold { n: u8, of: Vec<SpendPolicy> },
+    #[serde(rename = "opaque")]
     Opaque(Address),
+    #[serde(rename = "uc")]
     UnlockConditions(UnlockCondition), // For v1 compatibility
-}
-
-// FIXME this can now be fully removed now that Prefixed* types are removed
-/// Helper to serialize/deserialize SpendPolicy with prefixed PublicKey and H256
-#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
-#[serde(tag = "type", content = "policy", rename_all = "camelCase")]
-pub enum SpendPolicyHelper {
-    Above(u64),
-    After(u64),
-    Pk(PublicKey),
-    H(Hash256),
-    Thresh { n: u8, of: Vec<SpendPolicyHelper> },
-    Opaque(Address),
-    Uc(UnlockCondition), // For v1 compatibility
-}
-
-impl From<SpendPolicyHelper> for SpendPolicy {
-    fn from(helper: SpendPolicyHelper) -> Self {
-        match helper {
-            SpendPolicyHelper::Above(height) => SpendPolicy::Above(height),
-            SpendPolicyHelper::After(time) => SpendPolicy::After(time),
-            SpendPolicyHelper::Pk(pk) => SpendPolicy::PublicKey(pk),
-            SpendPolicyHelper::H(hash) => SpendPolicy::Hash(hash),
-            SpendPolicyHelper::Thresh { n, of } => SpendPolicy::Threshold {
-                n,
-                of: of.into_iter().map(SpendPolicy::from).collect(),
-            },
-            SpendPolicyHelper::Opaque(address) => SpendPolicy::Opaque(address),
-            SpendPolicyHelper::Uc(uc) => SpendPolicy::UnlockConditions(uc),
-        }
-    }
-}
-
-impl From<SpendPolicy> for SpendPolicyHelper {
-    fn from(policy: SpendPolicy) -> Self {
-        match policy {
-            SpendPolicy::Above(height) => SpendPolicyHelper::Above(height),
-            SpendPolicy::After(time) => SpendPolicyHelper::After(time),
-            SpendPolicy::PublicKey(pk) => SpendPolicyHelper::Pk(pk),
-            SpendPolicy::Hash(hash) => SpendPolicyHelper::H(hash),
-            SpendPolicy::Threshold { n, of } => SpendPolicyHelper::Thresh {
-                n,
-                of: of.into_iter().map(SpendPolicyHelper::from).collect(),
-            },
-            SpendPolicy::Opaque(address) => SpendPolicyHelper::Opaque(address),
-            SpendPolicy::UnlockConditions(uc) => SpendPolicyHelper::Uc(uc),
-        }
-    }
 }
 
 impl Encodable for SpendPolicy {
