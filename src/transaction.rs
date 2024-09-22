@@ -1,4 +1,4 @@
-use crate::encoding::{Encodable, Encoder, HexArray64, PrefixedPublicKey};
+use crate::encoding::{Encodable, Encoder, Leaf, PrefixedPublicKey};
 use crate::spend_policy::{SpendPolicy, SpendPolicyHelper, UnlockCondition, UnlockKey};
 use crate::types::{Address, ChainIndex, Hash256, Signature, Keypair, PublicKey};
 use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
@@ -592,7 +592,7 @@ impl Encodable for Attestation {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct StorageProof {
     pub parent_id: FileContractID,
-    pub leaf: HexArray64,
+    pub leaf: Leaf,
     pub proof: Vec<Hash256>,
 }
 
@@ -809,7 +809,7 @@ impl Encodable for V2FileContractRenewal {
 #[serde(rename_all = "camelCase")]
 pub struct V2StorageProof {
     proof_index: ChainIndexElement,
-    leaf: HexArray64,
+    leaf: Leaf,
     proof: Vec<Hash256>,
 }
 

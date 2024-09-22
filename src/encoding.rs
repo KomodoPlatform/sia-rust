@@ -7,21 +7,21 @@ use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
-pub struct HexArray64(#[serde(with = "hex")] pub [u8; 64]);
+pub struct Leaf(#[serde(with = "hex")] pub [u8; 64]);
 
 
-impl TryFrom<String> for HexArray64 {
+impl TryFrom<String> for Leaf {
     type Error = hex::FromHexError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         let bytes = hex::decode(value)?;
         let array = bytes.try_into().map_err(|_| hex::FromHexError::InvalidStringLength)?;
-        Ok(HexArray64(array))
+        Ok(Leaf(array))
     }
 }
 
-impl From<HexArray64> for String {
-    fn from(value: HexArray64) -> Self { hex::encode(value.0) }
+impl From<Leaf> for String {
+    fn from(value: Leaf) -> Self { hex::encode(value.0) }
 }
 
 // https://github.com/SiaFoundation/core/blob/092850cc52d3d981b19c66cd327b5d945b3c18d3/types/encoding.go#L16
