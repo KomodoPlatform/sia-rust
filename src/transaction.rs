@@ -1,4 +1,4 @@
-use crate::encoding::{Encodable, Encoder, HexArray64, PrefixedPublicKey, SiacoinOutputId};
+use crate::encoding::{Encodable, Encoder, HexArray64, PrefixedPublicKey};
 use crate::spend_policy::{SpendPolicy, SpendPolicyHelper, UnlockCondition, UnlockKey};
 use crate::types::{Address, ChainIndex, Hash256, Signature, Keypair, PublicKey};
 use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
@@ -250,19 +250,17 @@ impl Encodable for SiafundInputV2 {
 }
 
 // https://github.com/SiaFoundation/core/blob/6c19657baf738c6b730625288e9b5413f77aa659/types/types.go#L197-L198
-#[serde_as]
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct SiacoinInputV1 {
     #[serde(rename = "parentID")]
-    #[serde_as(as = "FromInto<SiacoinOutputId>")]
-    pub parent_id: Hash256,
+    pub parent_id: SiacoinOutputId,
     #[serde(rename = "unlockConditions")]
     pub unlock_condition: UnlockCondition,
 }
 
 impl Encodable for SiacoinInputV1 {
     fn encode(&self, encoder: &mut Encoder) {
-        self.parent_id.encode(encoder);
+        self.parent_id.0.encode(encoder);
         self.unlock_condition.encode(encoder);
     }
 }
@@ -329,6 +327,64 @@ impl<'a> Encodable for SiacoinOutputVersion<'a> {
             },
         }
     }
+}
+
+/// This wrapper allows us to use H256 internally but still serde as "scoid:" prefixed string
+#[derive(Clone, Debug, PartialEq)]
+pub struct SiacoinOutputId(pub Hash256);
+
+// FIXME this code pattern is reoccuring in many places and should be generalized with helpers or macros
+impl<'de> Deserialize<'de> for SiacoinOutputId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct ScoidH256Visitor;
+
+        impl<'de> serde::de::Visitor<'de> for ScoidH256Visitor {
+            type Value = SiacoinOutputId;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a string prefixed with 'scoid:' and followed by a 64-character hex string")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                if let Some(hex_str) = value.strip_prefix("scoid:") {
+                    Hash256::from_str_no_prefix(hex_str)
+                        .map(SiacoinOutputId)
+                        .map_err(|_| E::invalid_value(serde::de::Unexpected::Str(value), &self))
+                } else {
+                    Err(E::invalid_value(serde::de::Unexpected::Str(value), &self))
+                }
+            }
+        }
+
+        deserializer.deserialize_str(ScoidH256Visitor)
+    }
+}
+
+impl Serialize for SiacoinOutputId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&format!("{}", self))
+    }
+}
+
+impl fmt::Display for SiacoinOutputId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "h:{}", self.0) }
+}
+
+impl From<SiacoinOutputId> for Hash256 {
+    fn from(sia_hash: SiacoinOutputId) -> Self { sia_hash.0 }
+}
+
+impl From<Hash256> for SiacoinOutputId {
+    fn from(h256: Hash256) -> Self { SiacoinOutputId(h256) }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
