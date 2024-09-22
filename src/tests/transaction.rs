@@ -2,7 +2,7 @@ use crate::encoding::Encoder;
 use crate::spend_policy::{spend_policy_atomic_swap_refund, spend_policy_atomic_swap_success, SpendPolicy,
                           UnlockCondition};
 use crate::transaction::{Attestation, Currency, CurrencyVersion, FileContractRevisionV2, SatisfiedPolicy,
-                         SiacoinElement, SiacoinInputV1, SiacoinInputV2, SiacoinOutput, SiacoinOutputId, SiacoinOutputVersion,
+                         SiacoinElement, SiacoinInputV1, SiacoinInputV2, SiacoinOutput, SiacoinOutputVersion,
                          StateElement, V2FileContract, V2FileContractElement, V2Transaction};
 use crate::types::{v1_standard_address_from_pubkey, Address, Hash256, PublicKey, Keypair, Signature};
 use std::convert::TryFrom;
@@ -17,7 +17,7 @@ fn test_siacoin_input_encode() {
     let unlock_condition = UnlockCondition::new(vec![public_key], 0, 1);
 
     let vin = SiacoinInputV1 {
-        parent_id: SiacoinOutputId(Hash256::try_from("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap()),
+        parent_id: Hash256::try_from("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap().into(),
         unlock_condition,
     };
 
@@ -147,7 +147,7 @@ fn test_state_element_encode_null_merkle_proof() {
 #[test]
 fn test_siacoin_input_encode_v1() {
     let vin = SiacoinInputV1 {
-        parent_id: Hash256::default(),
+        parent_id: Hash256::default().into(),
         unlock_condition: UnlockCondition::new(vec![], 0, 0),
     };
 
