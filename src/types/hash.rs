@@ -147,7 +147,7 @@ mod tests {
 
         fn test_deserialize_missing_prefix() {
             let err  = serde_json::from_str::<Hash256>(r#""c0ffeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee""#).expect_err("no prefix");
-            format!("{:?}", err).contains("expected a string prefixed with 'h:' and followed by a 32 byte hex string");
+            assert!(format!("{:?}", err).contains("expected a string prefixed with 'h:' and followed by a 32 byte hex string"));
         }
 
         fn test_missing_prefix() {
