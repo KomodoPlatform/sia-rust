@@ -254,7 +254,7 @@ impl Encodable for SiafundInputV2 {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct SiacoinInputV1 {
     #[serde(rename = "parentID")]
-    #[serde_as(as = "FromInto<ScoidH256>")]
+    #[serde_as(as = "FromInto<SiacoinOutputID>")]
     pub parent_id: Hash256,
     #[serde(rename = "unlockConditions")]
     pub unlock_condition: UnlockCondition,
