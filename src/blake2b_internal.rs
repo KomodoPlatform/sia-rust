@@ -151,178 +151,173 @@ fn hash_blake2b_pair(prefix: &[u8], leaf1: &[u8], leaf2: &[u8]) -> Hash256 {
     Hash256(array)
 }
 
-#[test]
-fn test_accumulator_new() {
-    let default_accumulator = Accumulator::default();
+#[cfg(test)]
+mod test {
+    use super::*;
 
-    let expected = Accumulator {
-        trees: std::array::from_fn(|_| Hash256::default()),
-        num_leaves: 0,
-    };
-    assert_eq!(default_accumulator, expected)
-}
+    cross_target_tests!{
+        fn test_accumulator_new() {
+            let default_accumulator = Accumulator::default();
 
-#[test]
-fn test_accumulator_root_default() { assert_eq!(Accumulator::default().root(), Hash256::default()) }
+            let expected = Accumulator {
+                trees: std::array::from_fn(|_| Hash256::default()),
+                num_leaves: 0,
+            };
+            assert_eq!(default_accumulator, expected)
+        }
 
-#[test]
-fn test_accumulator_root() {
-    let mut accumulator = Accumulator::default();
-
-    let timelock_leaf = timelock_leaf(0u64);
-    accumulator.add_leaf(timelock_leaf);
-
-    let pubkey = PublicKey::from_bytes(
-        &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
-    )
-    .unwrap();
-    let pubkey_leaf = public_key_leaf(&UnlockKey::Ed25519(pubkey));
-    accumulator.add_leaf(pubkey_leaf);
-
-    let sigs_required_leaf = sigs_required_leaf(1u64);
-    accumulator.add_leaf(sigs_required_leaf);
-
-    let expected = Hash256::try_from("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
-    assert_eq!(accumulator.root(), expected);
-}
-
-#[test]
-fn test_accumulator_add_leaf_standard_unlock_hash() {
-    let mut accumulator = Accumulator::default();
-
-    let pubkey = PublicKey::from_bytes(
-        &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
-    )
-    .unwrap();
-
-    let pubkey_leaf = public_key_leaf(&UnlockKey::Ed25519(pubkey));
-    let timelock_leaf = timelock_leaf(0u64);
-    let sigs_required_leaf = sigs_required_leaf(1u64);
-
-    accumulator.add_leaf(timelock_leaf);
-    accumulator.add_leaf(pubkey_leaf);
-    accumulator.add_leaf(sigs_required_leaf);
-
-    let root = accumulator.root();
-    let expected = Hash256::try_from("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
-    assert_eq!(root, expected)
-}
-
-#[test]
-fn test_accumulator_add_leaf_2of2_multisig_unlock_hash() {
-    let mut accumulator = Accumulator::default();
-
-    let pubkey1 = PublicKey::from_bytes(
-        &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
-    )
-    .unwrap();
-    let pubkey2 = PublicKey::from_bytes(
-        &hex::decode("0101010000000000000000000000000000000000000000000000000000000000").unwrap(),
-    )
-    .unwrap();
-
-    let pubkey1_leaf = public_key_leaf(&UnlockKey::Ed25519(pubkey1));
-    let pubkey2_leaf = public_key_leaf(&UnlockKey::Ed25519(pubkey2));
-
-    let timelock_leaf = timelock_leaf(0u64);
-    let sigs_required_leaf = sigs_required_leaf(2u64);
-
-    accumulator.add_leaf(timelock_leaf);
-    accumulator.add_leaf(pubkey1_leaf);
-    accumulator.add_leaf(pubkey2_leaf);
-    accumulator.add_leaf(sigs_required_leaf);
-
-    let root = accumulator.root();
-    let expected = Hash256::try_from("h:1e94357817d236167e54970a8c08bbd41b37bfceeeb52f6c1ce6dd01d50ea1e7").unwrap();
-    assert_eq!(root, expected)
-}
-
-#[test]
-fn test_accumulator_add_leaf_1of2_multisig_unlock_hash() {
-    let mut accumulator = Accumulator::default();
-
-    let pubkey1 = PublicKey::from_bytes(
-        &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
-    )
-    .unwrap();
-    let pubkey2 = PublicKey::from_bytes(
-        &hex::decode("0101010000000000000000000000000000000000000000000000000000000000").unwrap(),
-    )
-    .unwrap();
-
-    let pubkey1_leaf = public_key_leaf(&UnlockKey::Ed25519(pubkey1));
-    let pubkey2_leaf = public_key_leaf(&UnlockKey::Ed25519(pubkey2));
-
-    let timelock_leaf = timelock_leaf(0u64);
-    let sigs_required_leaf = sigs_required_leaf(1u64);
-
-    accumulator.add_leaf(timelock_leaf);
-    accumulator.add_leaf(pubkey1_leaf);
-    accumulator.add_leaf(pubkey2_leaf);
-    accumulator.add_leaf(sigs_required_leaf);
-
-    let root = accumulator.root();
-    let expected = Hash256::try_from("h:d7f84e3423da09d111a17f64290c8d05e1cbe4cab2b6bed49e3a4d2f659f0585").unwrap();
-    assert_eq!(root, expected)
-}
-
-#[test]
-fn test_standard_unlock_hash() {
-    let pubkey = PublicKey::from_bytes(
-        &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
-    )
-    .unwrap();
-
-    let hash = standard_unlock_hash(&pubkey);
-    let expected = Hash256::try_from("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
-    assert_eq!(hash, expected)
-}
-
-#[test]
-fn test_hash_blake2b_pair() {
-    let left: [u8; 32] = hex::decode("cdcce3978a58ceb6c8480d218646db4eae85eb9ea9c2f5138fbacb4ce2c701e3")
-        .unwrap()
-        .try_into()
-        .unwrap();
-    let right: [u8; 32] = hex::decode("b36010eb285c154a8cd63084acbe7eac0c4d625ab4e1a76e624a8798cb63497b")
-        .unwrap()
-        .try_into()
-        .unwrap();
-
-    let hash = hash_blake2b_pair(&NODE_HASH_PREFIX, &left, &right);
-    let expected = Hash256::try_from("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
-    assert_eq!(hash, expected)
-}
-
-#[test]
-fn test_timelock_leaf() {
-    let hash = timelock_leaf(0);
-    let expected = Hash256(STANDARD_TIMELOCK_BLAKE2B_HASH);
-    assert_eq!(hash, expected)
-}
-
-#[test]
-fn test_sigs_required_leaf() {
-    let hash = sigs_required_leaf(1u64);
-    let expected = Hash256(STANDARD_SIGS_REQUIRED_BLAKE2B_HASH);
-    assert_eq!(hash, expected)
-}
-
-#[test]
-fn test_hash_blake2b_single() {
-    let hash = hash_blake2b_single(&hex::decode("006564323535313900000000000000000020000000000000000102030000000000000000000000000000000000000000000000000000000000").unwrap());
-    let expected = Hash256::try_from("h:21ce940603a2ee3a283685f6bfb4b122254894fd1ed3eb59434aadbf00c75d5b").unwrap();
-    assert_eq!(hash, expected)
-}
-
-#[test]
-fn test_public_key_leaf() {
-    let pubkey = PublicKey::from_bytes(
-        &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
-    )
-    .unwrap();
-
-    let hash = public_key_leaf(&UnlockKey::Ed25519(pubkey));
-    let expected = Hash256::try_from("h:21ce940603a2ee3a283685f6bfb4b122254894fd1ed3eb59434aadbf00c75d5b").unwrap();
-    assert_eq!(hash, expected)
+        fn test_accumulator_root_default() { assert_eq!(Accumulator::default().root(), Hash256::default()) }
+        
+        fn test_accumulator_root() {
+            let mut accumulator = Accumulator::default();
+        
+            let timelock_leaf = timelock_leaf(0u64);
+            accumulator.add_leaf(timelock_leaf);
+        
+            let pubkey = PublicKey::from_bytes(
+                &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
+            )
+            .unwrap();
+            let pubkey_leaf = public_key_leaf(&UnlockKey::Ed25519(pubkey));
+            accumulator.add_leaf(pubkey_leaf);
+        
+            let sigs_required_leaf = sigs_required_leaf(1u64);
+            accumulator.add_leaf(sigs_required_leaf);
+        
+            let expected = Hash256::try_from("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
+            assert_eq!(accumulator.root(), expected);
+        }
+        
+        fn test_accumulator_add_leaf_standard_unlock_hash() {
+            let mut accumulator = Accumulator::default();
+        
+            let pubkey = PublicKey::from_bytes(
+                &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
+            )
+            .unwrap();
+        
+            let pubkey_leaf = public_key_leaf(&UnlockKey::Ed25519(pubkey));
+            let timelock_leaf = timelock_leaf(0u64);
+            let sigs_required_leaf = sigs_required_leaf(1u64);
+        
+            accumulator.add_leaf(timelock_leaf);
+            accumulator.add_leaf(pubkey_leaf);
+            accumulator.add_leaf(sigs_required_leaf);
+        
+            let root = accumulator.root();
+            let expected = Hash256::try_from("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
+            assert_eq!(root, expected)
+        }
+        
+        fn test_accumulator_add_leaf_2of2_multisig_unlock_hash() {
+            let mut accumulator = Accumulator::default();
+        
+            let pubkey1 = PublicKey::from_bytes(
+                &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
+            )
+            .unwrap();
+            let pubkey2 = PublicKey::from_bytes(
+                &hex::decode("0101010000000000000000000000000000000000000000000000000000000000").unwrap(),
+            )
+            .unwrap();
+        
+            let pubkey1_leaf = public_key_leaf(&UnlockKey::Ed25519(pubkey1));
+            let pubkey2_leaf = public_key_leaf(&UnlockKey::Ed25519(pubkey2));
+        
+            let timelock_leaf = timelock_leaf(0u64);
+            let sigs_required_leaf = sigs_required_leaf(2u64);
+        
+            accumulator.add_leaf(timelock_leaf);
+            accumulator.add_leaf(pubkey1_leaf);
+            accumulator.add_leaf(pubkey2_leaf);
+            accumulator.add_leaf(sigs_required_leaf);
+        
+            let root = accumulator.root();
+            let expected = Hash256::try_from("h:1e94357817d236167e54970a8c08bbd41b37bfceeeb52f6c1ce6dd01d50ea1e7").unwrap();
+            assert_eq!(root, expected)
+        }
+        
+        fn test_accumulator_add_leaf_1of2_multisig_unlock_hash() {
+            let mut accumulator = Accumulator::default();
+        
+            let pubkey1 = PublicKey::from_bytes(
+                &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
+            )
+            .unwrap();
+            let pubkey2 = PublicKey::from_bytes(
+                &hex::decode("0101010000000000000000000000000000000000000000000000000000000000").unwrap(),
+            )
+            .unwrap();
+        
+            let pubkey1_leaf = public_key_leaf(&UnlockKey::Ed25519(pubkey1));
+            let pubkey2_leaf = public_key_leaf(&UnlockKey::Ed25519(pubkey2));
+        
+            let timelock_leaf = timelock_leaf(0u64);
+            let sigs_required_leaf = sigs_required_leaf(1u64);
+        
+            accumulator.add_leaf(timelock_leaf);
+            accumulator.add_leaf(pubkey1_leaf);
+            accumulator.add_leaf(pubkey2_leaf);
+            accumulator.add_leaf(sigs_required_leaf);
+        
+            let root = accumulator.root();
+            let expected = Hash256::try_from("h:d7f84e3423da09d111a17f64290c8d05e1cbe4cab2b6bed49e3a4d2f659f0585").unwrap();
+            assert_eq!(root, expected)
+        }
+        
+        fn test_standard_unlock_hash() {
+            let pubkey = PublicKey::from_bytes(
+                &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
+            )
+            .unwrap();
+        
+            let hash = standard_unlock_hash(&pubkey);
+            let expected = Hash256::try_from("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
+            assert_eq!(hash, expected)
+        }
+        
+        fn test_hash_blake2b_pair() {
+            let left: [u8; 32] = hex::decode("cdcce3978a58ceb6c8480d218646db4eae85eb9ea9c2f5138fbacb4ce2c701e3")
+                .unwrap()
+                .try_into()
+                .unwrap();
+            let right: [u8; 32] = hex::decode("b36010eb285c154a8cd63084acbe7eac0c4d625ab4e1a76e624a8798cb63497b")
+                .unwrap()
+                .try_into()
+                .unwrap();
+        
+            let hash = hash_blake2b_pair(&NODE_HASH_PREFIX, &left, &right);
+            let expected = Hash256::try_from("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
+            assert_eq!(hash, expected)
+        }
+        
+        fn test_timelock_leaf() {
+            let hash = timelock_leaf(0);
+            let expected = Hash256(STANDARD_TIMELOCK_BLAKE2B_HASH);
+            assert_eq!(hash, expected)
+        }
+        
+        fn test_sigs_required_leaf() {
+            let hash = sigs_required_leaf(1u64);
+            let expected = Hash256(STANDARD_SIGS_REQUIRED_BLAKE2B_HASH);
+            assert_eq!(hash, expected)
+        }
+        
+        fn test_hash_blake2b_single() {
+            let hash = hash_blake2b_single(&hex::decode("006564323535313900000000000000000020000000000000000102030000000000000000000000000000000000000000000000000000000000").unwrap());
+            let expected = Hash256::try_from("h:21ce940603a2ee3a283685f6bfb4b122254894fd1ed3eb59434aadbf00c75d5b").unwrap();
+            assert_eq!(hash, expected)
+        }
+        
+        fn test_public_key_leaf() {
+            let pubkey = PublicKey::from_bytes(
+                &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
+            )
+            .unwrap();
+        
+            let hash = public_key_leaf(&UnlockKey::Ed25519(pubkey));
+            let expected = Hash256::try_from("h:21ce940603a2ee3a283685f6bfb4b122254894fd1ed3eb59434aadbf00c75d5b").unwrap();
+            assert_eq!(hash, expected)
+        }
+    }
 }
