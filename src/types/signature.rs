@@ -114,3 +114,125 @@ impl FromStr for Signature {
     }
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json;
+
+    const VALID_STR: &str = "sig:f43380794a6384e3d24d9908143c05dd37aaac8959efb65d986feb70fe289a5e26b84e0ac712af01a2f85f8727da18aae13a599a51fb066d098591e40cb26902";
+    const VALID_JSON_STR: &str = r#""sig:f43380794a6384e3d24d9908143c05dd37aaac8959efb65d986feb70fe289a5e26b84e0ac712af01a2f85f8727da18aae13a599a51fb066d098591e40cb26902""#;
+
+    fn valid_signature() -> Signature {
+        Signature::from_str(VALID_STR).unwrap()
+    }
+
+    cross_target_tests! {
+        fn test_display() {
+            assert_eq!(valid_signature().to_string(), VALID_STR);
+        }
+
+        fn test_debug() {
+            assert_eq!(format!("{:?}", valid_signature()), "Signature(ed25519::Signature(F43380794A6384E3D24D9908143C05DD37AAAC8959EFB65D986FEB70FE289A5E26B84E0AC712AF01A2F85F8727DA18AAE13A599A51FB066D098591E40CB26902))");
+        }
+
+        fn test_serialize() {
+            assert_eq!(&serde_json::to_string(&valid_signature()).unwrap(), VALID_JSON_STR);
+        }
+
+        fn test_deserialize() {
+            assert_eq!(serde_json::from_str::<Signature>(VALID_JSON_STR).unwrap(), valid_signature());
+        }
+
+        fn test_deserialize_missing_prefix() {
+            let err  = serde_json::from_str::<Signature>(r#""f43380794a6384e3d24d9908143c05dd37aaac8959efb65d986feb70fe289a5e26b84e0ac712af01a2f85f8727da18aae13a599a51fb066d098591e40cb26902""#).expect_err("no prefix");
+            let mystr = format!("{:?}", err);
+            assert!(mystr.contains("expected a 64 byte hex string representing a ed25519 signature prefixed with 'sig:'"));
+        }
+
+        fn test_missing_prefix() {
+            let test_case = "f43380794a6384e3d24d9908143c05dd37aaac8959efb65d986feb70fe289a5e26b84e0ac712af01a2f85f8727da18aae13a599a51fb066d098591e40cb26902";
+            let err = Signature::from_str(test_case).expect_err("no prefix");
+            match err {
+                SignatureError::InvalidPrefix(ref e) if test_case == e => (),
+                _ => panic!("unexpected error: {:?}", err),
+            }
+        }
+
+        fn test_corrupt_prefix() {
+            let test_case = ":f43380794a6384e3d24d9908143c05dd37aaac8959efb65d986feb70fe289a5e26b84e0ac712af01a2f85f8727da18aae13a599a51fb066d098591e40cb26902";
+            let err = Signature::from_str(test_case).expect_err("no prefix");
+            match err {
+                SignatureError::InvalidPrefix(ref e) if test_case == e => (),
+                _ => panic!("unexpected error: {:?}", err),
+            }
+        }
+
+        fn test_wrong_prefix() {
+            let test_case = "dig:f43380794a6384e3d24d9908143c05dd37aaac8959efb65d986feb70fe289a5e26b84e0ac712af01a2f85f8727da18aae13a599a51fb066d098591e40cb26902";
+            let err = Signature::from_str(test_case).expect_err("no prefix");
+            match err {
+                SignatureError::InvalidPrefix(ref e) if test_case == e => (),
+                _ => panic!("unexpected error: {:?}", err),
+            }
+        }
+
+        fn test_invalid_hex() {
+            let test_case = "sig:g43380794a6384e3d24d9908143c05dd37aaac8959efb65d986feb70fe289a5e26b84e0ac712af01a2f85f8727da18aae13a599a51fb066d098591e40cb26902";
+            let err = Signature::from_str(test_case).expect_err("no prefix");
+            match err {
+                SignatureError::Parse(_) => (),
+                _ => panic!("unexpected error: {:?}", err),
+            }
+        }
+
+        fn test_invalid_r_signature() {
+            let test_case = "sig:00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000";
+            let err = Signature::from_str(test_case).expect_err("no prefix");
+            match err {
+                SignatureError::CorruptRPoint(_) => (),
+                _ => panic!("unexpected error: {:?}", err),
+            }
+        }
+
+        fn test_invalid_length() {
+            let test_case = "sig:badc0de";
+            let err = Signature::from_str(test_case).expect_err("no prefix");
+            match err {
+                SignatureError::Parse(e) => println!("{:?}", e),
+                _ => panic!("unexpected error: {:?}", err),
+            }
+        }
+
+        fn test_from_str_no_prefix_valid() {
+            let sig = Signature::from_str_no_prefix("f43380794a6384e3d24d9908143c05dd37aaac8959efb65d986feb70fe289a5e26b84e0ac712af01a2f85f8727da18aae13a599a51fb066d098591e40cb26902").unwrap();
+            assert_eq!(sig, valid_signature())
+        }
+
+        fn test_from_str_no_prefix_invalid_length() {
+            let test_case = "badc0de";
+            let err = Signature::from_str_no_prefix(test_case).expect_err("invalid length");
+            match err {
+                SignatureError::Parse(_) => (),
+                _ => panic!("unexpected error: {:?}", err),
+            }
+        }
+
+        fn test_from_str_no_prefix_invalid_hex() {
+            let test_case = "g43380794a6384e3d24d9908143c05dd37aaac8959efb65d986feb70fe289a5e26b84e0ac712af01a2f85f8727da18aae13a599a51fb066d098591e40cb26902";
+            let err = Signature::from_str_no_prefix(test_case).expect_err("invalid hex");
+            match err {
+                SignatureError::Parse(_) => (),
+                _ => panic!("unexpected error: {:?}", err),
+            }
+        }
+
+        fn test_from_str_no_prefix_invalid_has_prefix() {
+            let err = Signature::from_str_no_prefix(VALID_STR).expect_err("invalid hex");
+            match err {
+                SignatureError::Parse(_) => (),
+                _ => panic!("unexpected error: {:?}", err),
+            }
+        }
+    }
+}
