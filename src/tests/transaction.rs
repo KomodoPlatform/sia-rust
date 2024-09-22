@@ -445,8 +445,8 @@ fn test_file_contract_v2_encode() {
     let sig1 = Signature::from_bytes(
         &hex::decode("0734761D562958F6A82819474171F05A40163901513E5858BFF9E4BD9CAFB04DEF0D6D345BACE7D14E50C5C523433B411C7D7E1618BE010A63C55C34A2DEE70A").unwrap()).unwrap();
 
-    let address0 = v1_standard_address_from_pubkey(&pubkey0);
-    let address1 = v1_standard_address_from_pubkey(&pubkey1);
+    let address0 = Address::standard_address_v1(&pubkey0);
+    let address1 = Address::standard_address_v1(&pubkey1);
 
     let vout0 = SiacoinOutput {
         value: 1.into(),
@@ -494,8 +494,8 @@ fn test_file_contract_element_v2_encode() {
     let sig1 = Signature::from_bytes(
         &hex::decode("0734761D562958F6A82819474171F05A40163901513E5858BFF9E4BD9CAFB04DEF0D6D345BACE7D14E50C5C523433B411C7D7E1618BE010A63C55C34A2DEE70A").unwrap()).unwrap();
 
-    let address0 = v1_standard_address_from_pubkey(&pubkey0);
-    let address1 = v1_standard_address_from_pubkey(&pubkey1);
+    let address0 = Address::standard_address_v1(&pubkey0);
+    let address1 = Address::standard_address_v1(&pubkey1);
 
     let vout0 = SiacoinOutput {
         value: 1.into(),
@@ -557,8 +557,8 @@ fn test_file_contract_revision_v2_encode() {
     let sig1 = Signature::from_bytes(
         &hex::decode("0734761D562958F6A82819474171F05A40163901513E5858BFF9E4BD9CAFB04DEF0D6D345BACE7D14E50C5C523433B411C7D7E1618BE010A63C55C34A2DEE70A").unwrap()).unwrap();
 
-    let address0 = v1_standard_address_from_pubkey(&pubkey0);
-    let address1 = v1_standard_address_from_pubkey(&pubkey1);
+    let address0 = Address::standard_address_v1(&pubkey0);
+    let address1 = Address::standard_address_v1(&pubkey1);
 
     let vout0 = SiacoinOutput {
         value: 1.into(),

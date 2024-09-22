@@ -78,6 +78,11 @@ impl Address {
         let checksum = blake2b_checksum(bytes);
         format!("{}{}", hex::encode(bytes), hex::encode(checksum))
     }
+
+    pub fn standard_address_v1(pubkey: &PublicKey) -> Self {
+        let hash = standard_unlock_hash(pubkey);
+        Address(hash)
+    }
 }
 
 impl Encodable for Address {
@@ -142,11 +147,6 @@ impl FromStr for Address {
 fn blake2b_checksum(preimage: &[u8]) -> [u8; 6] {
     let hash = Params::new().hash_length(32).to_state().update(preimage).finalize();
     hash.as_bytes()[0..6].try_into().expect("array is 64 bytes long")
-}
-
-pub fn v1_standard_address_from_pubkey(pubkey: &PublicKey) -> Address {
-    let hash = standard_unlock_hash(pubkey);
-    Address(hash)
 }
 
 #[derive(Clone, Debug, PartialEq)]
