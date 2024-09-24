@@ -1,116 +1,453 @@
-use crate::types::{PublicKey, SpendPolicy};
+use crate::types::SpendPolicy;
 
 use std::marker::PhantomData;
 use thiserror::Error;
 
 /*
-SpendPolicy::Threshold { 
-	n: 1,
-	of: vec![ 
-		SpendPolicy::Threshold { 
-			n: 2, 
-			of: vec![
-				SpendPolicy::After(<SOME DYNAMIC VALUE>),
-				SpendPolicy::PublicKey(<SOME DYNAMIC VALUE>)
-			] 
-		},
-		SpendPolicy::Threshold { 
-			n: 2, 
-			of: vec![
-				SpendPolicy::Above(<SOME DYNAMIC VALUE>),
-				SpendPolicy::PublicKey(<SOME DYNAMIC VALUE>)
-			] 
-		},
-	]
+The full representation of the atomic swap contract is as follows:
+    SpendPolicy::Threshold { 
+        n: 1,
+        of: vec![ 
+            SpendPolicy::Threshold { 
+                n: 2, 
+                of: vec![
+                    SpendPolicy::Hash(<sha256(secret)>),
+                    SpendPolicy::PublicKey(<Alice pubkey>)
+                ] 
+            },
+            SpendPolicy::Threshold { 
+                n: 2, 
+                of: vec![
+                    SpendPolicy::After(<timestamp>),
+                    SpendPolicy::PublicKey(<Bob pubkey>)
+                ] 
+            },
+        ]
+    }
+
+In English, the above specifies that:
+    - Alice can spend the UTXO if:
+        - Alice provides the preimage of the SHA256 hash specified in the UTXO (the secret)
+        - Alice provides a valid signature
+    - Bob can spend the UTXO if:
+        - the current time is greater than the specified timestamp
+        - Bob provides a valid signature
+
+To lock funds in such a contract, we generate the address(see SpendPolicy::address) of the above SpendPolicy and use this Address in a transaction output.
+
+The resulting UTXO can then be spent by either Alice or Bob by meeting the conditions specified above.
+
+It is only neccesary to reveal the path that will be satisfied. The other path will be opacified(see SpendPolicy::opacify) and replaced with SpendPolicy::Opaque(<hash of unused path>).
+
+Alice can spend the UTXO by providing a signature, the secret and revealing the relevant path within the full SpendPolicy. Alice can construct the following SatisfiedPolicy to spend the UTXO:
+
+SatisfiedPolicy {
+    policy: SpendPolicy::Threshold { 
+                n: 1,
+                of: vec![ 
+                    SpendPolicy::Threshold { 
+                        n: 2, 
+                        of: vec![
+                            SpendPolicy::Hash(<sha256(secret)>),
+                            SpendPolicy::PublicKey(<Alice pubkey>)
+                        ] 
+                    },
+                    SpendPolicy::Opaque(<hash of unused path>),
+                ]
+            },
+    signatures: vec![<Alice signature>],
+    preimages: vec![<secret>]
 }
+
+Similarly, Bob can spend the UTXO with the following SatisfiedPolicy assuming he waits until the timestamp has passed:
+
+SatisfiedPolicy {
+    policy: SpendPolicy::Threshold { 
+                n: 1,
+                of: vec![ 
+                    SpendPolicy::Threshold { 
+                        n: 2, 
+                        of: vec![
+                            SpendPolicy::After(<timestamp>),
+                            SpendPolicy::PublicKey(<Bob pubkey>)
+                        ] 
+                    },
+                    SpendPolicy::Opaque(<hash of unused path>),
+                ]
+            },
+    signatures: vec![<Bob signature>],
+    preimages: vec![<secret>]
+}
+
 */
 
+#[derive(Debug, Error)]
 pub enum AtomicSwapError {
-    #[error("invalid time threshold: {:?}", 0)]
-    InvalidTimeThreshold(SpendPolicy),
-    #[error("invalid hash threshold: {:?}", 0)]
-    InvalidHashThreshold(SpendPolicy),
-    #[error("invalid refund path: {:?}", 0)]
-    InvalidHashThreshold(SpendPolicy),
+    #[error("invalid atomic swap, invalid hash component: {}", .0)]
+    InvalidHashComponent(ComponentError),
+    #[error("invalid atomic swap, invalid time component: {}", .0)]
+    InvalidTimeComponent(ComponentError),
+    #[error("invalid atomic swap, wrong n:{} policy: {:?}", n, policy)]
+    InvalidN{ policy: SpendPolicy, n : u8 },
+    #[error("invalid atomic swap, wrong m:{} policy: {:?}", m, policy)]
+    InvalidM{ policy: SpendPolicy, m : usize },
+    #[error("invalid atomic swap, not a threshold: {:?}", .0)]
+    InvalidSpendPolicyVariant(SpendPolicy),
 }
 
 /// Represents an atomic swap contract.
-/// PhantomData is used to enforce type safety on the structure of the SpendPolicy.
+/// PhantomData is used to enforce type safety on the structure of a SpendPolicy which is a complex recursive structure.
+#[derive(Debug)]
 pub struct AtomicSwap<T> {
-    policy: SpendPolicy,
+    pub policy: SpendPolicy,
     _marker: PhantomData<T>,
 }
-
-/// Represents one of the Threshold components of an atomic swap contract.
-/// PhantomData is used to enforce type safety on the structure of the SpendPolicy.
-pub struct AtomicSwapComponent<T> {
-    policy: SpendPolicy,
-    _marker: PhantomData<T>,
-}
-
 
 /// The full atomic swap contract.
-/// This is opacified(hashed) and used as the SpendPolicy for the locked transaction output.
+/// SpendPolicy:address is used to generate the address of the contract.
+/// Funds can then be locked in the contract by creating a transaction output with this address.
 /// This is used only to create outputs, never inputs.
-struct Full;
+#[derive(Debug)]
+struct Contract;
 
-/// The success branch of the atomic swap contract.
-/// The refund path is opacified and resulting SpendPolicy is used in transaction input's SatifiedPolicy
-/// This is used only to create inputs, never outputs.
-struct SuccessBranch;
-
-/// The refund branch of the atomic swap contract.
-/// The success path is opacified and resulting SpendPolicy is used in transaction input's SatisfiedPolicy
-/// This is used only to create inputs, never outputs.
-struct RefundBranch;
-
-/// 2 of 2 threshold of SpendPolicy::Hash and SpendPolicy::PublicKey
-struct HashPublicKey2of2;
-
-impl AtomicSwapComponent<HashPublicKey2of2> {
+impl AtomicSwap<Contract> {
     pub fn new(policy: SpendPolicy) -> Result<Self, AtomicSwapError> {
-        if Self::is_valid_hash_threshold(&policy) {
-            Ok(Self {
-                policy,
-                _marker: PhantomData,
-            })
-        } else {
-            Err(AtomicSwapError::InvalidHashThreshold(policy))
-        }
+        Self::is_valid(&policy).map(|_| Self {
+            policy,
+            _marker: PhantomData,
+        })
     }
 
-    fn is_valid_hash_threshold(policy: &SpendPolicy) -> bool {
+    fn is_valid(policy: &SpendPolicy) -> Result<(), AtomicSwapError> {
         match policy {
-            SpendPolicy::Threshold{ n: 2, of: [SpendPolicy::Hash(_), SpendPolicy::PublicKey(_)] } => true,
-            _ => false,
+            SpendPolicy::Threshold { 
+                n: 1,
+                of
+            } if of.len() == 2 => {
+                AtomicSwapComponent::<HashLockPath>::is_valid(&of[0]).map_err(AtomicSwapError::InvalidHashComponent)?;
+                AtomicSwapComponent::<TimeLockPath>::is_valid(&of[1]).map_err(AtomicSwapError::InvalidTimeComponent)?;
+                Ok(())
+            },
+            SpendPolicy::Threshold { n: 1, of } => Err(AtomicSwapError::InvalidM{ policy: policy.clone(), m: of.len() }),
+            SpendPolicy::Threshold { n, of: _ } => Err(AtomicSwapError::InvalidN{ policy: policy.clone(), n: n.clone() }),
+            _ => Err(AtomicSwapError::InvalidSpendPolicyVariant(policy.clone())),
         }
     }
 }
 
-/// The time threshold branch of the atomic swap contract.
-/// 2 of 2 threshold of SpendPolicy::After and SpendPolicy::PublicKey
-struct TimeThreshold;
+/// Represents a fulfillment path of the atomic swap contract. ie, HashLock or TimeLock.
+/// PhantomData is used to enforce type safety on the structure of the SpendPolicy.
+#[derive(Debug)]
+pub struct AtomicSwapComponent<T> {
+    pub policy: SpendPolicy,
+    _marker: PhantomData<T>,
+}
 
-impl AtomicSwapComponent<TimeThreshold> {
-    pub fn new(policy: SpendPolicy) -> Result<Self, AtomicSwapError> {
-        if Self::is_valid_time_threshold(&policy) {
-            Ok(Self {
-                policy,
-                _marker: PhantomData,
-            })
-        } else {
-            Err(AtomicSwapError::InvalidTimeThreshold(policy))
-        }
+#[derive(Debug, Error)]
+pub enum ComponentError {
+    #[error("invalid hash lock component, hash lock path: {:?}", .0)]
+    HashLockInvalidThresholdStructure(SpendPolicy),
+    #[error("invalid hash lock component, not a threshold: {:?}", .0)]
+    HashLockInvalidSpendPolicyVariant(SpendPolicy),
+    #[error("invalid hash lock component, wrong n:{} policy: {:?}", n, policy)]
+    HashLockInvalidN{ policy: SpendPolicy, n : u8 },
+    #[error("invalid hash lock component, wrong m:{} policy: {:?}", m, policy)]
+    HashLockInvalidM{ policy: SpendPolicy, m : usize },
+    #[error("invalid time lock component, time lock path: {:?}", .0)]
+    TimeLockInvalidThresholdStructure(SpendPolicy),
+    #[error("invalid time lock component, not a threshold: {:?}", .0)]
+    TimeLockInvalidSpendPolicyVariant(SpendPolicy),
+    #[error("invalid time lock component, wrong n:{} policy: {:?}", n, policy)]
+    TimeLockInvalidN{ policy: SpendPolicy, n : u8 },
+    #[error("invalid time lock component, wrong m:{} policy: {:?}", m, policy)]
+    TimeLockInvalidM{ policy: SpendPolicy, m : usize },
+}
+
+/// The hash locked threshold path of the atomic swap contract.
+/// 2 of 2 threshold of:
+///     SpendPolicy::Hash(<secret_hash>) and SpendPolicy::PublicKey(<participant's public key>)
+/// where:
+///     secret_hash == sha256(secret)
+/// fulfillment conditions:
+///     - signature from participant's public key
+///     - sha256(secret) == hash
+///     - length(secret) == 32
+#[derive(Debug)]
+struct HashLockPath;
+
+impl AtomicSwapComponent<HashLockPath> {
+    pub fn new(policy: SpendPolicy) -> Result<Self, ComponentError> {
+        Self::is_valid(&policy).map(|_| Self {
+            policy,
+            _marker: PhantomData,
+        })
     }
 
-    fn is_valid_time_threshold(policy: &SpendPolicy) -> bool {
+    fn is_valid(policy: &SpendPolicy) -> Result<(), ComponentError> {
         match policy {
-            SpendPolicy::Threshold{ n: 2, of: [SpendPolicy::After(_), SpendPolicy::PublicKey(_)] } => true,
-            _ => false,
+            SpendPolicy::Threshold{ n: 2, of } if of.len() == 2 => {
+                match of.as_slice() {
+                    [SpendPolicy::Hash(_), SpendPolicy::PublicKey(_)] => Ok(()),
+                    _ => Err(ComponentError::HashLockInvalidThresholdStructure(policy.clone())),
+                }
+            },
+            SpendPolicy::Threshold{ n: 2, of } => Err(ComponentError::HashLockInvalidM{ policy: policy.clone(), m: of.len() }),
+            SpendPolicy::Threshold{ n, of: _ } => Err(ComponentError::HashLockInvalidN{ policy: policy.clone(), n: n.clone() }),
+            _ => Err(ComponentError::HashLockInvalidSpendPolicyVariant(policy.clone())),
         }
     }
 }
 
+/// The time based threshold path of the atomic swap contract.
+/// 2 of 2 threshold of SpendPolicy::After(timestamp) and SpendPolicy::PublicKey(participant's public key)
+/// fulfillment conditions:
+/// - signature from participant's public key
+/// - timestamp has passed
+#[derive(Debug)]
+struct TimeLockPath;
 
+impl AtomicSwapComponent<TimeLockPath> {
+    pub fn new(policy: SpendPolicy) -> Result<Self, ComponentError> {
+        Self::is_valid(&policy).map(|_| Self {
+            policy,
+            _marker: PhantomData,
+        })
+    }
 
+    fn is_valid(policy: &SpendPolicy) -> Result<(), ComponentError> {
+        match policy {
+            SpendPolicy::Threshold{ n: 2, of } if of.len() == 2 => {
+                match of.as_slice() {
+                    [SpendPolicy::After(_), SpendPolicy::PublicKey(_)] => Ok(()),
+                    _ => Err(ComponentError::TimeLockInvalidThresholdStructure(policy.clone())),
+                }
+            },
+            SpendPolicy::Threshold{ n: 2, of } => Err(ComponentError::TimeLockInvalidM{ policy: policy.clone(), m: of.len() }),
+            SpendPolicy::Threshold{ n, of: _ } => Err(ComponentError::TimeLockInvalidN{ policy: policy.clone(), n: n.clone() }),
+            _ => Err(ComponentError::TimeLockInvalidSpendPolicyVariant(policy.clone())),
+        }
+    }
+}
 
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::types::{Hash256, PublicKey};
+
+    fn pubkey0() -> PublicKey {
+        PublicKey::from_bytes(
+            &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
+        ).unwrap()
+    }
+
+    fn pubkey1() -> PublicKey {
+        PublicKey::from_bytes(
+            &hex::decode("06C87838297B7BB16AB23946C99DFDF77FF834E35DB07D71E9B1D2B01A11E96D").unwrap(),
+        )
+        .unwrap()
+    }
+
+    fn valid_atomic_swap_spend_policy() -> SpendPolicy {
+        SpendPolicy::Threshold {
+            n: 1,
+            of: vec![
+                SpendPolicy::Threshold {
+                    n: 2,
+                    of: vec![
+                        SpendPolicy::Hash(Hash256::default()),
+                        SpendPolicy::PublicKey(pubkey0()),
+                    ],
+                },
+                SpendPolicy::Threshold {
+                    n: 2,
+                    of: vec![
+                        SpendPolicy::After(0),
+                        SpendPolicy::PublicKey(pubkey1()),
+                    ],
+                },
+            ],
+        }
+    }
+    
+    fn valid_component_hash_lock() -> SpendPolicy {
+        SpendPolicy::Threshold {
+            n: 2,
+            of: vec![
+                SpendPolicy::Hash(Hash256::default()),
+                SpendPolicy::PublicKey(pubkey0()),
+            ],
+        }
+    }
+
+    fn valid_component_time_lock() -> SpendPolicy {
+        SpendPolicy::Threshold {
+            n: 2,
+            of: vec![
+                SpendPolicy::After(0),
+                SpendPolicy::PublicKey(pubkey1()),
+            ],
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_contract_valid() {
+        AtomicSwap::<Contract>::new(valid_atomic_swap_spend_policy()).unwrap();
+    }
+
+    #[test]
+    fn test_atomic_swap_contract_invalid_hash_lock_path() {
+        let policy = SpendPolicy::Threshold {
+            n: 1,
+            of: vec![SpendPolicy::PublicKey(pubkey0()), valid_component_time_lock()],
+        };
+
+        match AtomicSwap::<Contract>::new(policy.clone()).unwrap_err() {
+            AtomicSwapError::InvalidHashComponent(ComponentError::HashLockInvalidSpendPolicyVariant(_)) => (),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_contract_invalid_time_lock_path() {
+        let policy = SpendPolicy::Threshold {
+            n: 1,
+            of: vec![valid_component_hash_lock(), SpendPolicy::PublicKey(pubkey0())],
+        };
+
+        match AtomicSwap::<Contract>::new(policy.clone()).unwrap_err() {
+            AtomicSwapError::InvalidTimeComponent(ComponentError::TimeLockInvalidSpendPolicyVariant(_)) => (),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_contract_invalid_components_wrong_order() {
+        let policy = SpendPolicy::Threshold {
+            n: 1,
+            of: vec![valid_component_time_lock(), valid_component_hash_lock()],
+        };
+
+        match AtomicSwap::<Contract>::new(policy.clone()).unwrap_err() {
+            AtomicSwapError::InvalidHashComponent(ComponentError::HashLockInvalidThresholdStructure(_)) => (),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_contract_invalid_components_too_many() {
+        let mut policy = valid_atomic_swap_spend_policy();
+        match &mut policy {
+            SpendPolicy::Threshold { n:_, of } => {
+                of.push(SpendPolicy::PublicKey(pubkey0()));
+            },
+            _ => unreachable!(),
+        }
+
+        match AtomicSwap::<Contract>::new(policy.clone()) {
+            Err(AtomicSwapError::InvalidM { policy: _, m }) => {
+                assert_eq!(m, 3);
+            }
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_contract_invalid_components_missing_time_lock_path() {
+        let mut policy = valid_atomic_swap_spend_policy();
+        match &mut policy {
+            SpendPolicy::Threshold { n:_, of } => {
+                let _ = of.pop().unwrap();
+            },
+            _ => unreachable!(),
+        }
+        match AtomicSwap::<Contract>::new(policy.clone()) {
+            Err(AtomicSwapError::InvalidM { policy: _, m }) => {
+                assert_eq!(m, 1);
+            }
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_contract_invalid_components_missing_hash_lock_path() {
+        let mut policy = valid_atomic_swap_spend_policy();
+        match &mut policy {
+            SpendPolicy::Threshold { n:_, of } => {
+                let _ = of.remove(0);
+            },
+            _ => unreachable!(),
+        }
+        match AtomicSwap::<Contract>::new(policy.clone()) {
+            Err(AtomicSwapError::InvalidM { policy: _, m }) => {
+                assert_eq!(m, 1);
+            }
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_contract_invalid_components_missing_both_paths() {
+        let mut policy = valid_atomic_swap_spend_policy();
+        match &mut policy {
+            SpendPolicy::Threshold { n:_, of } => {
+                *of = vec![];
+            },
+            _ => unreachable!(),
+        }
+        match AtomicSwap::<Contract>::new(policy.clone()) {
+            Err(AtomicSwapError::InvalidM { policy: _, m }) => {
+                assert_eq!(m, 0);
+            }
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_contract_invalid_n() {
+        let mut policy = valid_atomic_swap_spend_policy();
+        match &mut policy {
+            SpendPolicy::Threshold { n, .. } => *n = 10,
+            _ => unreachable!(),
+        }
+
+        match AtomicSwap::<Contract>::new(policy.clone()) {
+            Err(AtomicSwapError::InvalidN { policy: _, n }) => {
+                assert_eq!(n, 10);
+            }
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_contract_invalid_policy_variant() {
+        let policy = SpendPolicy::PublicKey(pubkey0());
+
+        match AtomicSwap::<Contract>::new(policy.clone()) {
+            Err(AtomicSwapError::InvalidSpendPolicyVariant { .. }) => (),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_component_hash_lock_valid() {
+        AtomicSwapComponent::<HashLockPath>::new(valid_component_hash_lock()).unwrap();
+    }
+
+    #[test]
+    fn test_atomic_swap_component_hash_lock_invalid_threshold_structure() {
+        let policy = SpendPolicy::Threshold {
+            n: 2,
+            of: vec![SpendPolicy::PublicKey(pubkey0()) , SpendPolicy::PublicKey(pubkey0())],
+        };
+
+        match AtomicSwapComponent::<HashLockPath>::new(policy.clone()).unwrap_err() {
+            ComponentError::HashLockInvalidThresholdStructure(_) => (),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_component_time_lock_valid() {
+        AtomicSwapComponent::<TimeLockPath>::new(valid_component_time_lock()).unwrap();
+    }
+}
