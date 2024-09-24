@@ -28,6 +28,9 @@ pub use transaction::*;
 mod specifier;
 pub use specifier::*;
 
+mod atomic_swap;
+pub use atomic_swap::*;
+
 const ADDRESS_HASH_LENGTH: usize = 32;
 const ADDRESS_CHECKSUM_LENGTH: usize = 6;
 
