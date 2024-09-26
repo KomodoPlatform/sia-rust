@@ -102,7 +102,7 @@ pub enum AtomicSwapError {
 /// The order of the SpendPolicys within a SpendPolicy::Threshold have no meaningful impact on logic, but we enforce a strict structure for simplicity.
 #[derive(Debug)]
 pub struct AtomicSwap<T> {
-    pub policy: SpendPolicy,
+    policy: SpendPolicy,
     _marker: PhantomData<T>,
 }
 
@@ -119,6 +119,10 @@ impl AtomicSwap<Contract> {
             policy,
             _marker: PhantomData,
         })
+    }
+
+    pub fn policy(&self) -> &SpendPolicy {
+        &self.policy
     }
 
     fn is_valid(policy: &SpendPolicy) -> Result<(), AtomicSwapError> {
@@ -142,7 +146,7 @@ impl AtomicSwap<Contract> {
 /// PhantomData is used to enforce type safety on the structure of the SpendPolicy.
 #[derive(Debug)]
 pub struct AtomicSwapComponent<T> {
-    pub policy: SpendPolicy,
+    policy: SpendPolicy,
     _marker: PhantomData<T>,
 }
 
@@ -184,6 +188,10 @@ impl AtomicSwapComponent<HashLockPath> {
             policy,
             _marker: PhantomData,
         })
+    }
+
+    pub fn policy(&self) -> &SpendPolicy {
+        &self.policy
     }
 
     fn is_valid(policy: &SpendPolicy) -> Result<(), ComponentError> {
