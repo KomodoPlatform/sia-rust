@@ -1,6 +1,4 @@
 use crate::types::{Address, SatisfiedPolicy, SpendPolicy};
-
-use std::marker::PhantomData;
 use thiserror::Error;
 
 /*
@@ -127,8 +125,8 @@ impl AtomicSwap {
                 n: 1,
                 of
             } if of.len() == 2 => {
-                AtomicSwapComponent::<HashLockPath>::is_valid(&of[0]).map_err(AtomicSwapError::InvalidHashComponent)?;
-                AtomicSwapComponent::<TimeLockPath>::is_valid(&of[1]).map_err(AtomicSwapError::InvalidTimeComponent)?;
+                HashLockPath::is_valid(&of[0]).map_err(AtomicSwapError::InvalidHashComponent)?;
+                TimeLockPath::is_valid(&of[1]).map_err(AtomicSwapError::InvalidTimeComponent)?;
                 Ok(())
             },
             SpendPolicy::Threshold { n: 1, of } => Err(AtomicSwapError::InvalidM{ policy: policy.clone(), m: of.len() }),
@@ -136,14 +134,6 @@ impl AtomicSwap {
             _ => Err(AtomicSwapError::InvalidSpendPolicyVariant(policy.clone())),
         }
     }
-}
-
-/// Represents a fulfillment path of the atomic swap contract. ie, HashLock or TimeLock.
-/// PhantomData is used to enforce type safety on the structure of the SpendPolicy.
-#[derive(Debug)]
-pub struct AtomicSwapComponent<T> {
-    policy: SpendPolicy,
-    _marker: PhantomData<T>,
 }
 
 #[derive(Debug, Error)]
@@ -166,6 +156,12 @@ pub enum ComponentError {
     TimeLockInvalidM{ policy: SpendPolicy, m : usize },
 }
 
+trait SpendPolicyValidator {
+    type Error;
+
+    fn is_valid(policy: &SpendPolicy) -> Result<(), Self::Error>;
+}
+
 /// The hash locked threshold path of the atomic swap contract.
 /// 2 of 2 threshold of:
 ///     SpendPolicy::Hash(<secret_hash>) and SpendPolicy::PublicKey(<participant's public key>)
@@ -176,21 +172,22 @@ pub enum ComponentError {
 ///     - sha256(secret) == hash
 ///     - length(secret) == 32
 #[derive(Debug)]
-struct HashLockPath;
+pub struct HashLockPath(SpendPolicy);
 
-impl AtomicSwapComponent<HashLockPath> {
+impl HashLockPath {
     pub fn new(policy: SpendPolicy) -> Result<Self, ComponentError> {
-        Self::is_valid(&policy).map(|_| Self {
-            policy,
-            _marker: PhantomData,
-        })
+        Self::is_valid(&policy).map(|_| Self(policy))
     }
 
     pub fn policy(&self) -> &SpendPolicy {
-        &self.policy
+        &self.0
     }
+}
 
-    fn is_valid(policy: &SpendPolicy) -> Result<(), ComponentError> {
+impl SpendPolicyValidator for HashLockPath {
+    type Error = ComponentError;
+
+    fn is_valid(policy: &SpendPolicy) -> Result<(), Self::Error> {
         match policy {
             SpendPolicy::Threshold{ n: 2, of } if of.len() == 2 => {
                 match of.as_slice() {
@@ -211,17 +208,22 @@ impl AtomicSwapComponent<HashLockPath> {
 /// - signature from participant's public key
 /// - timestamp has passed
 #[derive(Debug)]
-struct TimeLockPath;
+pub struct TimeLockPath(SpendPolicy);
 
-impl AtomicSwapComponent<TimeLockPath> {
+impl TimeLockPath {
     pub fn new(policy: SpendPolicy) -> Result<Self, ComponentError> {
-        Self::is_valid(&policy).map(|_| Self {
-            policy,
-            _marker: PhantomData,
-        })
+        Self::is_valid(&policy).map(|_| Self(policy))
     }
 
-    fn is_valid(policy: &SpendPolicy) -> Result<(), ComponentError> {
+    pub fn policy(&self) -> &SpendPolicy {
+        &self.0
+    }
+}
+
+impl SpendPolicyValidator for TimeLockPath {
+    type Error = ComponentError;
+
+    fn is_valid(policy: &SpendPolicy) -> Result<(), Self::Error> {
         match policy {
             SpendPolicy::Threshold{ n: 2, of } if of.len() == 2 => {
                 match of.as_slice() {
@@ -461,7 +463,7 @@ mod test {
 
     #[test]
     fn test_atomic_swap_component_hash_lock_valid() {
-        AtomicSwapComponent::<HashLockPath>::new(valid_component_hash_lock()).unwrap();
+        HashLockPath::new(valid_component_hash_lock()).unwrap();
     }
 
     #[test]
@@ -471,7 +473,7 @@ mod test {
             of: vec![SpendPolicy::PublicKey(pubkey0()) , SpendPolicy::PublicKey(pubkey0())],
         };
 
-        match AtomicSwapComponent::<HashLockPath>::new(policy.clone()).unwrap_err() {
+        match HashLockPath::new(policy.clone()).unwrap_err() {
             ComponentError::HashLockInvalidThresholdStructure(p) => assert_eq!(p, policy),
             _ => panic!(),
         }
@@ -487,7 +489,7 @@ mod test {
             _ => unreachable!(),
         }
 
-        match AtomicSwapComponent::<HashLockPath>::new(policy.clone()).unwrap_err() {
+        match HashLockPath::new(policy.clone()).unwrap_err() {
             ComponentError::HashLockInvalidThresholdStructure(p) => assert_eq!(p, policy),
             _ => panic!(),
         }
@@ -503,7 +505,7 @@ mod test {
             _ => unreachable!(),
         }
 
-        match AtomicSwapComponent::<HashLockPath>::new(policy).unwrap_err() {
+        match HashLockPath::new(policy).unwrap_err() {
             ComponentError::HashLockInvalidM{ policy: _, m } => assert_eq!(m, 3),
             _ => panic!(),
         }
@@ -519,7 +521,7 @@ mod test {
             _ => unreachable!(),
         }
 
-        match AtomicSwapComponent::<HashLockPath>::new(policy).unwrap_err() {
+        match HashLockPath::new(policy).unwrap_err() {
             ComponentError::HashLockInvalidM{ policy: _, m } => assert_eq!(m, 1),
             _ => panic!(),
         }
@@ -535,7 +537,7 @@ mod test {
             _ => unreachable!(),
         }
 
-        match AtomicSwapComponent::<HashLockPath>::new(policy).unwrap_err() {
+        match HashLockPath::new(policy).unwrap_err() {
             ComponentError::HashLockInvalidM{ policy: _, m } => assert_eq!(m, 1),
             _ => panic!(),
         }
@@ -551,7 +553,7 @@ mod test {
             _ => unreachable!(),
         }
 
-        match AtomicSwapComponent::<HashLockPath>::new(policy).unwrap_err() {
+        match HashLockPath::new(policy).unwrap_err() {
             ComponentError::HashLockInvalidM{ policy: _, m } => assert_eq!(m, 0),
             _ => panic!(),
         }
@@ -567,7 +569,7 @@ mod test {
             _ => unreachable!(),
         }
 
-        match AtomicSwapComponent::<HashLockPath>::new(policy).unwrap_err() {
+        match HashLockPath::new(policy).unwrap_err() {
             ComponentError::HashLockInvalidN{ policy: _, n } => assert_eq!(n, 10),
             _ => panic!(),
         }
@@ -577,7 +579,7 @@ mod test {
     fn test_atomic_swap_component_hash_lock_invalid_policy_variant() {
         let policy = SpendPolicy::PublicKey(pubkey0());
 
-        match AtomicSwapComponent::<HashLockPath>::new(policy.clone()).unwrap_err() {
+        match HashLockPath::new(policy.clone()).unwrap_err() {
             ComponentError::HashLockInvalidSpendPolicyVariant(p) => assert_eq!(p, policy),
             _ => panic!(),
         }
@@ -585,7 +587,7 @@ mod test {
 
     #[test]
     fn test_atomic_swap_component_time_lock_valid() {
-        AtomicSwapComponent::<TimeLockPath>::new(valid_component_time_lock()).unwrap();
+        TimeLockPath::new(valid_component_time_lock()).unwrap();
     }
 
     #[test]
@@ -595,7 +597,7 @@ mod test {
             of: vec![SpendPolicy::PublicKey(pubkey0()) , SpendPolicy::PublicKey(pubkey0())],
         };
 
-        match AtomicSwapComponent::<TimeLockPath>::new(policy.clone()).unwrap_err() {
+        match TimeLockPath::new(policy.clone()).unwrap_err() {
             ComponentError::TimeLockInvalidThresholdStructure(p) => assert_eq!(p, policy),
             _ => panic!(),
         }
@@ -611,7 +613,7 @@ mod test {
             _ => unreachable!(),
         }
 
-        match AtomicSwapComponent::<TimeLockPath>::new(policy.clone()).unwrap_err() {
+        match TimeLockPath::new(policy.clone()).unwrap_err() {
             ComponentError::TimeLockInvalidThresholdStructure(p) => assert_eq!(p, policy),
             _ => panic!(),
         }
@@ -627,7 +629,7 @@ mod test {
             _ => unreachable!(),
         }
 
-        match AtomicSwapComponent::<TimeLockPath>::new(policy).unwrap_err() {
+        match TimeLockPath::new(policy).unwrap_err() {
             ComponentError::TimeLockInvalidM{ policy: _, m } => assert_eq!(m, 3),
             _ => panic!(),
         }
@@ -643,7 +645,7 @@ mod test {
             _ => unreachable!(),
         }
 
-        match AtomicSwapComponent::<TimeLockPath>::new(policy).unwrap_err() {
+        match TimeLockPath::new(policy).unwrap_err() {
             ComponentError::TimeLockInvalidM{ policy: _, m } => assert_eq!(m, 1),
             _ => panic!(),
         }
@@ -659,7 +661,7 @@ mod test {
             _ => unreachable!(),
         }
 
-        match AtomicSwapComponent::<TimeLockPath>::new(policy).unwrap_err() {
+        match TimeLockPath::new(policy).unwrap_err() {
             ComponentError::TimeLockInvalidM{ policy: _, m } => assert_eq!(m, 1),
             _ => panic!(),
         }
@@ -675,7 +677,7 @@ mod test {
             _ => unreachable!(),
         }
 
-        match AtomicSwapComponent::<TimeLockPath>::new(policy).unwrap_err() {
+        match TimeLockPath::new(policy).unwrap_err() {
             ComponentError::TimeLockInvalidM{ policy: _, m } => assert_eq!(m, 0),
             _ => panic!(),
         }
@@ -691,7 +693,7 @@ mod test {
             _ => unreachable!(),
         }
 
-        match AtomicSwapComponent::<TimeLockPath>::new(policy).unwrap_err() {
+        match TimeLockPath::new(policy).unwrap_err() {
             ComponentError::TimeLockInvalidN{ policy: _, n } => assert_eq!(n, 10),
             _ => panic!(),
         }
@@ -701,7 +703,7 @@ mod test {
     fn test_atomic_swap_component_time_lock_invalid_policy_variant() {
         let policy = SpendPolicy::PublicKey(pubkey0());
 
-        match AtomicSwapComponent::<TimeLockPath>::new(policy.clone()).unwrap_err() {
+        match TimeLockPath::new(policy.clone()).unwrap_err() {
             ComponentError::TimeLockInvalidSpendPolicyVariant(p) => assert_eq!(p, policy),
             _ => panic!(),
         }
