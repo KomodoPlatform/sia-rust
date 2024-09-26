@@ -81,16 +81,19 @@ SatisfiedPolicy {
 
 */
 
-/// Represents a validated SpendPolicy. Each unique structure of SpendPolicy should implement this trait.
-/// The stored SpendPolicy must not be exposed via pub
-/// otherwise a consumer can initialize with an invalid SpendPolicy. ie, AtomicSwap(invalid_policy)
-trait IsValidatedSpendPolicy {
+/// SpendPolicy is a recursive structure that represents the conditions required to spend a UTXO.
+/// This trait enables having wrapper types that enforce a specific structure.
+/// Each specific structure of SpendPolicy or SatisfiedPolicy should implement this trait.
+/// The stored inner type must not be exposed via pub
+/// otherwise a consumer can initialize with invalid data. ie, AtomicSwap(invalid_policy)
+trait IsValidatedPolicy {
     type Error;
+    type Inner;
 
     // allow reference to inner policy because it is not public
-    fn policy(&self) -> &SpendPolicy;
+    fn inner(&self) -> &Self::Inner;
 
-    fn is_valid(policy: &SpendPolicy) -> Result<(), Self::Error>;
+    fn is_valid(policy: &Self::Inner) -> Result<(), Self::Error>;
 }
 
 #[derive(Debug, Error)]
@@ -107,7 +110,7 @@ pub enum AtomicSwapError {
     InvalidSpendPolicyVariant(SpendPolicy),
 }
 
-/// Represents an atomic swap contract.
+/// Represents an atomic swap contract. Structure is documented above.
 /// SpendPolicy:address is used to generate the address of the contract.
 /// Funds can then be locked in the contract by creating a transaction output with this address.
 /// This is used only to create outputs, never inputs.
@@ -121,22 +124,23 @@ impl AtomicSwap {
     }
 
     pub fn address(&self) -> Address {
-        self.policy().address()
+        self.inner().address()
     }
 
     pub fn opacify(&self) -> SpendPolicy {
-        self.policy().opacify()
+        self.inner().opacify()
     }
 }
 
-impl IsValidatedSpendPolicy for AtomicSwap {
+impl IsValidatedPolicy for AtomicSwap {
     type Error = AtomicSwapError;
+    type Inner = SpendPolicy;
 
-    fn policy(&self) -> &SpendPolicy {
+    fn inner(&self) -> &Self::Inner {
         &self.0
     }
 
-    fn is_valid(policy: &SpendPolicy) -> Result<(), Self::Error> {
+    fn is_valid(policy: &Self::Inner) -> Result<(), Self::Error> {
         match policy {
             SpendPolicy::Threshold { 
                 n: 1,
@@ -174,10 +178,14 @@ pub enum ComponentError {
 }
 
 /// The hash locked threshold path of the atomic swap contract.
-/// 2 of 2 threshold of:
-///     SpendPolicy::Hash(<secret_hash>) and SpendPolicy::PublicKey(<participant's public key>)
-/// where:
-///     secret_hash == sha256(secret)
+/// structure:
+///     SpendPolicy::Threshold { 
+///         n: 2, 
+///         of: vec![
+///             SpendPolicy::Hash(sha256(secret)),
+///             SpendPolicy::PublicKey(public_key)
+///         ] 
+///     }
 /// fulfillment conditions:
 ///     - signature from participant's public key
 ///     - sha256(secret) == hash
@@ -192,14 +200,15 @@ impl HashLockPath {
 
 }
 
-impl IsValidatedSpendPolicy for HashLockPath {
+impl IsValidatedPolicy for HashLockPath {
     type Error = ComponentError;
+    type Inner = SpendPolicy;
 
-    fn policy(&self) -> &SpendPolicy {
+    fn inner(&self) -> &Self::Inner {
         &self.0
     }
 
-    fn is_valid(policy: &SpendPolicy) -> Result<(), Self::Error> {
+    fn is_valid(policy: &Self::Inner) -> Result<(), Self::Error> {
         match policy {
             SpendPolicy::Threshold{ n: 2, of } if of.len() == 2 => {
                 match of.as_slice() {
@@ -215,7 +224,14 @@ impl IsValidatedSpendPolicy for HashLockPath {
 }
 
 /// The time based threshold path of the atomic swap contract.
-/// 2 of 2 threshold of SpendPolicy::After(timestamp) and SpendPolicy::PublicKey(participant's public key)
+/// structure:
+///     SpendPolicy::Threshold { 
+///         n: 2, 
+///         of: vec![
+///             SpendPolicy::After(timestamp),
+///             SpendPolicy::PublicKey(public_key)
+///         ] 
+///     }
 /// fulfillment conditions:
 /// - signature from participant's public key
 /// - timestamp has passed
@@ -228,14 +244,15 @@ impl TimeLockPath {
     }
 }
 
-impl IsValidatedSpendPolicy for TimeLockPath {
+impl IsValidatedPolicy for TimeLockPath {
     type Error = ComponentError;
+    type Inner = SpendPolicy;
 
-    fn policy(&self) -> &SpendPolicy {
+    fn inner(&self) -> &Self::Inner {
         &self.0
     }
 
-    fn is_valid(policy: &SpendPolicy) -> Result<(), Self::Error> {
+    fn is_valid(policy: &Self::Inner) -> Result<(), Self::Error> {
         match policy {
             SpendPolicy::Threshold{ n: 2, of } if of.len() == 2 => {
                 match of.as_slice() {
@@ -250,6 +267,45 @@ impl IsValidatedSpendPolicy for TimeLockPath {
     }
 }
 
+enum SatisfiedAtomicSwapError {
+    InvalidSomething
+}
+
+/// Represents the SatisfiedPolicy for the success path of an atomic swap.
+/// Used within the input that spends the locked UTXO.
+/// structure:
+///     SatisfiedPolicy {
+///        policy: SpendPolicy::Threshold { 
+///                    n: 1,
+///                    of: vec![ 
+///                        SpendPolicy::Threshold { 
+///                            n: 2, 
+///                            of: vec![
+///                                SpendPolicy::Hash(sha256(secret)),
+///                                SpendPolicy::PublicKey(public_key)
+///                            ] 
+///                        },
+///                        SpendPolicy::Opaque(<hash of unused path>),
+///                    ]
+///                },
+///        signatures: vec![signature],
+///        preimages: vec![secret]
+///    }
+#[derive(Debug, Clone, PartialEq)]
+pub struct AtomicSwapSuccess(SatisfiedPolicy);
+
+impl IsValidatedPolicy for AtomicSwapSuccess {
+    type Error = SatisfiedAtomicSwapError;
+    type Inner = SatisfiedPolicy;
+
+    fn inner(&self) -> &Self::Inner {
+        &self.0
+    }
+
+    fn is_valid(policy: &Self::Inner) -> Result<(), Self::Error> {
+        todo!()
+    }
+}
 
 #[cfg(test)]
 mod test {
