@@ -1,4 +1,4 @@
-use crate::types::SpendPolicy;
+use crate::types::{Address, SatisfiedPolicy, SpendPolicy};
 
 use std::marker::PhantomData;
 use thiserror::Error;
@@ -98,31 +98,27 @@ pub enum AtomicSwapError {
 }
 
 /// Represents an atomic swap contract.
-/// PhantomData is used to enforce type safety on the structure of a SpendPolicy which is a complex recursive structure.
-/// The order of the SpendPolicys within a SpendPolicy::Threshold have no meaningful impact on logic, but we enforce a strict structure for simplicity.
-#[derive(Debug)]
-pub struct AtomicSwap<T> {
-    policy: SpendPolicy,
-    _marker: PhantomData<T>,
-}
-
-/// The full atomic swap contract.
 /// SpendPolicy:address is used to generate the address of the contract.
 /// Funds can then be locked in the contract by creating a transaction output with this address.
-/// This is used only to create outputs, never inputs.
+/// This is used only to create outputs, never inputs./// The order of the SpendPolicys within a SpendPolicy::Threshold have no meaningful impact on logic, but we enforce a strict structure for simplicity.
 #[derive(Debug)]
-struct Contract;
+pub struct AtomicSwap(SpendPolicy);
 
-impl AtomicSwap<Contract> {
+impl AtomicSwap {
     pub fn new(policy: SpendPolicy) -> Result<Self, AtomicSwapError> {
-        Self::is_valid(&policy).map(|_| Self {
-            policy,
-            _marker: PhantomData,
-        })
+        Self::is_valid(&policy).map(|_| Self(policy))
     }
 
     pub fn policy(&self) -> &SpendPolicy {
-        &self.policy
+        &self.0
+    }
+
+    pub fn address(&self) -> Address {
+        self.policy().address()
+    }
+
+    pub fn opacify(&self) -> SpendPolicy {
+        self.policy().opacify()
     }
 
     fn is_valid(policy: &SpendPolicy) -> Result<(), AtomicSwapError> {
@@ -240,6 +236,30 @@ impl AtomicSwapComponent<TimeLockPath> {
     }
 }
 
+enum SatisfiedAtomicSwapError {
+    InvalidSomething
+}
+
+/// Represnts a satisfied atomic swap contract.
+#[derive(Debug)]
+pub struct SatisfiedAtomicSwap<T> {
+    satisfied_policy: SatisfiedPolicy,
+    _marker: PhantomData<T>,
+}
+
+impl SatisfiedAtomicSwap<TimeLockPath> {
+    pub fn new(satisfied_policy: SatisfiedPolicy) -> Result<Self, SatisfiedAtomicSwapError> {
+        Self::is_valid(&satisfied_policy).map(|_| Self {
+            satisfied_policy,
+            _marker: PhantomData,
+        })
+    }
+
+    fn is_valid(satisfied_policy: &SatisfiedPolicy) -> Result<(), SatisfiedAtomicSwapError> {
+        todo!()
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -302,7 +322,7 @@ mod test {
 
     #[test]
     fn test_atomic_swap_contract_valid() {
-        AtomicSwap::<Contract>::new(valid_atomic_swap_spend_policy()).unwrap();
+        AtomicSwap::new(valid_atomic_swap_spend_policy()).unwrap();
     }
 
     #[test]
@@ -312,7 +332,7 @@ mod test {
             of: vec![SpendPolicy::PublicKey(pubkey0()), valid_component_time_lock()],
         };
 
-        match AtomicSwap::<Contract>::new(policy.clone()).unwrap_err() {
+        match AtomicSwap::new(policy.clone()).unwrap_err() {
             AtomicSwapError::InvalidHashComponent(ComponentError::HashLockInvalidSpendPolicyVariant(_)) => (),
             _ => panic!(),
         }
@@ -325,7 +345,7 @@ mod test {
             of: vec![valid_component_hash_lock(), SpendPolicy::PublicKey(pubkey0())],
         };
 
-        match AtomicSwap::<Contract>::new(policy.clone()).unwrap_err() {
+        match AtomicSwap::new(policy.clone()).unwrap_err() {
             AtomicSwapError::InvalidTimeComponent(ComponentError::TimeLockInvalidSpendPolicyVariant(_)) => (),
             _ => panic!(),
         }
@@ -338,7 +358,7 @@ mod test {
             of: vec![valid_component_time_lock(), valid_component_hash_lock()],
         };
 
-        match AtomicSwap::<Contract>::new(policy.clone()).unwrap_err() {
+        match AtomicSwap::new(policy.clone()).unwrap_err() {
             AtomicSwapError::InvalidHashComponent(ComponentError::HashLockInvalidThresholdStructure(_)) => (),
             _ => panic!(),
         }
@@ -354,7 +374,7 @@ mod test {
             _ => unreachable!(),
         }
 
-        match AtomicSwap::<Contract>::new(policy.clone()) {
+        match AtomicSwap::new(policy.clone()) {
             Err(AtomicSwapError::InvalidM { policy: _, m }) => {
                 assert_eq!(m, 3);
             }
@@ -371,7 +391,7 @@ mod test {
             },
             _ => unreachable!(),
         }
-        match AtomicSwap::<Contract>::new(policy.clone()) {
+        match AtomicSwap::new(policy.clone()) {
             Err(AtomicSwapError::InvalidM { policy: _, m }) => {
                 assert_eq!(m, 1);
             }
@@ -388,7 +408,7 @@ mod test {
             },
             _ => unreachable!(),
         }
-        match AtomicSwap::<Contract>::new(policy.clone()) {
+        match AtomicSwap::new(policy.clone()) {
             Err(AtomicSwapError::InvalidM { policy: _, m }) => {
                 assert_eq!(m, 1);
             }
@@ -405,7 +425,7 @@ mod test {
             },
             _ => unreachable!(),
         }
-        match AtomicSwap::<Contract>::new(policy.clone()) {
+        match AtomicSwap::new(policy.clone()) {
             Err(AtomicSwapError::InvalidM { policy: _, m }) => {
                 assert_eq!(m, 0);
             }
@@ -421,7 +441,7 @@ mod test {
             _ => unreachable!(),
         }
 
-        match AtomicSwap::<Contract>::new(policy.clone()) {
+        match AtomicSwap::new(policy.clone()) {
             Err(AtomicSwapError::InvalidN { policy: _, n }) => {
                 assert_eq!(n, 10);
             }
@@ -433,7 +453,7 @@ mod test {
     fn test_atomic_swap_contract_invalid_policy_variant() {
         let policy = SpendPolicy::PublicKey(pubkey0());
 
-        match AtomicSwap::<Contract>::new(policy.clone()) {
+        match AtomicSwap::new(policy.clone()) {
             Err(AtomicSwapError::InvalidSpendPolicyVariant { .. }) => (),
             _ => panic!(),
         }
