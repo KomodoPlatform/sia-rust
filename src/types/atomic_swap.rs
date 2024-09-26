@@ -441,7 +441,113 @@ mod test {
         };
 
         match AtomicSwapComponent::<HashLockPath>::new(policy.clone()).unwrap_err() {
-            ComponentError::HashLockInvalidThresholdStructure(_) => (),
+            ComponentError::HashLockInvalidThresholdStructure(p) => assert_eq!(p, policy),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_component_hash_lock_invalid_wrong_order() {
+        let mut policy = valid_component_hash_lock();
+        match &mut policy {
+            SpendPolicy::Threshold { n:_, of } => {
+                of.reverse();
+            },
+            _ => unreachable!(),
+        }
+
+        match AtomicSwapComponent::<HashLockPath>::new(policy.clone()).unwrap_err() {
+            ComponentError::HashLockInvalidThresholdStructure(p) => assert_eq!(p, policy),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_component_hash_lock_invalid_too_many() {
+        let mut policy = valid_component_hash_lock();
+        match &mut policy {
+            SpendPolicy::Threshold { n:_, of } => {
+                of.push(SpendPolicy::PublicKey(pubkey0()));
+            },
+            _ => unreachable!(),
+        }
+
+        match AtomicSwapComponent::<HashLockPath>::new(policy).unwrap_err() {
+            ComponentError::HashLockInvalidM{ policy: _, m } => assert_eq!(m, 3),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_component_hash_lock_invalid_missing_public_key() {
+        let mut policy = valid_component_hash_lock();
+        match &mut policy {
+            SpendPolicy::Threshold { n:_, of } => {
+                *of = vec![SpendPolicy::Hash(Hash256::default())]
+            },
+            _ => unreachable!(),
+        }
+
+        match AtomicSwapComponent::<HashLockPath>::new(policy).unwrap_err() {
+            ComponentError::HashLockInvalidM{ policy: _, m } => assert_eq!(m, 1),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_component_hash_lock_invalid_missing_hash() {
+        let mut policy = valid_component_hash_lock();
+        match &mut policy {
+            SpendPolicy::Threshold { n:_, of } => {
+                *of = vec![SpendPolicy::PublicKey(pubkey0())]
+            },
+            _ => unreachable!(),
+        }
+
+        match AtomicSwapComponent::<HashLockPath>::new(policy).unwrap_err() {
+            ComponentError::HashLockInvalidM{ policy: _, m } => assert_eq!(m, 1),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_component_hash_lock_invalid_empty_threshold() {
+        let mut policy = valid_component_hash_lock();
+        match &mut policy {
+            SpendPolicy::Threshold { n:_, of } => {
+                *of = vec![]
+            },
+            _ => unreachable!(),
+        }
+
+        match AtomicSwapComponent::<HashLockPath>::new(policy).unwrap_err() {
+            ComponentError::HashLockInvalidM{ policy: _, m } => assert_eq!(m, 0),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_component_hash_lock_invalid_n() {
+        let mut policy = valid_component_hash_lock();
+        match &mut policy {
+            SpendPolicy::Threshold { n, of:_ } => {
+                *n = 10;
+            },
+            _ => unreachable!(),
+        }
+
+        match AtomicSwapComponent::<HashLockPath>::new(policy).unwrap_err() {
+            ComponentError::HashLockInvalidN{ policy: _, n } => assert_eq!(n, 10),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_component_hash_lock_invalid_policy_variant() {
+        let policy = SpendPolicy::PublicKey(pubkey0());
+
+        match AtomicSwapComponent::<HashLockPath>::new(policy.clone()).unwrap_err() {
+            ComponentError::HashLockInvalidSpendPolicyVariant(p) => assert_eq!(p, policy),
             _ => panic!(),
         }
     }
@@ -449,5 +555,124 @@ mod test {
     #[test]
     fn test_atomic_swap_component_time_lock_valid() {
         AtomicSwapComponent::<TimeLockPath>::new(valid_component_time_lock()).unwrap();
+    }
+
+    #[test]
+    fn test_atomic_swap_component_time_lock_invalid_threshold_structure() {
+        let policy = SpendPolicy::Threshold {
+            n: 2,
+            of: vec![SpendPolicy::PublicKey(pubkey0()) , SpendPolicy::PublicKey(pubkey0())],
+        };
+
+        match AtomicSwapComponent::<TimeLockPath>::new(policy.clone()).unwrap_err() {
+            ComponentError::TimeLockInvalidThresholdStructure(p) => assert_eq!(p, policy),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_component_time_lock_invalid_wrong_order() {
+        let mut policy = valid_component_time_lock();
+        match &mut policy {
+            SpendPolicy::Threshold { n:_, of } => {
+                of.reverse();
+            },
+            _ => unreachable!(),
+        }
+
+        match AtomicSwapComponent::<TimeLockPath>::new(policy.clone()).unwrap_err() {
+            ComponentError::TimeLockInvalidThresholdStructure(p) => assert_eq!(p, policy),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_component_time_lock_invalid_too_many() {
+        let mut policy = valid_component_time_lock();
+        match &mut policy {
+            SpendPolicy::Threshold { n:_, of } => {
+                of.push(SpendPolicy::PublicKey(pubkey0()));
+            },
+            _ => unreachable!(),
+        }
+
+        match AtomicSwapComponent::<TimeLockPath>::new(policy).unwrap_err() {
+            ComponentError::TimeLockInvalidM{ policy: _, m } => assert_eq!(m, 3),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_component_time_lock_invalid_missing_public_key() {
+        let mut policy = valid_component_time_lock();
+        match &mut policy {
+            SpendPolicy::Threshold { n:_, of } => {
+                *of = vec![SpendPolicy::After(0)]
+            },
+            _ => unreachable!(),
+        }
+
+        match AtomicSwapComponent::<TimeLockPath>::new(policy).unwrap_err() {
+            ComponentError::TimeLockInvalidM{ policy: _, m } => assert_eq!(m, 1),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_component_time_lock_invalid_missing_time() {
+        let mut policy = valid_component_time_lock();
+        match &mut policy {
+            SpendPolicy::Threshold { n:_, of } => {
+                *of = vec![SpendPolicy::PublicKey(pubkey1())]
+            },
+            _ => unreachable!(),
+        }
+
+        match AtomicSwapComponent::<TimeLockPath>::new(policy).unwrap_err() {
+            ComponentError::TimeLockInvalidM{ policy: _, m } => assert_eq!(m, 1),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_component_time_lock_invalid_empty_threshold() {
+        let mut policy = valid_component_time_lock();
+        match &mut policy {
+            SpendPolicy::Threshold { n:_, of } => {
+                *of = vec![]
+            },
+            _ => unreachable!(),
+        }
+
+        match AtomicSwapComponent::<TimeLockPath>::new(policy).unwrap_err() {
+            ComponentError::TimeLockInvalidM{ policy: _, m } => assert_eq!(m, 0),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_component_time_lock_invalid_n() {
+        let mut policy = valid_component_time_lock();
+        match &mut policy {
+            SpendPolicy::Threshold { n, of:_ } => {
+                *n = 10;
+            },
+            _ => unreachable!(),
+        }
+
+        match AtomicSwapComponent::<TimeLockPath>::new(policy).unwrap_err() {
+            ComponentError::TimeLockInvalidN{ policy: _, n } => assert_eq!(n, 10),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_atomic_swap_component_time_lock_invalid_policy_variant() {
+        let policy = SpendPolicy::PublicKey(pubkey0());
+
+        match AtomicSwapComponent::<TimeLockPath>::new(policy.clone()).unwrap_err() {
+            ComponentError::TimeLockInvalidSpendPolicyVariant(p) => assert_eq!(p, policy),
+            _ => panic!(),
+        }
     }
 }
