@@ -81,6 +81,18 @@ SatisfiedPolicy {
 
 */
 
+/// Represents a validated SpendPolicy. Each unique structure of SpendPolicy should implement this trait.
+/// The stored SpendPolicy must not be exposed via pub
+/// otherwise a consumer can initialize with an invalid SpendPolicy. ie, AtomicSwap(invalid_policy)
+trait IsValidatedSpendPolicy {
+    type Error;
+
+    // allow reference to inner policy because it is not public
+    fn policy(&self) -> &SpendPolicy;
+
+    fn is_valid(policy: &SpendPolicy) -> Result<(), Self::Error>;
+}
+
 #[derive(Debug, Error)]
 pub enum AtomicSwapError {
     #[error("invalid atomic swap, invalid hash component: {}", .0)]
@@ -107,10 +119,6 @@ impl AtomicSwap {
         Self::is_valid(&policy).map(|_| Self(policy))
     }
 
-    pub fn policy(&self) -> &SpendPolicy {
-        &self.0
-    }
-
     pub fn address(&self) -> Address {
         self.policy().address()
     }
@@ -118,8 +126,16 @@ impl AtomicSwap {
     pub fn opacify(&self) -> SpendPolicy {
         self.policy().opacify()
     }
+}
 
-    fn is_valid(policy: &SpendPolicy) -> Result<(), AtomicSwapError> {
+impl IsValidatedSpendPolicy for AtomicSwap {
+    type Error = AtomicSwapError;
+
+    fn policy(&self) -> &SpendPolicy {
+        &self.0
+    }
+
+    fn is_valid(policy: &SpendPolicy) -> Result<(), Self::Error> {
         match policy {
             SpendPolicy::Threshold { 
                 n: 1,
@@ -156,12 +172,6 @@ pub enum ComponentError {
     TimeLockInvalidM{ policy: SpendPolicy, m : usize },
 }
 
-trait SpendPolicyValidator {
-    type Error;
-
-    fn is_valid(policy: &SpendPolicy) -> Result<(), Self::Error>;
-}
-
 /// The hash locked threshold path of the atomic swap contract.
 /// 2 of 2 threshold of:
 ///     SpendPolicy::Hash(<secret_hash>) and SpendPolicy::PublicKey(<participant's public key>)
@@ -179,13 +189,14 @@ impl HashLockPath {
         Self::is_valid(&policy).map(|_| Self(policy))
     }
 
-    pub fn policy(&self) -> &SpendPolicy {
-        &self.0
-    }
 }
 
-impl SpendPolicyValidator for HashLockPath {
+impl IsValidatedSpendPolicy for HashLockPath {
     type Error = ComponentError;
+
+    fn policy(&self) -> &SpendPolicy {
+        &self.0
+    }
 
     fn is_valid(policy: &SpendPolicy) -> Result<(), Self::Error> {
         match policy {
@@ -214,14 +225,14 @@ impl TimeLockPath {
     pub fn new(policy: SpendPolicy) -> Result<Self, ComponentError> {
         Self::is_valid(&policy).map(|_| Self(policy))
     }
-
-    pub fn policy(&self) -> &SpendPolicy {
-        &self.0
-    }
 }
 
-impl SpendPolicyValidator for TimeLockPath {
+impl IsValidatedSpendPolicy for TimeLockPath {
     type Error = ComponentError;
+
+    fn policy(&self) -> &SpendPolicy {
+        &self.0
+    }
 
     fn is_valid(policy: &SpendPolicy) -> Result<(), Self::Error> {
         match policy {
@@ -238,29 +249,6 @@ impl SpendPolicyValidator for TimeLockPath {
     }
 }
 
-enum SatisfiedAtomicSwapError {
-    InvalidSomething
-}
-
-/// Represnts a satisfied atomic swap contract.
-#[derive(Debug)]
-pub struct SatisfiedAtomicSwap<T> {
-    satisfied_policy: SatisfiedPolicy,
-    _marker: PhantomData<T>,
-}
-
-impl SatisfiedAtomicSwap<TimeLockPath> {
-    pub fn new(satisfied_policy: SatisfiedPolicy) -> Result<Self, SatisfiedAtomicSwapError> {
-        Self::is_valid(&satisfied_policy).map(|_| Self {
-            satisfied_policy,
-            _marker: PhantomData,
-        })
-    }
-
-    fn is_valid(satisfied_policy: &SatisfiedPolicy) -> Result<(), SatisfiedAtomicSwapError> {
-        todo!()
-    }
-}
 
 #[cfg(test)]
 mod test {
