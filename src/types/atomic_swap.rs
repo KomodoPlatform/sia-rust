@@ -110,7 +110,8 @@ pub enum AtomicSwapError {
 /// Represents an atomic swap contract.
 /// SpendPolicy:address is used to generate the address of the contract.
 /// Funds can then be locked in the contract by creating a transaction output with this address.
-/// This is used only to create outputs, never inputs./// The order of the SpendPolicys within a SpendPolicy::Threshold have no meaningful impact on logic, but we enforce a strict structure for simplicity.
+/// This is used only to create outputs, never inputs.
+/// The order of the SpendPolicys within a SpendPolicy::Threshold have no meaningful impact on logic, but we enforce a strict structure for simplicity.
 #[derive(Debug)]
 pub struct AtomicSwap(SpendPolicy);
 
