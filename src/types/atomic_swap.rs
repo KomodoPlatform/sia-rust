@@ -39,7 +39,9 @@ The resulting UTXO can then be spent by either Alice or Bob by meeting the condi
 
 It is only neccesary to reveal the path that will be satisfied. The other path will be opacified(see SpendPolicy::opacify) and replaced with SpendPolicy::Opaque(<hash of unused path>).
 
-Alice can spend the UTXO by providing a signature, the secret and revealing the relevant path within the full SpendPolicy. Alice can construct the following SatisfiedPolicy to spend the UTXO:
+Alice can spend the UTXO by providing a signature, the secret and revealing the relevant path within the full SpendPolicy.
+
+Alice can construct the following SatisfiedPolicy to spend the UTXO:
 
 SatisfiedPolicy {
     policy: SpendPolicy::Threshold { 
@@ -97,6 +99,7 @@ pub enum AtomicSwapError {
 
 /// Represents an atomic swap contract.
 /// PhantomData is used to enforce type safety on the structure of a SpendPolicy which is a complex recursive structure.
+/// The order of the SpendPolicys within a SpendPolicy::Threshold have no meaningful impact on logic, but we enforce a strict structure for simplicity.
 #[derive(Debug)]
 pub struct AtomicSwap<T> {
     pub policy: SpendPolicy,
