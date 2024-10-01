@@ -175,6 +175,8 @@ pub enum ComponentError {
     TimeLockInvalidN{ policy: SpendPolicy, n : u8 },
     #[error("invalid time lock component, wrong m:{} policy: {:?}", m, policy)]
     TimeLockInvalidM{ policy: SpendPolicy, m : usize },
+    #[error("invalid component, not SpendPolicy::Opaque: {:?}", .0)]
+    OpaqueInvalidSpendPolicyVariant(SpendPolicy),
 }
 
 /// The hash locked threshold path of the atomic swap contract.
@@ -267,8 +269,29 @@ impl IsValidatedPolicy for TimeLockPath {
     }
 }
 
-enum SatisfiedAtomicSwapError {
-    InvalidSomething
+#[derive(Debug)]
+pub struct Opaque(SpendPolicy);
+
+impl Opaque {
+    pub fn new(policy: SpendPolicy) -> Result<Self, ComponentError> {
+        Self::is_valid(&policy).map(|_| Self(policy))
+    }
+}
+
+impl IsValidatedPolicy for Opaque {
+    type Error = ComponentError;
+    type Inner = SpendPolicy;
+
+    fn inner(&self) -> &Self::Inner {
+        &self.0
+    }
+
+    fn is_valid(policy: &Self::Inner) -> Result<(), Self::Error> {
+        match policy {
+            SpendPolicy::Opaque(_) => Ok(()),
+            _ => Err(ComponentError::OpaqueInvalidSpendPolicyVariant(policy.clone())),
+        }
+    }
 }
 
 /// Represents the SatisfiedPolicy for the success path of an atomic swap.
@@ -294,16 +317,45 @@ enum SatisfiedAtomicSwapError {
 #[derive(Debug, Clone, PartialEq)]
 pub struct AtomicSwapSuccess(SatisfiedPolicy);
 
+#[derive(Debug, Error)]
+enum AtomicSwapSuccessError {
+    InvalidSignaturesAmount { satisfied_policy: SatisfiedPolicy, amount: usize },
+    InvalidPreimagesAmount { satisfied_policy: SatisfiedPolicy, amount: usize },
+    InvalidSpendPolicyVariant { satisfied_policy: SatisfiedPolicy },
+    AtomicSwapError(AtomicSwapError),
+}
+
 impl IsValidatedPolicy for AtomicSwapSuccess {
-    type Error = SatisfiedAtomicSwapError;
+    type Error = AtomicSwapSuccessError;
     type Inner = SatisfiedPolicy;
 
     fn inner(&self) -> &Self::Inner {
         &self.0
     }
 
-    fn is_valid(policy: &Self::Inner) -> Result<(), Self::Error> {
-        todo!()
+    fn is_valid(satisfied_policy: &Self::Inner) -> Result<(), Self::Error> {
+        if satisfied_policy.signatures.len() != 1 {
+            return Err(AtomicSwapSuccessError::InvalidSignaturesAmount {
+                satisfied_policy: satisfied_policy.clone(),
+                amount: satisfied_policy.signatures.len(),
+            });
+        }
+
+        if satisfied_policy.preimages.len() != 1 {
+            return Err(AtomicSwapSuccessError::InvalidPreimagesAmount {
+                satisfied_policy: satisfied_policy.clone(),
+                amount: satisfied_policy.preimages.len(),
+            });
+        }
+
+        match satisfied_policy.policy {
+            SpendPolicy::Threshold{ n: 1, of } if of.len() == 2 => {
+                HashLockPath::is_valid(&of[0]).map_err(AtomicSwapSuccessError::AtomicSwapError)?;
+                Opaque::is_valid(&of[1]).map_err(AtomicSwapSuccessError::AtomicSwapError)?;
+                Ok(())
+            },
+            _ => Err(AtomicSwapSuccessError::InvalidSpendPolicyVariant(satisfied_policy.clone())),
+        }
     }
 }
 
