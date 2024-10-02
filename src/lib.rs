@@ -3,7 +3,7 @@ mod macros;
 
 pub mod blake2b_internal;
 pub mod encoding;
-pub mod http;
+pub mod transport;
 pub mod types;
 
 #[cfg(test)] mod tests;

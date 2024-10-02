@@ -1,5 +1,5 @@
-use crate::http::client::{ApiClient, ApiClientError, ApiClientHelpers, Body, EndpointSchema, SchemaMethod};
-use crate::http::endpoints::{ConsensusTipRequest, SiaApiRequest};
+use crate::transport::client::{ApiClient, ApiClientError, ApiClientHelpers, Body, EndpointSchema, SchemaMethod};
+use crate::transport::endpoints::{ConsensusTipRequest, SiaApiRequest};
 
 use async_trait::async_trait;
 use http::StatusCode;
@@ -130,7 +130,7 @@ mod wasm_tests {
 
     #[wasm_bindgen_test]
     async fn test_sia_wasm_client_client_error() {
-        use crate::http::endpoints::TxpoolBroadcastRequest;
+        use crate::transport::endpoints::TxpoolBroadcastRequest;
         use crate::types::V2Transaction;
         let client = Client::new(CONF.clone()).await.unwrap();
 

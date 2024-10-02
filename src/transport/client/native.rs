@@ -1,4 +1,4 @@
-use crate::http::endpoints::{ConsensusTipRequest, SiaApiRequest};
+use crate::transport::endpoints::{ConsensusTipRequest, SiaApiRequest};
 use async_trait::async_trait;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
@@ -7,7 +7,7 @@ use reqwest::Client as ReqwestClient;
 use serde::Deserialize;
 use url::Url;
 
-use crate::http::client::{ApiClient, ApiClientError, ApiClientHelpers, Body as ClientBody, EndpointSchema};
+use crate::transport::client::{ApiClient, ApiClientError, ApiClientHelpers, Body as ClientBody, EndpointSchema};
 use core::time::Duration;
 
 #[derive(Clone)]
@@ -119,7 +119,7 @@ impl ApiClientHelpers for NativeClient {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::http::endpoints::{AddressBalanceRequest, GetEventRequest};
+    use crate::transport::endpoints::{AddressBalanceRequest, GetEventRequest};
     use crate::types::Address;
 
     use std::str::FromStr;
