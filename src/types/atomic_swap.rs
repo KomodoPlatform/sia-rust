@@ -319,10 +319,16 @@ pub struct AtomicSwapSuccess(SatisfiedPolicy);
 
 #[derive(Debug, Error)]
 enum AtomicSwapSuccessError {
+    #[error("invalid atomic swap success: {:?}, invalid signatures amount: {}", satisfied_policy, amount)]
     InvalidSignaturesAmount { satisfied_policy: SatisfiedPolicy, amount: usize },
+    #[error("invalid atomic swap success: {:?}, invalid preimages amount: {}", satisfied_policy, amount)]
     InvalidPreimagesAmount { satisfied_policy: SatisfiedPolicy, amount: usize },
+    #[error("invalid atomic swap success: {:?}, invalid policy variant", satisfied_policy)]
     InvalidSpendPolicyVariant { satisfied_policy: SatisfiedPolicy },
-    AtomicSwapError(AtomicSwapError),
+    // #[error("invalid atomic swap success: {0}, atomic swap error")]
+    // AtomicSwapError(AtomicSwapError),
+    #[error("invalid atomic swap success, TODO remove this placeholder")]
+    PlaceHolder,
 }
 
 impl IsValidatedPolicy for AtomicSwapSuccess {
@@ -348,13 +354,13 @@ impl IsValidatedPolicy for AtomicSwapSuccess {
             });
         }
 
-        match satisfied_policy.policy {
+        match &satisfied_policy.policy {
             SpendPolicy::Threshold{ n: 1, of } if of.len() == 2 => {
-                HashLockPath::is_valid(&of[0]).map_err(AtomicSwapSuccessError::AtomicSwapError)?;
-                Opaque::is_valid(&of[1]).map_err(AtomicSwapSuccessError::AtomicSwapError)?;
+                HashLockPath::is_valid(&of[0]).map_err(|_| AtomicSwapSuccessError::PlaceHolder)?;
+                Opaque::is_valid(&of[1]).map_err(|_| AtomicSwapSuccessError::PlaceHolder)?;
                 Ok(())
             },
-            _ => Err(AtomicSwapSuccessError::InvalidSpendPolicyVariant(satisfied_policy.clone())),
+            _ => Err(AtomicSwapSuccessError::InvalidSpendPolicyVariant{ satisfied_policy: satisfied_policy.clone()}),
         }
     }
 }
