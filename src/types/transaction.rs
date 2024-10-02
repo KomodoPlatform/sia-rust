@@ -1,11 +1,9 @@
-use crate::encoding::{Encodable, Encoder, HexArray64, PrefixedH256, PrefixedPublicKey, PrefixedSignature, ScoidH256};
-use crate::spend_policy::{SpendPolicy, SpendPolicyHelper, UnlockCondition, UnlockKey};
-use crate::types::{Address, ChainIndex, H256};
-use crate::{Keypair, PublicKey, Signature};
+use crate::encoding::{Encodable, Encoder};
+use crate::types::{Address, ChainIndex, Hash256, Keypair, PublicKey, Signature, SpendPolicy, UnlockCondition, UnlockKey};
 use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
-use serde_with::{serde_as, FromInto};
+use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::ops::Deref;
 use std::str::FromStr;
@@ -107,13 +105,10 @@ impl<'a> Encodable for CurrencyVersion<'a> {
 
 pub type Preimage = Vec<u8>;
 
-#[serde_as]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct SatisfiedPolicy {
-    #[serde_as(as = "FromInto<SpendPolicyHelper>")]
     pub policy: SpendPolicy,
-    #[serde_as(as = "Vec<FromInto<PrefixedSignature>>")]
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub signatures: Vec<Signature>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -160,7 +155,7 @@ impl Encodable for SatisfiedPolicy {
                 SpendPolicy::UnlockConditions(uc) => {
                     for unlock_key in &uc.unlock_keys {
                         if let UnlockKey::Ed25519(public_key) = unlock_key {
-                            rec(&SpendPolicy::PublicKey(*public_key), encoder, sigi, prei, sp);
+                            rec(&SpendPolicy::PublicKey(public_key.clone()), encoder, sigi, prei, sp);
                         }
                         // else FIXME consider when this is possible, is it always developer error or could it be forced maliciously?
                     }
@@ -173,16 +168,13 @@ impl Encodable for SatisfiedPolicy {
     }
 }
 
-#[serde_as]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct StateElement {
-    #[serde_as(as = "FromInto<PrefixedH256>")]
-    pub id: H256,
+    pub id: Hash256,
     pub leaf_index: u64,
     #[serde(default)]
-    #[serde_as(as = "Option<Vec<FromInto<PrefixedH256>>>")]
-    pub merkle_proof: Option<Vec<H256>>,
+    pub merkle_proof: Option<Vec<Hash256>>,
 }
 
 impl Encodable for StateElement {
@@ -255,19 +247,17 @@ impl Encodable for SiafundInputV2 {
 }
 
 // https://github.com/SiaFoundation/core/blob/6c19657baf738c6b730625288e9b5413f77aa659/types/types.go#L197-L198
-#[serde_as]
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct SiacoinInputV1 {
     #[serde(rename = "parentID")]
-    #[serde_as(as = "FromInto<ScoidH256>")]
-    pub parent_id: H256,
+    pub parent_id: SiacoinOutputId,
     #[serde(rename = "unlockConditions")]
     pub unlock_condition: UnlockCondition,
 }
 
 impl Encodable for SiacoinInputV1 {
     fn encode(&self, encoder: &mut Encoder) {
-        self.parent_id.encode(encoder);
+        self.parent_id.0.encode(encoder);
         self.unlock_condition.encode(encoder);
     }
 }
@@ -336,6 +326,62 @@ impl<'a> Encodable for SiacoinOutputVersion<'a> {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct SiacoinOutputId(pub Hash256);
+
+impl<'de> Deserialize<'de> for SiacoinOutputId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct SiacoinOutputIdVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for SiacoinOutputIdVisitor {
+            type Value = SiacoinOutputId;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a string prefixed with 'scoid:' and followed by a 64-character hex string")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                if let Some(hex_str) = value.strip_prefix("scoid:") {
+                    Hash256::from_str_no_prefix(hex_str)
+                        .map(SiacoinOutputId)
+                        .map_err(|_| E::invalid_value(serde::de::Unexpected::Str(value), &self))
+                } else {
+                    Err(E::invalid_value(serde::de::Unexpected::Str(value), &self))
+                }
+            }
+        }
+
+        deserializer.deserialize_str(SiacoinOutputIdVisitor)
+    }
+}
+
+impl Serialize for SiacoinOutputId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&format!("{}", self))
+    }
+}
+
+impl fmt::Display for SiacoinOutputId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "scoid:{:02x}", self.0) }
+}
+
+impl From<SiacoinOutputId> for Hash256 {
+    fn from(sia_hash: SiacoinOutputId) -> Self { sia_hash.0 }
+}
+
+impl From<Hash256> for SiacoinOutputId {
+    fn from(h256: Hash256) -> Self { SiacoinOutputId(h256) }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct SiacoinOutput {
     pub value: Currency,
@@ -359,13 +405,11 @@ pub struct CoveredFields {
     pub signatures: Vec<u64>,
 }
 
-#[serde_as]
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransactionSignature {
-    #[serde_as(as = "FromInto<PrefixedH256>")]
     #[serde(rename = "parentID")]
-    pub parent_id: H256,
+    pub parent_id: Hash256,
     #[serde(default)]
     pub public_key_index: u64,
     #[serde(default)]
@@ -408,13 +452,13 @@ impl<'de> Deserialize<'de> for V1Signature {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct FileContract {
     pub filesize: u64,
-    pub file_merkle_root: H256,
+    pub file_merkle_root: Hash256,
     pub window_start: u64,
     pub window_end: u64,
     pub payout: Currency,
     pub valid_proof_outputs: Vec<SiacoinOutput>,
     pub missed_proof_outputs: Vec<SiacoinOutput>,
-    pub unlock_hash: H256,
+    pub unlock_hash: Hash256,
     pub revision_number: u64,
 }
 
@@ -438,27 +482,21 @@ impl Encodable for FileContract {
     }
 }
 
-#[serde_as]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct V2FileContract {
     pub filesize: u64,
-    #[serde_as(as = "FromInto<PrefixedH256>")]
-    pub file_merkle_root: H256,
+    pub file_merkle_root: Hash256,
     pub proof_height: u64,
     pub expiration_height: u64,
     pub renter_output: SiacoinOutput,
     pub host_output: SiacoinOutput,
     pub missed_host_value: Currency,
     pub total_collateral: Currency,
-    #[serde_as(as = "FromInto<PrefixedPublicKey>")]
     pub renter_public_key: PublicKey,
-    #[serde_as(as = "FromInto<PrefixedPublicKey>")]
     pub host_public_key: PublicKey,
     pub revision_number: u64,
-    #[serde_as(as = "FromInto<PrefixedSignature>")]
     pub renter_signature: Signature,
-    #[serde_as(as = "FromInto<PrefixedSignature>")]
     pub host_signature: Signature,
 }
 
@@ -543,12 +581,30 @@ impl Encodable for Attestation {
         self.signature.encode(encoder);
     }
 }
-#[serde_as]
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(try_from = "String", into = "String")]
+pub struct Leaf(#[serde(with = "hex")] pub [u8; 64]);
+
+impl TryFrom<String> for Leaf {
+    type Error = hex::FromHexError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let bytes = hex::decode(value)?;
+        let array = bytes.try_into().map_err(|_| hex::FromHexError::InvalidStringLength)?;
+        Ok(Leaf(array))
+    }
+}
+
+impl From<Leaf> for String {
+    fn from(value: Leaf) -> Self { hex::encode(value.0) }
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct StorageProof {
     pub parent_id: FileContractID,
-    pub leaf: HexArray64,
-    pub proof: Vec<H256>,
+    pub leaf: Leaf,
+    pub proof: Vec<Hash256>,
 }
 
 impl Encodable for StorageProof {
@@ -562,8 +618,8 @@ impl Encodable for StorageProof {
     }
 }
 
-type SiafundOutputID = H256;
-type FileContractID = H256;
+type SiafundOutputID = Hash256;
+type FileContractID = Hash256;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct FileContractRevision {
@@ -722,7 +778,6 @@ impl Encodable for V2FileContractFinalization {
     fn encode(&self, encoder: &mut Encoder) { self.0.encode(encoder); }
 }
 
-#[serde_as]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct V2FileContractRenewal {
@@ -730,9 +785,7 @@ pub struct V2FileContractRenewal {
     new_contract: V2FileContract,
     renter_rollover: Currency,
     host_rollover: Currency,
-    #[serde_as(as = "FromInto<PrefixedSignature>")]
     renter_signature: Signature,
-    #[serde_as(as = "FromInto<PrefixedSignature>")]
     host_signature: Signature,
 }
 
@@ -767,8 +820,8 @@ impl Encodable for V2FileContractRenewal {
 #[serde(rename_all = "camelCase")]
 pub struct V2StorageProof {
     proof_index: ChainIndexElement,
-    leaf: HexArray64,
-    proof: Vec<H256>,
+    leaf: Leaf,
+    proof: Vec<Hash256>,
 }
 
 impl V2StorageProof {
@@ -824,13 +877,13 @@ pub struct FileContractElementV1 {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FileContractV1 {
     pub filesize: u64,
-    pub file_merkle_root: H256,
+    pub file_merkle_root: Hash256,
     pub window_start: u64,
     pub window_end: u64,
     pub payout: Currency,
     pub valid_proof_outputs: Vec<SiacoinOutput>,
     pub missed_proof_outputs: Vec<SiacoinOutput>,
-    pub unlock_hash: H256,
+    pub unlock_hash: Hash256,
     pub revision_number: u64,
 }
 
@@ -870,7 +923,7 @@ pub struct V1Transaction {
 }
 
 impl V1Transaction {
-    pub fn txid(&self) -> H256 { Encoder::encode_and_hash(&V1TransactionSansSigs(self.clone())) }
+    pub fn txid(&self) -> Hash256 { Encoder::encode_and_hash(&V1TransactionSansSigs(self.clone())) }
 }
 
 impl Encodable for SiafundInputV1 {
@@ -956,7 +1009,7 @@ impl V2Transaction {
         }
     }
 
-    pub fn input_sig_hash(&self) -> H256 {
+    pub fn input_sig_hash(&self) -> Hash256 {
         let mut encoder = Encoder::default();
         encoder.write_distinguisher("sig/input");
         encoder.write_u8(V2_REPLAY_PREFIX);
@@ -964,7 +1017,7 @@ impl V2Transaction {
         encoder.hash()
     }
 
-    pub fn txid(&self) -> H256 {
+    pub fn txid(&self) -> Hash256 {
         let mut encoder = Encoder::default();
         encoder.write_distinguisher("id/transaction");
         self.encode(&mut encoder);
@@ -1203,7 +1256,7 @@ impl V2TransactionBuilder {
         self
     }
 
-    pub fn input_sig_hash(&self) -> H256 {
+    pub fn input_sig_hash(&self) -> Hash256 {
         let mut encoder = Encoder::default();
         encoder.write_distinguisher("sig/input");
         encoder.write_u8(V2_REPLAY_PREFIX);
@@ -1219,12 +1272,14 @@ impl V2TransactionBuilder {
             let sig = keypair.sign(&sig_hash.0);
             for si in &mut self.siacoin_inputs {
                 match &si.satisfied_policy.policy {
-                    SpendPolicy::PublicKey(pk) if pk == &keypair.public() => si.satisfied_policy.signatures.push(sig),
+                    SpendPolicy::PublicKey(pk) if pk == &keypair.public => {
+                        si.satisfied_policy.signatures.push(sig.clone())
+                    },
                     SpendPolicy::UnlockConditions(uc) => {
                         for p in &uc.unlock_keys {
                             match p {
-                                UnlockKey::Ed25519(pk) if pk == &keypair.public() => {
-                                    si.satisfied_policy.signatures.push(sig)
+                                UnlockKey::Ed25519(pk) if pk == &keypair.public => {
+                                    si.satisfied_policy.signatures.push(sig.clone())
                                 },
                                 _ => (),
                             }

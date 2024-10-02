@@ -1,9 +1,6 @@
 use crate::blake2b_internal::{public_key_leaf, sigs_required_leaf, standard_unlock_hash, timelock_leaf, Accumulator};
-use crate::encoding::{Encodable, Encoder, PrefixedH256, PrefixedPublicKey};
-use crate::specifier::Specifier;
-use crate::transaction::{Preimage, SatisfiedPolicy};
-use crate::types::{Address, H256};
-use crate::{PublicKey, Signature};
+use crate::encoding::{Encodable, Encoder};
+use crate::types::{Address, Hash256, PublicKey, Signature, Specifier, Preimage, SatisfiedPolicy};
 use nom::bytes::complete::{take_until, take_while, take_while_m_n};
 use nom::character::complete::char;
 use nom::combinator::all_consuming;
@@ -16,61 +13,22 @@ use std::str::FromStr;
 const POLICY_VERSION: u8 = 1u8;
 
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(tag = "type", content = "policy")]
 pub enum SpendPolicy {
+    #[serde(rename = "above")]
     Above(u64),
+    #[serde(rename = "after")]
     After(u64),
+    #[serde(rename = "pk")]
     PublicKey(PublicKey),
-    Hash(H256),
+    #[serde(rename = "h")]
+    Hash(Hash256),
+    #[serde(rename = "thresh")]
     Threshold { n: u8, of: Vec<SpendPolicy> },
+    #[serde(rename = "opaque")]
     Opaque(Address),
+    #[serde(rename = "uc")]
     UnlockConditions(UnlockCondition), // For v1 compatibility
-}
-
-/// Helper to serialize/deserialize SpendPolicy with prefixed PublicKey and H256
-#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
-#[serde(tag = "type", content = "policy", rename_all = "camelCase")]
-pub enum SpendPolicyHelper {
-    Above(u64),
-    After(u64),
-    Pk(PrefixedPublicKey),
-    H(PrefixedH256),
-    Thresh { n: u8, of: Vec<SpendPolicyHelper> },
-    Opaque(Address),
-    Uc(UnlockCondition), // For v1 compatibility
-}
-
-impl From<SpendPolicyHelper> for SpendPolicy {
-    fn from(helper: SpendPolicyHelper) -> Self {
-        match helper {
-            SpendPolicyHelper::Above(height) => SpendPolicy::Above(height),
-            SpendPolicyHelper::After(time) => SpendPolicy::After(time),
-            SpendPolicyHelper::Pk(pk) => SpendPolicy::PublicKey(pk.0),
-            SpendPolicyHelper::H(hash) => SpendPolicy::Hash(hash.0),
-            SpendPolicyHelper::Thresh { n, of } => SpendPolicy::Threshold {
-                n,
-                of: of.into_iter().map(SpendPolicy::from).collect(),
-            },
-            SpendPolicyHelper::Opaque(address) => SpendPolicy::Opaque(address),
-            SpendPolicyHelper::Uc(uc) => SpendPolicy::UnlockConditions(uc),
-        }
-    }
-}
-
-impl From<SpendPolicy> for SpendPolicyHelper {
-    fn from(policy: SpendPolicy) -> Self {
-        match policy {
-            SpendPolicy::Above(height) => SpendPolicyHelper::Above(height),
-            SpendPolicy::After(time) => SpendPolicyHelper::After(time),
-            SpendPolicy::PublicKey(pk) => SpendPolicyHelper::Pk(PrefixedPublicKey(pk)),
-            SpendPolicy::Hash(hash) => SpendPolicyHelper::H(PrefixedH256(hash)),
-            SpendPolicy::Threshold { n, of } => SpendPolicyHelper::Thresh {
-                n,
-                of: of.into_iter().map(SpendPolicyHelper::from).collect(),
-            },
-            SpendPolicy::Opaque(address) => SpendPolicyHelper::Opaque(address),
-            SpendPolicy::UnlockConditions(uc) => SpendPolicyHelper::Uc(uc),
-        }
-    }
 }
 
 impl Encodable for SpendPolicy {
@@ -162,7 +120,7 @@ impl SpendPolicy {
 
     pub fn public_key(pk: PublicKey) -> Self { SpendPolicy::PublicKey(pk) }
 
-    pub fn hash(h: H256) -> Self { SpendPolicy::Hash(h) }
+    pub fn hash(h: Hash256) -> Self { SpendPolicy::Hash(h) }
 
     pub fn threshold(n: u8, of: Vec<SpendPolicy>) -> Self { SpendPolicy::Threshold { n, of } }
 
@@ -218,43 +176,50 @@ impl SatisfyPolicy for () {
     }
 }
 
-pub fn spend_policy_atomic_swap(alice: PublicKey, bob: PublicKey, lock_time: u64, hash: H256) -> SpendPolicy {
-    let policy_after = SpendPolicy::After(lock_time);
-    let policy_hash = SpendPolicy::Hash(hash);
-
-    let policy_success = SpendPolicy::Threshold {
-        n: 2,
-        of: vec![SpendPolicy::PublicKey(alice), policy_hash],
-    };
-
-    let policy_refund = SpendPolicy::Threshold {
-        n: 2,
-        of: vec![SpendPolicy::PublicKey(bob), policy_after],
-    };
-
-    SpendPolicy::Threshold {
-        n: 1,
-        of: vec![policy_success, policy_refund],
+impl SpendPolicy {
+    pub fn atomic_swap(alice: PublicKey, bob: PublicKey, lock_time: u64, hash: Hash256) -> Self {
+        let policy_after = SpendPolicy::After(lock_time);
+        let policy_hash = SpendPolicy::Hash(hash);
+    
+        let policy_success = SpendPolicy::Threshold {
+            n: 2,
+            of: vec![SpendPolicy::PublicKey(alice), policy_hash],
+        };
+    
+        let policy_refund = SpendPolicy::Threshold {
+            n: 2,
+            of: vec![SpendPolicy::PublicKey(bob), policy_after],
+        };
+    
+        SpendPolicy::Threshold {
+            n: 1,
+            of: vec![policy_success, policy_refund],
+        }
     }
-}
 
-pub fn spend_policy_atomic_swap_success(alice: PublicKey, bob: PublicKey, lock_time: u64, hash: H256) -> SpendPolicy {
-    match spend_policy_atomic_swap(alice, bob, lock_time, hash) {
-        SpendPolicy::Threshold { n, mut of } => {
-            of[1] = of[1].opacify();
-            SpendPolicy::Threshold { n, of }
-        },
-        _ => unreachable!(),
+    pub fn atomic_swap_success(
+        alice: PublicKey,
+        bob: PublicKey,
+        lock_time: u64,
+        hash: Hash256,
+    ) -> Self {
+        match Self::atomic_swap(alice, bob, lock_time, hash) {
+            SpendPolicy::Threshold { n, mut of } => {
+                of[1] = of[1].opacify();
+                SpendPolicy::Threshold { n, of }
+            },
+            _ => unreachable!(),
+        }
     }
-}
 
-pub fn spend_policy_atomic_swap_refund(alice: PublicKey, bob: PublicKey, lock_time: u64, hash: H256) -> SpendPolicy {
-    match spend_policy_atomic_swap(alice, bob, lock_time, hash) {
-        SpendPolicy::Threshold { n, mut of } => {
-            of[0] = of[0].opacify();
-            SpendPolicy::Threshold { n, of }
-        },
-        _ => unreachable!(),
+    pub fn atomic_swap_refund(alice: PublicKey, bob: PublicKey, lock_time: u64, hash: Hash256) -> Self {
+        match Self::atomic_swap(alice, bob, lock_time, hash) {
+            SpendPolicy::Threshold { n, mut of } => {
+                of[0] = of[0].opacify();
+                SpendPolicy::Threshold { n, of }
+            },
+            _ => unreachable!(),
+        }
     }
 }
 
@@ -422,7 +387,7 @@ impl UnlockCondition {
         }
     }
 
-    pub fn unlock_hash(&self) -> H256 {
+    pub fn unlock_hash(&self) -> Hash256 {
         // almost all UnlockConditions are standard, so optimize for that case
         if let UnlockKey::Ed25519(public_key) = &self.unlock_keys[0] {
             if self.timelock == 0 && self.unlock_keys.len() == 1 && self.signatures_required == 1 {

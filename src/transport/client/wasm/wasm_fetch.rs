@@ -28,26 +28,20 @@ pub fn stringify_js_error(error: &JsValue) -> String {
 #[derive(Debug, Error)]
 pub enum FetchError {
     #[error("Error deserializing '{uri}' response: {error}")]
-    ErrorDeserializing {
-        uri: String,
-        error: String,
-    },
-    
+    ErrorDeserializing { uri: String, error: String },
+
     #[error("Transport '{uri}' error: {error}")]
-    Transport {
-        uri: String,
-        error: String,
-    },
-    
+    Transport { uri: String, error: String },
+
     #[error("Invalid status code in response")]
     InvalidStatusCode(#[from] http::status::InvalidStatusCode),
-    
+
     #[error("Invalid headers in response: {0}")]
     InvalidHeadersInResponse(String),
-    
+
     #[error("Invalid body: {0}")]
     InvalidBody(String),
-    
+
     #[error("Internal error: {0}")]
     Internal(String),
 }
@@ -223,8 +217,7 @@ impl FetchRequest {
         let future = JsFuture::from(request_promise);
         let resp_value = future.await.map_err(|e| FetchError::Transport {
             uri: uri.clone(),
-            //error: stringify_js_error(&e),
-            error: format!("Triggers a CORS(I think) error!! {:?}", e).to_string(),
+            error: stringify_js_error(&e),
         })?;
         let js_response: JsResponse = match resp_value.dyn_into() {
             Ok(res) => res,
@@ -233,8 +226,6 @@ impl FetchRequest {
                 return Err(FetchError::Internal(error));
             },
         };
-        let _status = StatusCode::from_u16(js_response.status()).map_err(FetchError::InvalidStatusCode)?;
-        let _headers = js_response.headers();
 
         let fetch_response = FetchResponse::from_js_response(js_response).await?;
         Ok(fetch_response)
@@ -285,7 +276,7 @@ mod tests {
         let uri = "http://example.com";
         let mut req_init = RequestInit::new();
         req_init.method("GET");
-        let js_request = JsRequest::new_with_str_and_init(&uri, &req_init).unwrap();
+        let _js_request = JsRequest::new_with_str_and_init(&uri, &req_init).unwrap();
     }
 
     // further unit tests could be implemented for the Err case based on the spec
@@ -298,8 +289,6 @@ mod tests {
         let err = JsRequest::new_with_str_and_init(&uri, &req_init)
             .map_err(|e| FetchError::Internal(stringify_js_error(&e)))
             .unwrap_err();
-        assert!(err
-            .to_string()
-            .contains("Request cannot be constructed from a URL that includes credentials"));
+        assert!(err.to_string().contains("is an url with embedded credentials"));
     }
 }

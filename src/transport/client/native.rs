@@ -1,4 +1,4 @@
-use crate::http::endpoints::{ConsensusTipRequest, SiaApiRequest};
+use crate::transport::endpoints::{ConsensusTipRequest, SiaApiRequest};
 use async_trait::async_trait;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
@@ -7,7 +7,7 @@ use reqwest::Client as ReqwestClient;
 use serde::Deserialize;
 use url::Url;
 
-use crate::http::client::{ApiClient, ApiClientError, ApiClientHelpers, Body as ClientBody, EndpointSchema};
+use crate::transport::client::{ApiClient, ApiClientError, ApiClientHelpers, Body as ClientBody, EndpointSchema};
 use core::time::Duration;
 
 #[derive(Clone)]
@@ -63,7 +63,8 @@ impl ApiClient for NativeClient {
             ClientBody::Utf8(body) => self.client.request(schema.method.into(), url).body(body).build(),
             ClientBody::Json(body) => self.client.request(schema.method.into(), url).json(&body).build(),
             ClientBody::Bytes(body) => self.client.request(schema.method.into(), url).body(body).build(),
-        }.map_err(ApiClientError::ReqwestError)?;
+        }
+        .map_err(ApiClientError::ReqwestError)?;
         Ok(req)
     }
 
@@ -105,11 +106,8 @@ impl ApiClient for NativeClient {
                     .map_err(|e| format!("Failed to retrieve body: {}", e))
                     .unwrap_or_else(|e| e);
 
-                Err(ApiClientError::UnexpectedHttpStatus {
-                    status,
-                    body,
-                })
-            }
+                Err(ApiClientError::UnexpectedHttpStatus { status, body })
+            },
         }
     }
 }
@@ -121,7 +119,7 @@ impl ApiClientHelpers for NativeClient {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::http::endpoints::{AddressBalanceRequest, GetEventRequest};
+    use crate::transport::endpoints::{AddressBalanceRequest, GetEventRequest};
     use crate::types::Address;
 
     use std::str::FromStr;
@@ -164,9 +162,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_api_events() {
-        use crate::types::H256;
+        use crate::types::Hash256;
         let request = GetEventRequest {
-            txid: H256::from_str("77c5ae2220eac76dd841e365bb14fcba5499977e6483472b96f4a83bcdd6c892").unwrap(),
+            txid: Hash256::from_str("h:77c5ae2220eac76dd841e365bb14fcba5499977e6483472b96f4a83bcdd6c892").unwrap(),
         };
         let _response = test_dispatch(request).await;
     }
