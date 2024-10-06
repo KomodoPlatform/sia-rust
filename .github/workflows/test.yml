@@ -1,0 +1,35 @@
+name: Test
+on:
+  push:
+    branches-ignore:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  x86-64-unit-tests:
+    name: x86 Cargo unit tests
+    timeout-minutes: 30
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          components: clippy, rustfmt
+          override: true
+          profile: minimal
+          toolchain: nightly-2023-06-01
+
+      - name: Cargo cache
+        uses: ./.github/actions/cargo-cache
+
+      - name: Cargo test
+        run: cargo test --no-fail-fast
