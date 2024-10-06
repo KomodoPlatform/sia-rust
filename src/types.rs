@@ -315,7 +315,7 @@ impl<'de> Deserialize<'de> for Event {
         }?;
 
         Ok(Event {
-            id: helper.id.into(),
+            id: helper.id,
             index: helper.index,
             timestamp: helper.timestamp,
             maturity_height: helper.maturity_height,

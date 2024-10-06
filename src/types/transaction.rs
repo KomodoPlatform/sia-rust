@@ -1,5 +1,6 @@
 use crate::encoding::{Encodable, Encoder};
-use crate::types::{Address, ChainIndex, Hash256, Keypair, PublicKey, Signature, SpendPolicy, UnlockCondition, UnlockKey};
+use crate::types::{Address, ChainIndex, Hash256, Keypair, PublicKey, Signature, SpendPolicy, UnlockCondition,
+                   UnlockKey};
 use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
