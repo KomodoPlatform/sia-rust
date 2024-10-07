@@ -30,7 +30,7 @@ impl Signer<Signature> for Keypair {
     /// Sign a message with this keypair's secret key.
     fn try_sign(&self, message: &[u8]) -> Result<Signature, Ed25519SignatureError> {
         let expanded: ExpandedSecretKey = (&self.private.0).into();
-        Ok(Signature::new(expanded.sign(&message, &self.public.0)))
+        Ok(Signature::new(expanded.sign(message, &self.public.0)))
     }
 }
 

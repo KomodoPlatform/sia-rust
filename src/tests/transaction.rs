@@ -1,14 +1,14 @@
 #[cfg(test)]
 mod test {
     use crate::encoding::Encoder;
-    use crate::types::{Address, Hash256, Keypair, PublicKey, Signature, Attestation, Currency, CurrencyVersion, FileContractRevisionV2, SatisfiedPolicy,
-        SiacoinElement, SiacoinInputV1, SiacoinInputV2, SiacoinOutput, SiacoinOutputVersion,
-        StateElement, V2FileContract, V2FileContractElement, V2Transaction, SpendPolicy,
-        UnlockCondition};
+    use crate::types::{Address, Attestation, Currency, CurrencyVersion, FileContractRevisionV2, Hash256, Keypair,
+                       PublicKey, SatisfiedPolicy, SiacoinElement, SiacoinInputV1, SiacoinInputV2, SiacoinOutput,
+                       SiacoinOutputVersion, Signature, SpendPolicy, StateElement, UnlockCondition, V2FileContract,
+                       V2FileContractElement, V2Transaction};
     use std::convert::TryFrom;
     use std::str::FromStr;
-    
-    cross_target_tests!{
+
+    cross_target_tests! {
         fn test_siacoin_input_encode() {
             let public_key = PublicKey::from_bytes(
                 &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),

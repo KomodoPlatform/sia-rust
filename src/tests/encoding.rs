@@ -1,4 +1,3 @@
-
 #[cfg(test)]
 mod test {
     use crate::blake2b_internal::standard_unlock_hash;
@@ -6,8 +5,8 @@ mod test {
     use crate::types::{Address, Hash256, PublicKey, SpendPolicy, UnlockCondition};
     use std::convert::TryFrom;
     use std::str::FromStr;
-    
-    cross_target_tests!{
+
+    cross_target_tests! {
         fn test_unlock_condition_unlock_hash_2of2_multisig() {
             let pubkey = PublicKey::from_bytes(
                 &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
