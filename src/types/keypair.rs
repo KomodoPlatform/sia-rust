@@ -5,7 +5,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use thiserror::Error;
 
-use crate::types::Signature;
+use crate::types::{Address, SpendPolicy, Signature};
 
 #[derive(Debug, Error)]
 pub enum KeypairError {
@@ -104,6 +104,16 @@ impl PublicKey {
             true => Ok(public_key),
             false => Err(KeypairError::PublicKeyCorruptPoint(hex::encode(bytes))),
         }
+    }
+
+    /// Generate the default v1 address from the public key
+    pub fn v1_address(&self) -> Address {
+        SpendPolicy::unlock_condition(vec![self.clone()], 0, 1).address()
+    }
+
+    /// Generate the default v2 address from the public key
+    pub fn address(&self) -> Address {
+        SpendPolicy::PublicKey(self.clone()).address()
     }
 }
 
