@@ -31,6 +31,13 @@ pub struct Keypair {
     private: PrivateKey,
 }
 
+// FIXME Critical; this Clone must be removed once DeFi Framework issue#2241 is addressed
+impl Clone for Keypair {
+    fn clone(&self) -> Self {
+        unimplemented!()
+    }
+}
+
 impl Signer<Signature> for Keypair {
     /// Sign a message with this keypair's secret key.
     fn try_sign(&self, message: &[u8]) -> Result<Signature, Ed25519SignatureError> {
