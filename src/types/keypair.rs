@@ -21,8 +21,13 @@ pub enum KeypairError {
     PublicKeyParseBytes(Ed25519SignatureError),
 }
 
+/// A Sia Public-Private Keypair
+/// The purpose of this wrapper type is to limit the functionality of underlying ed25519 types.
+/// The inner fields are not public by design.
+/// We must not allow the consumer to create an invalid ed25519 Keypair or edit the PublicKey after creation.
+/// see https://github.com/advisories/GHSA-w5vr-6qhr-36cc 
 pub struct Keypair {
-    pub public: PublicKey,
+    public: PublicKey,
     private: PrivateKey,
 }
 
@@ -53,6 +58,10 @@ impl Keypair {
 
     pub fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), Ed25519SignatureError> {
         Verifier::verify(self, message, signature)
+    }
+
+    pub fn public(&self) -> PublicKey {
+        self.public.clone()
     }
 }
 
