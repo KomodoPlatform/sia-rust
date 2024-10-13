@@ -1,6 +1,6 @@
 use curve25519_dalek::edwards::CompressedEdwardsY;
 use ed25519_dalek::{ExpandedSecretKey, PublicKey as Ed25519PublicKey, SecretKey,
-                    SignatureError as Ed25519SignatureError, Signer, Verifier};
+                    SignatureError as Ed25519SignatureError, Signer, Verifier, SECRET_KEY_LENGTH};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use thiserror::Error;
@@ -62,6 +62,10 @@ impl Keypair {
 
     pub fn public(&self) -> PublicKey {
         self.public.clone()
+    }
+
+    pub fn private(&self) -> [u8; SECRET_KEY_LENGTH] {
+        self.private.0.to_bytes()
     }
 }
 
