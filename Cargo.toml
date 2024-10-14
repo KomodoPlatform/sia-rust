@@ -18,7 +18,7 @@ blake2b_simd = "0.5"
 chrono = { version = "0.4.23", "features" = ["serde"] }
 log = { version = "0.4.19", "features" = ["std"] }
 hex = "0.4.2"
-reqwest = { version = "0.11.9", features = ["json"]}
+reqwest = { version = "0.11.9", features = ["json", "rustls-tls"] }
 base64 = "0.21.2"
 url = { version = "2.2.2", features = ["serde"] }
 derive_more = "0.99.11"
@@ -45,11 +45,3 @@ wasm-bindgen-test = { version = "0.3.2" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 tokio = { version = "1.28.2", features = ["rt", "macros"] }
-
-
-# TODO; choose between rustls-tls or native-tls for linux target
-# for linux target, this requires an additional dep, `libssl-dev`(debian)
-# either install libssl-dev in all CI's or use rustls-tls
-# All other targets use the system's default ssl implementation
-[target.x86_64-unknown-linux-gnu.dependencies]
-reqwest = { version = "0.11.9", features = ["json", "rustls-tls"] }
