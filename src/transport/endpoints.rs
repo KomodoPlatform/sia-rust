@@ -1,6 +1,5 @@
-use crate::http::client::{ApiClientError, Body, EndpointSchema, EndpointSchemaBuilder, SchemaMethod};
-use crate::transaction::{SiacoinElement, V1Transaction, V2Transaction};
-use crate::types::{Address, BlockID, Currency, Event, H256};
+use crate::transport::client::{ApiClientError, Body, EndpointSchema, EndpointSchemaBuilder, SchemaMethod};
+use crate::types::{Address, BlockID, Event, Hash256, Currency, SiacoinElement, V1Transaction, V2Transaction};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -130,7 +129,7 @@ pub struct AddressBalanceResponse {
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
 #[derive(Deserialize, Serialize, Debug)]
 pub struct GetEventRequest {
-    pub txid: H256,
+    pub txid: Hash256,
 }
 
 impl SiaApiRequest for GetEventRequest {
