@@ -18,7 +18,7 @@ blake2b_simd = "0.5"
 chrono = { version = "0.4.23", "features" = ["serde"] }
 log = { version = "0.4.19", "features" = ["std"] }
 hex = "0.4.2"
-reqwest = { version = "0.11.9", features = ["json", "rustls-tls"] }
+reqwest = { version = "0.11.9", features = ["json", "rustls-tls"], default-features = false }
 base64 = "0.21.2"
 url = { version = "2.2.2", features = ["serde"] }
 derive_more = "0.99.11"
@@ -45,3 +45,5 @@ wasm-bindgen-test = { version = "0.3.2" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 tokio = { version = "1.28.2", features = ["rt", "macros"] }
+
+
