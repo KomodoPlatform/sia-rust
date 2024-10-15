@@ -62,7 +62,7 @@ mod test {
     use super::*;
     use std::convert::TryFrom;
 
-    cross_target_tests!{
+    cross_target_tests! {
         fn test_encoder_default_hash() {
             assert_eq!(
                 Encoder::default().hash(),
