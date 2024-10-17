@@ -40,7 +40,7 @@ pub trait SiaApiRequest: Send {
 /// - [Go Source for the ChainIndex Type](https://github.com/SiaFoundation/core/blob/300042fd2129381468356dcd87c5e9a6ad94c0ef/types/types.go#L194)
 ///
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct ConsensusTipRequest;
 
 impl SiaApiRequest for ConsensusTipRequest {
@@ -51,7 +51,7 @@ impl SiaApiRequest for ConsensusTipRequest {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct ConsensusTipResponse {
     pub height: u64,
     pub id: BlockID,
@@ -80,7 +80,7 @@ pub struct ConsensusTipResponse {
 /// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/6ff23fe34f6fa45a19bfb6e4bacc8a16d2c48144/api/server.go#L752)
 ///
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct AddressBalanceRequest {
     pub address: Address,
 }
@@ -100,7 +100,7 @@ impl SiaApiRequest for AddressBalanceRequest {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct AddressBalanceResponse {
     pub siacoins: Currency,
     #[serde(rename = "immatureSiacoins")]
@@ -127,7 +127,7 @@ pub struct AddressBalanceResponse {
 /// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/134a28b063df60a687899ac33aa373bf461480bc/api/server.go#L828)
 ///
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct GetEventRequest {
     pub txid: Hash256,
 }
@@ -169,7 +169,7 @@ impl SiaApiRequest for GetEventRequest {
 /// - [Go Source for the Event Object](https://github.com/SiaFoundation/walletd/blob/6ff23fe34f6fa45a19bfb6e4bacc8a16d2c48144/wallet/wallet.go#L14)
 ///
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct AddressesEventsRequest {
     pub address: Address,
     pub limit: Option<i64>,
@@ -224,7 +224,7 @@ pub type AddressesEventsResponse = Vec<Event>;
 /// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/6ff23fe34f6fa45a19bfb6e4bacc8a16d2c48144/api/server.go#L795)
 ///
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct GetAddressUtxosRequest {
     pub address: Address,
     pub limit: Option<i64>,
@@ -286,13 +286,13 @@ impl SiaApiRequest for GetAddressUtxosRequest {
 /// - [Go Source for the V2Transaction Type](https://github.com/SiaFoundation/core/blob/300042fd2129381468356dcd87c5e9a6ad94c0ef/types/types.go#L649)
 ///
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct TxpoolBroadcastRequest {
     pub transactions: Vec<V1Transaction>,
     pub v2transactions: Vec<V2Transaction>,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct EmptyResponse;
 
 impl SiaApiRequest for TxpoolBroadcastRequest {
@@ -335,10 +335,10 @@ impl SiaApiRequest for TxpoolBroadcastRequest {
 /// - [Go Source for the Currency Type](https://github.com/SiaFoundation/core/blob/300042fd2129381468356dcd87c5e9a6ad94c0ef/types/currency.go#L26)
 ///
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct TxpoolFeeRequest;
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct TxpoolFeeResponse(pub Currency);
 
 impl SiaApiRequest for TxpoolFeeRequest {
@@ -367,7 +367,7 @@ impl SiaApiRequest for TxpoolFeeRequest {
 /// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/6ff23fe34f6fa45a19bfb6e4bacc8a16d2c48144/api/server.go#L282C18-L282C43)
 ///
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct TxpoolTransactionsRequest;
 
 impl SiaApiRequest for TxpoolTransactionsRequest {
