@@ -120,7 +120,7 @@ pub struct AddressBalanceResponse {
 ///   - [Go Source for Hash256](https://github.com/SiaFoundation/core/blob/300042fd2129381468356dcd87c5e9a6ad94c0ef/types/types.go#L63)
 ///
 /// # Response
-/// - The response is a `GetEventResponse` in Rust, corresponding to `types.Event` in Go.
+/// - The response is an `Event` in Rust, corresponding to `types.Event` in Go.
 ///   - [Go Source for Event](https://github.com/SiaFoundation/walletd/blob/6ff23fe34f6fa45a19bfb6e4bacc8a16d2c48144/wallet/wallet.go#L14)
 ///
 /// # References
@@ -133,7 +133,7 @@ pub struct GetEventRequest {
 }
 
 impl SiaApiRequest for GetEventRequest {
-    type Response = GetEventResponse;
+    type Response = Event;
 
     fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
         // Create the path_params HashMap to substitute {txid} in the path schema
@@ -147,9 +147,6 @@ impl SiaApiRequest for GetEventRequest {
         )
     }
 }
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct GetEventResponse(pub Event);
 
 /// Represents the request-response pair for fetching events for a specific address.
 ///
