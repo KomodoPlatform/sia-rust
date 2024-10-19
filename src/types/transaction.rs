@@ -10,6 +10,10 @@ use std::str::FromStr;
 
 const V2_REPLAY_PREFIX: u8 = 2;
 
+/// A currency amount in the Sia network represented in Hastings, the smallest unit of currency.
+/// 1 SC = 10^24 Hastings
+/// use to_string_hastings() or to_string_siacoin() to display the value.\
+// TODO Alright impl Add, Sub, PartialOrd, etc
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct Currency(pub u128);
 
@@ -213,6 +217,12 @@ impl Encodable for SiafundElement {
     }
 }
 
+
+/// As per, Sia Core a "SiacoinElement is a record of a SiacoinOutput within the state accumulator."
+/// This type is effectively a "UTXO" in Bitcoin terms. 
+/// A SiacoinElement can be combined with a SatisfiedPolicy to create a SiacoinInputV2.
+/// Ported from Sia Core:
+/// https://github.com/SiaFoundation/core/blob/b7ccbe54cccba5642c2bb9d721967214a4ba4e97/types/types.go#L619
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct SiacoinElement {
