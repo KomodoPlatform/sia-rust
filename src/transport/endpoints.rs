@@ -231,10 +231,8 @@ pub struct GetAddressUtxosRequest {
     pub offset: Option<i64>,
 }
 
-pub type GetAddressUtxosResponse = Vec<SiacoinElement>;
-
 impl SiaApiRequest for GetAddressUtxosRequest {
-    type Response = GetAddressUtxosResponse;
+    type Response = Vec<SiacoinElement>;
 
     fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
         let mut path_params = HashMap::new();
