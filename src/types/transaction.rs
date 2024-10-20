@@ -1248,7 +1248,8 @@ impl V2TransactionBuilder {
     }
 
     // input is a special case becuase we cannot generate signatures until after fully constructing the transaction
-    // only the parent field is utilized while encoding the transaction to calculate the signature hash
+    // because of this only the parent field is utilized while encoding the transaction to calculate the signature hash
+    // satisfied_policy effectively acts as a placeholder in this function
     pub fn add_siacoin_input(mut self, parent: SiacoinElement, policy: SpendPolicy) -> Self {
         self.siacoin_inputs.push(SiacoinInputV2 {
             parent,
