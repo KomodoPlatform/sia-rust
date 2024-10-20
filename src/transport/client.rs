@@ -1,6 +1,4 @@
-use crate::transport::endpoints::{AddressBalanceRequest, AddressBalanceResponse, ConsensusTipRequest, SiaApiRequest};
-
-use crate::types::Address;
+use crate::transport::endpoints::SiaApiRequest;
 use async_trait::async_trait;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use serde_json::Value as JsonValue;
@@ -10,6 +8,9 @@ use url::Url;
 
 #[cfg(not(target_arch = "wasm32"))] pub mod native;
 #[cfg(target_arch = "wasm32")] pub mod wasm;
+
+mod helpers;
+pub use helpers::ApiClientHelpers;
 
 // FIXME remove these client specific error types
 #[cfg(not(target_arch = "wasm32"))]
@@ -42,17 +43,6 @@ pub trait ApiClient: Clone {
 
     // TODO default implementation should be possible if Execute::Response is a serde deserializable type
     async fn dispatcher<R: SiaApiRequest>(&self, request: R) -> Result<R::Response, ApiClientError>;
-}
-
-#[async_trait]
-pub trait ApiClientHelpers: ApiClient {
-    async fn current_height(&self) -> Result<u64, ApiClientError> {
-        Ok(self.dispatcher(ConsensusTipRequest).await?.height)
-    }
-
-    async fn address_balance(&self, address: Address) -> Result<AddressBalanceResponse, ApiClientError> {
-        self.dispatcher(AddressBalanceRequest { address }).await
-    }
 }
 
 #[derive(Debug, Error)]
