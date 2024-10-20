@@ -86,6 +86,10 @@ impl Address {
         let hash = standard_unlock_hash(pubkey);
         Address(hash)
     }
+
+    pub fn from_public_key(pubkey: &PublicKey) -> Self {
+        SpendPolicy::PublicKey(pubkey.clone()).address()
+    }
 }
 
 impl Encodable for Address {
