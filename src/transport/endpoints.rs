@@ -12,6 +12,7 @@ const ENDPOINT_EVENTS: &str = "api/events/{txid}";
 const ENDPOINT_TXPOOL_BROADCAST: &str = "api/txpool/broadcast";
 const ENDPOINT_TXPOOL_FEE: &str = "api/txpool/fee";
 const ENDPOINT_TXPOOL_TRANSACTIONS: &str = "api/txpool/transactions";
+const ENDPOINT_DEBUG_MINE: &str = "api/debug/mine";
 
 pub trait SiaApiRequest: Send {
     type Response: DeserializeOwned;
@@ -376,6 +377,50 @@ impl SiaApiRequest for TxpoolTransactionsRequest {
     fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
         Ok(
             EndpointSchemaBuilder::new(ENDPOINT_TXPOOL_TRANSACTIONS.to_owned(), SchemaMethod::Get).build(), // No path_params, query_params, or body needed for this request
+        )
+    }
+}
+
+/// Represents the request-response pair for mining blocks on a Sia node.
+///
+/// # Walletd Endpoint
+/// `POST api/debug/mine`
+///
+/// # Description
+/// Mine n blocks to a specified address. This is a debug endpoint intended to be used on CI/CD test networks only.
+/// This method is only supported on walletd nodes started with `-debug` flag.
+///
+/// # Fields
+/// - `address`: The address where blocks will be mined to. (`types.Address` type in Go)
+///   - [Go Source for Address Type](https://github.com/SiaFoundation/core/blob/300042fd2129381468356dcd87c5e9a6ad94c0ef/types/types.go#L165)
+/// - `blocks`: The amount of blocks to mine. (`int` type in Go)
+///
+/// # Response
+/// - The response is `HTTP 204 NO CONTENT`, which is represented by `EmptyResponse` in Rust.
+///   This indicates that the request was successful but there is no response body.
+///
+/// # References
+/// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/1e56661fa23bb39438ec869c91d661d51bc889a4/api/server.go#L872)
+///
+/// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
+#[derive(Clone, Deserialize, Serialize, Debug)]
+pub struct DebugMineRequest {
+    pub address: Address,
+    pub blocks: i64,
+}
+
+impl SiaApiRequest for DebugMineRequest {
+    type Response = EmptyResponse;
+
+    fn is_empty_response() -> Option<Self::Response> { Some(EmptyResponse) }
+
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
+        // Serialize the request into a JSON string
+        let body = serde_json::to_string(self).map_err(ApiClientError::Serde)?;
+        Ok(
+            EndpointSchemaBuilder::new(ENDPOINT_DEBUG_MINE.to_owned(), SchemaMethod::Post)
+                .body(Body::Utf8(body)) // Set the JSON body for the POST request
+                .build(),
         )
     }
 }
