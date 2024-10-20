@@ -24,7 +24,7 @@ impl Deref for Currency {
 }
 
 impl Currency {
-    const ZERO: Currency = Currency(0);
+    pub const ZERO: Currency = Currency(0);
 }
 
 // TODO does this also need to be able to deserialize from an integer?
