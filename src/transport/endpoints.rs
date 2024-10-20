@@ -156,8 +156,8 @@ impl SiaApiRequest for GetEventRequest {
 ///
 /// # Fields
 /// - `addr`: (`types.Address` in Go) the address for which events are fetched.
-/// - `limit`: (`i64` in Go) optional limit for the number of results.
-/// - `offset`: (`i64` in Go) optional offset for paginated results.
+/// - `limit`: (`int` type in Go) optional limit for the number of results.
+/// - `offset`: (`int` type in Go) optional offset for paginated results.
 ///
 /// # Response
 /// - `[]types.Event` in Go corresponds to `Vec<Event>` in Rust.
@@ -214,8 +214,8 @@ pub type AddressesEventsResponse = Vec<Event>;
 /// # Fields
 /// - `address`: The address for which to fetch UTXOs. In Go, this corresponds to `types.Address`.
 ///   - [Go Source for Address Type](https://github.com/SiaFoundation/core/blob/300042fd2129381468356dcd87c5e9a6ad94c0ef/types/types.go#L165)
-/// - `limit`: An optional limit on the number of results. Corresponds to `i64` in Go.
-/// - `offset`: An optional offset for paginated results. Corresponds to `i64` in Go.
+/// - `limit`: An optional limit on the number of results. Corresponds to `int64` in Go.
+/// - `offset`: An optional offset for paginated results. Corresponds to `int64` in Go.
 ///
 /// # Response
 /// - The response is a `Vec<SiacoinElement>` in Rust, corresponding to `[]types.SiacoinElement` in Go.
