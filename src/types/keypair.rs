@@ -126,6 +126,10 @@ impl PublicKey {
     pub fn address(&self) -> Address {
         SpendPolicy::PublicKey(self.clone()).address()
     }
+
+    pub fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), SignatureError> {
+        Verifier::verify(self, message, signature).map_err(SignatureError::VerifyFailed)
+    }
 }
 
 impl FromStr for PublicKey {
