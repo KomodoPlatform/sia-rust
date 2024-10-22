@@ -944,14 +944,8 @@ impl Encodable for SiafundInputV1 {
     }
 }
 // TODO possible this can just hold a ref to V1Transaction like CurrencyVersion
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deref, Deserialize, Serialize)]
 pub struct V1TransactionSansSigs(V1Transaction);
-
-impl Deref for V1TransactionSansSigs {
-    type Target = V1Transaction;
-
-    fn deref(&self) -> &Self::Target { &self.0 }
-}
 
 impl Encodable for V1TransactionSansSigs {
     fn encode(&self, encoder: &mut Encoder) {
