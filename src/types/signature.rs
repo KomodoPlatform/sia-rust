@@ -1,6 +1,8 @@
+use crate::types::keypair::PublicKey;
+
 use curve25519_dalek::edwards::CompressedEdwardsY;
 use ed25519_dalek::ed25519::signature::{Error as SignatureCrateError, Signature as SignatureTrait};
-use ed25519_dalek::{Signature as Ed25519Signature, SIGNATURE_LENGTH};
+use ed25519_dalek::{Signature as Ed25519Signature, SignatureError as Ed25519SignatureError, SIGNATURE_LENGTH};    
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::str::FromStr;
@@ -68,6 +70,10 @@ impl Signature {
 
         // Create a CompressedEdwardsY point from the first 32 bytes
         CompressedEdwardsY::from_slice(r_bytes).decompress().is_some()
+    }
+
+    pub fn verify(&self, message: &[u8], public_key: &PublicKey) -> Result<(), SignatureError> {
+        public_key.verify(message, &self)
     }
 }
 
