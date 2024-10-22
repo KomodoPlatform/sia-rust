@@ -64,14 +64,6 @@ impl From<u64> for Currency {
     fn from(value: u64) -> Self { Currency(value.into()) }
 }
 
-impl From<i32> for Currency {
-    fn from(value: i32) -> Self { Currency(value as u128) }
-}
-
-impl From<u128> for Currency {
-    fn from(value: u128) -> Self { Currency(value) }
-}
-
 // Currency remains the same data structure between V1 and V2 however the encoding changes
 #[derive(Clone, Debug)]
 pub enum CurrencyVersion<'a> {
