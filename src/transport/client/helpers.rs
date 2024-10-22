@@ -32,7 +32,7 @@ pub trait ApiClientHelpers: ApiClient {
         self.dispatcher(GetAddressUtxosRequest { address: address.clone(), limit, offset }).await
     }
 
-    /// Fetches unspent outputs for the given address and attemopts to select a subset of outputs
+    /// Fetches unspent outputs for the given address and attempts to select a subset of outputs
     /// whose total value is at least `total_amount`. The outputs are sorted from largest to smallest to minimize
     /// the number of outputs selected. The function returns a vector of the selected outputs and the difference between
     /// the total value of the selected outputs and the required amount, aka the change.
