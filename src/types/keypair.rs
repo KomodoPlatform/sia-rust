@@ -3,6 +3,7 @@ use ed25519_dalek::{ExpandedSecretKey, PublicKey as Ed25519PublicKey, SecretKey,
                     SignatureError as Ed25519SignatureError, Signer, Verifier, SECRET_KEY_LENGTH};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
+use std::str::FromStr;
 use thiserror::Error;
 
 use crate::types::{Address, SpendPolicy, Signature};
@@ -127,6 +128,18 @@ impl PublicKey {
     /// Generate the default v2 address from the public key
     pub fn address(&self) -> Address {
         SpendPolicy::PublicKey(self.clone()).address()
+    }
+}
+
+impl FromStr for PublicKey {
+    type Err = PublicKeyError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Some(hex_str) = s.strip_prefix("ed25519:") {
+            PublicKey::from_str_no_prefix(hex_str)
+        } else {
+            Err(PublicKeyError::InvalidHex(s.to_string()))
+        }
     }
 }
 
