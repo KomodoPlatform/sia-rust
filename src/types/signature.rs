@@ -8,12 +8,14 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum SignatureError {
-    #[error("parsing error: expected 64 byte hex string ed25519 signature prefixed with 'sig:', found {0}")]
+    #[error("signature parsing failed: expected 64 byte hex string ed25519 signature prefixed with 'sig:', found {0}")]
     Parse(#[from] ed25519_dalek::ed25519::Error),
-    #[error("invalid prefix: expected 64 byte hex string ed25519 signature prefixed with 'sig:', found {0}")]
+    #[error("invalid signature prefix: expected 64 byte hex string ed25519 signature prefixed with 'sig:', found {0}")]
     InvalidPrefix(String),
-    #[error("corrupt R point: expected 64 byte hex string ed25519 signature prefixed with 'sig:', found {0}")]
+    #[error("invalid signature, corrupt R point: expected 64 byte hex string ed25519 signature prefixed with 'sig:', found {0}")]
     CorruptRPoint(String),
+    #[error("signature verification failed: {0}")]
+    VerifyFailed(Ed25519SignatureError),
 }
 
 #[derive(Clone, Debug, PartialEq)]
