@@ -1,11 +1,11 @@
 use crate::encoding::{Encodable, Encoder};
 use crate::types::{Address, ChainIndex, Hash256, Keypair, PublicKey, Signature, SpendPolicy, UnlockCondition, UnlockKey};
 use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
+use derive_more::{Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign, Display, From, Into, Sum, Deref};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
-use std::ops::Deref;
 use std::str::FromStr;
 
 const V2_REPLAY_PREFIX: u8 = 2;
@@ -14,14 +14,8 @@ const V2_REPLAY_PREFIX: u8 = 2;
 /// 1 SC = 10^24 Hastings
 /// use to_string_hastings() or to_string_siacoin() to display the value.\
 // TODO Alright impl Add, Sub, PartialOrd, etc
-#[derive(Copy, Clone, Debug, Default, PartialEq)]
+#[derive(Copy, Clone, Debug, Deref, Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign, PartialEq, Eq, PartialOrd, Ord, Display, Default, From, Into, Sum)]
 pub struct Currency(pub u128);
-
-impl Deref for Currency {
-    type Target = u128;
-
-    fn deref(&self) -> &Self::Target { &self.0 }
-}
 
 impl Currency {
     pub const ZERO: Currency = Currency(0);
