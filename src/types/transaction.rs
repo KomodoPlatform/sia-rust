@@ -19,6 +19,8 @@ pub struct Currency(pub u128);
 
 impl Currency {
     pub const ZERO: Currency = Currency(0);
+
+    pub const COIN: Currency = Currency(1e24 as u128);
 }
 
 // TODO does this also need to be able to deserialize from an integer?
