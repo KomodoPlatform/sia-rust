@@ -17,7 +17,7 @@ mod signature;
 pub use signature::{Signature, SignatureError};
 
 mod keypair;
-pub use keypair::{Keypair, KeypairError, PublicKey};
+pub use keypair::{Keypair, PublicKeyError, PublicKey, PrivateKeyError};
 
 mod spend_policy;
 pub use spend_policy::*;
