@@ -898,7 +898,8 @@ impl Encodable for V1ArbitraryData {
     }
 }
 /*
-While implementing this, we faced two options.
+While implementing 
+, we faced two options.
     1.) Treat every field as an Option<>
     2.) Always initialize every empty field as a Vec<>
 
@@ -1229,9 +1230,12 @@ impl V2TransactionBuilder {
         self
     }
 
-    // input is a special case becuase we cannot generate signatures until after fully constructing the transaction
-    // because of this only the parent field is utilized while encoding the transaction to calculate the signature hash
-    // satisfied_policy effectively acts as a placeholder in this function
+    /* Input is a special case becuase we cannot generate signatures until after fully constructing 
+    the transaction. Only the parent field is utilized while encoding the transaction to
+    calculate the signature hash.
+    Policy is included here to give any signing function or method a schema for producing a
+    signature for the input. Do not use this method if you are manually creating SatisfiedPolicys.
+    Use siacoin_inputs() to add fully formed inputs instead. */
     pub fn add_siacoin_input(mut self, parent: SiacoinElement, policy: SpendPolicy) -> Self {
         self.siacoin_inputs.push(SiacoinInputV2 {
             parent,
