@@ -40,13 +40,6 @@ impl Signer<Signature> for Keypair {
     }
 }
 
-impl Verifier<Signature> for Keypair {
-    /// Verify a signature on a message with this keypair's public key.
-    fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), Ed25519SignatureError> {
-        self.public.0.verify(message, &signature.0)
-    }
-}
-
 impl Keypair {
     pub fn from_private_bytes(bytes: &[u8]) -> Result<Self, KeypairError> {
         let secret = SecretKey::from_bytes(bytes).map_err(KeypairError::InvalidSecretKey)?;
@@ -57,8 +50,9 @@ impl Keypair {
 
     pub fn sign(&self, message: &[u8]) -> Signature { Signer::sign(self, message) }
 
-    pub fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), Ed25519SignatureError> {
-        Verifier::verify(self, message, signature)
+     /// Verify a signature of a message with this keypair's public key.
+    pub fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), SignatureError> {
+        self.public.verify(message, signature)
     }
 
     pub fn public(&self) -> PublicKey {
