@@ -6,20 +6,23 @@ use std::fmt;
 use std::str::FromStr;
 use thiserror::Error;
 
-use crate::types::{Address, SpendPolicy, Signature};
+use crate::types::{Address, SpendPolicy, Signature, SignatureError};
 
 #[derive(Debug, Error)]
-pub enum KeypairError {
-    #[error("invalid secret key: {0}")]
-    InvalidSecretKey(Ed25519SignatureError),
+pub enum PublicKeyError {
     #[error("invalid public key length: expected 32 byte hex string prefixed with 'ed25519:', found {0}")]
-    PublicKeyInvalidLength(String),
-    #[error("public key invalid hex: expected 32 byte hex string prefixed with 'ed25519:', found {0}")]
-    PublicKeyInvalidHex(String),
+    InvalidLength(String),
+    #[error("public key invalid hex: expected 32 byte hex string, found {0}")]
+    InvalidHex(String),
     #[error("public key invalid: corrupt curve point {0}")]
-    PublicKeyCorruptPoint(String),
+    CorruptPoint(String),
     #[error("public key invalid: from_bytes failed {0}")]
-    PublicKeyParseBytes(Ed25519SignatureError),
+    ParseBytes(Ed25519SignatureError),
+}
+#[derive(Debug, Error)]
+pub enum PrivateKeyError {
+    #[error("invalid private key: from_bytes failed {0}")]
+    InvalidPrivateKey(Ed25519SignatureError),
 }
 
 /// A Sia Public-Private Keypair
@@ -41,8 +44,8 @@ impl Signer<Signature> for Keypair {
 }
 
 impl Keypair {
-    pub fn from_private_bytes(bytes: &[u8]) -> Result<Self, KeypairError> {
-        let secret = SecretKey::from_bytes(bytes).map_err(KeypairError::InvalidSecretKey)?;
+    pub fn from_private_bytes(bytes: &[u8]) -> Result<Self, PrivateKeyError> {
+        let secret = SecretKey::from_bytes(bytes).map_err(PrivateKeyError::InvalidPrivateKey)?;
         let public = PublicKey(Ed25519PublicKey::from(&secret));
         let private = PrivateKey(secret);
         Ok(Keypair { public, private })
@@ -70,21 +73,21 @@ struct PrivateKey(SecretKey);
 pub struct PublicKey(pub Ed25519PublicKey);
 
 impl Verifier<Signature> for PublicKey {
-    /// Verify a signature on a message with this keypair's public key.
+    /// Verify a signature of a message with this keypair's public key.
     fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), Ed25519SignatureError> {
         self.0.verify(message, &signature.0)
     }
 }
 
 impl PublicKey {
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, KeypairError> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, PublicKeyError> {
         let public_key = Ed25519PublicKey::from_bytes(bytes)
             .map(PublicKey)
-            .map_err(KeypairError::PublicKeyParseBytes)?;
+            .map_err(PublicKeyError::ParseBytes)?;
 
         match public_key.validate_point() {
             true => Ok(public_key),
-            false => Err(KeypairError::PublicKeyCorruptPoint(hex::encode(bytes))),
+            false => Err(PublicKeyError::CorruptPoint(hex::encode(bytes))),
         }
     }
 
@@ -101,16 +104,16 @@ impl PublicKey {
     pub fn to_bytes(&self) -> [u8; 32] { self.0.to_bytes() }
 
     // Method for parsing a hex string without the "ed25519:" prefix
-    pub fn from_str_no_prefix(hex_str: &str) -> Result<Self, KeypairError> {
+    pub fn from_str_no_prefix(hex_str: &str) -> Result<Self, PublicKeyError> {
         let mut bytes = [0u8; 32];
         hex::decode_to_slice(hex_str, &mut bytes)
-            .map_err(|_| KeypairError::PublicKeyInvalidHex(hex_str.to_string()))?;
+            .map_err(|_| PublicKeyError::InvalidHex(hex_str.to_string()))?;
 
         let public_key = Self::from_bytes(&bytes)?;
 
         match public_key.validate_point() {
             true => Ok(public_key),
-            false => Err(KeypairError::PublicKeyCorruptPoint(hex::encode(bytes))),
+            false => Err(PublicKeyError::CorruptPoint(hex::encode(bytes))),
         }
     }
 
