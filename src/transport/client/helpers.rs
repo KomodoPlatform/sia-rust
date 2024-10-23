@@ -1,16 +1,16 @@
 use super::{ApiClient, ApiClientError};
-use crate::transport::endpoints::{AddressBalanceRequest, ConsensusTipRequest, GetAddressUtxosRequest, AddressBalanceResponse};
-use crate::types::{Address, Currency, SiacoinElement, V2TransactionBuilder, PublicKey, SpendPolicy};
+use crate::transport::endpoints::{AddressBalanceRequest, AddressBalanceResponse, ConsensusTipRequest,
+                                  GetAddressUtxosRequest};
+use crate::types::{Address, Currency, PublicKey, SiacoinElement, SpendPolicy, V2TransactionBuilder};
 use async_trait::async_trait;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum ApiClientHelpersError {
-    #[error("ApiClientHelpersError::SelectOutputs: insufficent amount, available: {available:?} required: {required:?}")]
-    SelectOutputs {
-        available: Currency,
-        required: Currency,
-    },
+    #[error(
+        "ApiClientHelpersError::SelectOutputs: insufficent amount, available: {available:?} required: {required:?}"
+    )]
+    SelectOutputs { available: Currency, required: Currency },
     #[error("ApiClientHelpersError::ApiClientError: {0}")]
     ApiClientError(#[from] ApiClientError),
 }
@@ -28,8 +28,18 @@ pub trait ApiClientHelpers: ApiClient {
         self.dispatcher(AddressBalanceRequest { address }).await
     }
 
-    async fn get_unspent_outputs(&self, address: &Address, limit: Option<i64>, offset: Option<i64>) -> Result<Vec<SiacoinElement>, ApiClientError> {
-        self.dispatcher(GetAddressUtxosRequest { address: address.clone(), limit, offset }).await
+    async fn get_unspent_outputs(
+        &self,
+        address: &Address,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<SiacoinElement>, ApiClientError> {
+        self.dispatcher(GetAddressUtxosRequest {
+            address: address.clone(),
+            limit,
+            offset,
+        })
+        .await
     }
 
     /// Fetches unspent outputs for the given address and attempts to select a subset of outputs
@@ -46,7 +56,11 @@ pub trait ApiClientHelpers: ApiClient {
     /// This function returns `Result<(Vec<SiacoinElement>, Currency), ApiClientHelpersError>`:
     /// * `Ok((Vec<SiacoinElement>, Currency))` - A tuple containing, a vector of the selected unspent outputs and the change amount.
     /// * `Err(MmError<SelectOutputsError>)` - An error is returned if the available outputs cannot meet the required amount or a transport error is encountered.
-    async fn select_unspent_outputs(&self, address: &Address, total_amount: Currency) -> Result<(Vec<SiacoinElement>, Currency), ApiClientHelpersError> {
+    async fn select_unspent_outputs(
+        &self,
+        address: &Address,
+        total_amount: Currency,
+    ) -> Result<(Vec<SiacoinElement>, Currency), ApiClientHelpersError> {
         let mut unspent_outputs = self.get_unspent_outputs(address, None, None).await?;
 
         // Sort outputs from largest to smallest
@@ -87,12 +101,17 @@ pub trait ApiClientHelpers: ApiClient {
     /// * `miner_fee` - The amount to pay to the miner.
     /// # Returns
     /// * `Ok(Currency)` - The difference between inputs and outputs that would be paid to the miner.
-    async fn fund_tx_single_source(&self, tx_builder: &mut V2TransactionBuilder, public_key: &PublicKey, miner_fee: Currency) -> Result<(), ApiClientHelpersError> {
+    async fn fund_tx_single_source(
+        &self,
+        tx_builder: &mut V2TransactionBuilder,
+        public_key: &PublicKey,
+        miner_fee: Currency,
+    ) -> Result<(), ApiClientHelpersError> {
         let address = public_key.address();
-        let outputs_total : Currency = tx_builder.siacoin_outputs.iter().map(|output| output.value).sum();
+        let outputs_total: Currency = tx_builder.siacoin_outputs.iter().map(|output| output.value).sum();
 
         // select utxos from public key's address that total at least the sum of outputs and miner fee
-        let (selected_utxos, change) = self.select_unspent_outputs(&address, outputs_total+miner_fee).await?;
+        let (selected_utxos, change) = self.select_unspent_outputs(&address, outputs_total + miner_fee).await?;
         // FIXME OMAR take a look
         // add selected utxos as inputs to the transaction
         for utxo in &selected_utxos {

@@ -1,6 +1,6 @@
 use crate::blake2b_internal::{public_key_leaf, sigs_required_leaf, standard_unlock_hash, timelock_leaf, Accumulator};
 use crate::encoding::{Encodable, Encoder};
-use crate::types::{Address, Hash256, PublicKey, Signature, Specifier, Preimage, SatisfiedPolicy};
+use crate::types::{Address, Hash256, Preimage, PublicKey, SatisfiedPolicy, Signature, Specifier};
 use nom::bytes::complete::{take_until, take_while, take_while_m_n};
 use nom::character::complete::char;
 use nom::combinator::all_consuming;
@@ -184,29 +184,24 @@ impl SpendPolicy {
     pub fn atomic_swap(alice: PublicKey, bob: PublicKey, lock_time: u64, hash: Hash256) -> Self {
         let policy_after = SpendPolicy::After(lock_time);
         let policy_hash = SpendPolicy::Hash(hash);
-    
+
         let policy_success = SpendPolicy::Threshold {
             n: 2,
             of: vec![SpendPolicy::PublicKey(alice), policy_hash],
         };
-    
+
         let policy_refund = SpendPolicy::Threshold {
             n: 2,
             of: vec![SpendPolicy::PublicKey(bob), policy_after],
         };
-    
+
         SpendPolicy::Threshold {
             n: 1,
             of: vec![policy_success, policy_refund],
         }
     }
 
-    pub fn atomic_swap_success(
-        alice: PublicKey,
-        bob: PublicKey,
-        lock_time: u64,
-        hash: Hash256,
-    ) -> Self {
+    pub fn atomic_swap_success(alice: PublicKey, bob: PublicKey, lock_time: u64, hash: Hash256) -> Self {
         match Self::atomic_swap(alice, bob, lock_time, hash) {
             SpendPolicy::Threshold { n, mut of } => {
                 of[1] = of[1].opacify();

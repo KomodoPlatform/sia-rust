@@ -1,7 +1,8 @@
 use crate::encoding::{Encodable, Encoder};
-use crate::types::{Address, ChainIndex, Hash256, Keypair, PublicKey, Signature, SpendPolicy, UnlockCondition, UnlockKey};
+use crate::types::{Address, ChainIndex, Hash256, Keypair, PublicKey, Signature, SpendPolicy, UnlockCondition,
+                   UnlockKey};
 use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
-use derive_more::{Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign, Display, From, Into, Sum, Deref};
+use derive_more::{Add, AddAssign, Deref, Display, Div, DivAssign, From, Into, Mul, MulAssign, Sub, SubAssign, Sum};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use std::convert::{TryFrom, TryInto};
@@ -14,7 +15,29 @@ const V2_REPLAY_PREFIX: u8 = 2;
 /// 1 SC = 10^24 Hastings
 /// use to_string_hastings() or to_string_siacoin() to display the value.\
 // TODO Alright impl Add, Sub, PartialOrd, etc
-#[derive(Copy, Clone, Debug, Deref, Add, Sub, Mul, Div, AddAssign, SubAssign, MulAssign, DivAssign, PartialEq, Eq, PartialOrd, Ord, Display, Default, From, Into, Sum)]
+#[derive(
+    Copy,
+    Clone,
+    Debug,
+    Deref,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    AddAssign,
+    SubAssign,
+    MulAssign,
+    DivAssign,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Display,
+    Default,
+    From,
+    Into,
+    Sum,
+)]
 pub struct Currency(pub u128);
 
 impl Currency {
@@ -209,9 +232,8 @@ impl Encodable for SiafundElement {
     }
 }
 
-
 /// As per, Sia Core a "SiacoinElement is a record of a SiacoinOutput within the state accumulator."
-/// This type is effectively a "UTXO" in Bitcoin terms. 
+/// This type is effectively a "UTXO" in Bitcoin terms.
 /// A SiacoinElement can be combined with a SatisfiedPolicy to create a SiacoinInputV2.
 /// Ported from Sia Core:
 /// https://github.com/SiaFoundation/core/blob/b7ccbe54cccba5642c2bb9d721967214a4ba4e97/types/types.go#L619
@@ -391,11 +413,21 @@ pub struct SiacoinOutput {
 }
 
 impl From<(Currency, Address)> for SiacoinOutput {
-    fn from(tuple: (Currency, Address)) -> Self { SiacoinOutput { value: tuple.0, address: tuple.1 } }
+    fn from(tuple: (Currency, Address)) -> Self {
+        SiacoinOutput {
+            value: tuple.0,
+            address: tuple.1,
+        }
+    }
 }
 
 impl From<(Address, Currency)> for SiacoinOutput {
-    fn from(tuple: (Address, Currency)) -> Self { SiacoinOutput { address: tuple.0, value: tuple.1 } }
+    fn from(tuple: (Address, Currency)) -> Self {
+        SiacoinOutput {
+            address: tuple.0,
+            value: tuple.1,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
@@ -910,7 +942,7 @@ impl Encodable for V1ArbitraryData {
     }
 }
 /*
-While implementing 
+While implementing
 , we faced two options.
     1.) Treat every field as an Option<>
     2.) Always initialize every empty field as a Vec<>
@@ -1243,7 +1275,7 @@ impl V2TransactionBuilder {
         self
     }
 
-    /* Input is a special case becuase we cannot generate signatures until after fully constructing 
+    /* Input is a special case becuase we cannot generate signatures until after fully constructing
     the transaction. Only the parent field is utilized while encoding the transaction to
     calculate the signature hash.
     Policy is included here to give any signing function or method a schema for producing a

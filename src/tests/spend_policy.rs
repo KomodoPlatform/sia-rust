@@ -1,5 +1,3 @@
-
-
 #[cfg(test)]
 mod test {
     use crate::types::{Address, Hash256, PublicKey, SpendPolicy, UnlockCondition, UnlockKey};

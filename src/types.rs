@@ -17,7 +17,7 @@ mod signature;
 pub use signature::{Signature, SignatureError};
 
 mod keypair;
-pub use keypair::{Keypair, PublicKeyError, PublicKey, PrivateKeyError};
+pub use keypair::{Keypair, PrivateKeyError, PublicKey, PublicKeyError};
 
 mod spend_policy;
 pub use spend_policy::*;
@@ -87,9 +87,7 @@ impl Address {
         Address(hash)
     }
 
-    pub fn from_public_key(pubkey: &PublicKey) -> Self {
-        SpendPolicy::PublicKey(pubkey.clone()).address()
-    }
+    pub fn from_public_key(pubkey: &PublicKey) -> Self { SpendPolicy::PublicKey(pubkey.clone()).address() }
 }
 
 impl Encodable for Address {

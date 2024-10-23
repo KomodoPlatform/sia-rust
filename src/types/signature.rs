@@ -2,7 +2,7 @@ use crate::types::keypair::PublicKey;
 
 use curve25519_dalek::edwards::CompressedEdwardsY;
 use ed25519_dalek::ed25519::signature::{Error as SignatureCrateError, Signature as SignatureTrait};
-use ed25519_dalek::{Signature as Ed25519Signature, SignatureError as Ed25519SignatureError, SIGNATURE_LENGTH};    
+use ed25519_dalek::{Signature as Ed25519Signature, SignatureError as Ed25519SignatureError, SIGNATURE_LENGTH};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::str::FromStr;

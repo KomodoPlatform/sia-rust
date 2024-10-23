@@ -6,7 +6,7 @@ use std::fmt;
 use std::str::FromStr;
 use thiserror::Error;
 
-use crate::types::{Address, SpendPolicy, Signature, SignatureError};
+use crate::types::{Address, Signature, SignatureError, SpendPolicy};
 
 #[derive(Debug, Error)]
 pub enum PublicKeyError {
@@ -29,7 +29,7 @@ pub enum PrivateKeyError {
 /// The purpose of this wrapper type is to limit the functionality of underlying ed25519 types.
 /// The inner fields are not public by design.
 /// We must not allow the consumer to create an invalid ed25519 Keypair or edit the PublicKey after creation.
-/// see https://github.com/advisories/GHSA-w5vr-6qhr-36cc 
+/// see https://github.com/advisories/GHSA-w5vr-6qhr-36cc
 pub struct Keypair {
     public: PublicKey,
     private: PrivateKey,
@@ -53,18 +53,14 @@ impl Keypair {
 
     pub fn sign(&self, message: &[u8]) -> Signature { Signer::sign(self, message) }
 
-     /// Verify a signature of a message with this keypair's public key.
+    /// Verify a signature of a message with this keypair's public key.
     pub fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), SignatureError> {
         self.public.verify(message, signature)
     }
 
-    pub fn public(&self) -> PublicKey {
-        self.public.clone()
-    }
+    pub fn public(&self) -> PublicKey { self.public.clone() }
 
-    pub fn private(&self) -> [u8; SECRET_KEY_LENGTH] {
-        self.private.0.to_bytes()
-    }
+    pub fn private(&self) -> [u8; SECRET_KEY_LENGTH] { self.private.0.to_bytes() }
 }
 
 struct PrivateKey(SecretKey);
@@ -106,8 +102,7 @@ impl PublicKey {
     // Method for parsing a hex string without the "ed25519:" prefix
     pub fn from_str_no_prefix(hex_str: &str) -> Result<Self, PublicKeyError> {
         let mut bytes = [0u8; 32];
-        hex::decode_to_slice(hex_str, &mut bytes)
-            .map_err(|_| PublicKeyError::InvalidHex(hex_str.to_string()))?;
+        hex::decode_to_slice(hex_str, &mut bytes).map_err(|_| PublicKeyError::InvalidHex(hex_str.to_string()))?;
 
         let public_key = Self::from_bytes(&bytes)?;
 
@@ -118,14 +113,10 @@ impl PublicKey {
     }
 
     /// Generate the default v1 address from the public key
-    pub fn v1_address(&self) -> Address {
-        SpendPolicy::unlock_condition(vec![self.clone()], 0, 1).address()
-    }
+    pub fn v1_address(&self) -> Address { SpendPolicy::unlock_condition(vec![self.clone()], 0, 1).address() }
 
     /// Generate the default v2 address from the public key
-    pub fn address(&self) -> Address {
-        SpendPolicy::PublicKey(self.clone()).address()
-    }
+    pub fn address(&self) -> Address { SpendPolicy::PublicKey(self.clone()).address() }
 
     pub fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), SignatureError> {
         Verifier::verify(self, message, signature).map_err(SignatureError::VerifyFailed)
