@@ -1,20 +1,35 @@
 use crate::blake2b_internal::standard_unlock_hash;
-use crate::encoding::{Encodable, Encoder, PrefixedH256};
-pub use crate::hash::H256;
-pub use crate::transaction::Currency;
-use crate::transaction::{FileContractElementV1, SiacoinElement, SiafundElement, StateElement, V1Transaction,
-                         V2FileContractResolution, V2Transaction};
-use crate::PublicKey;
+use crate::encoding::{Encodable, Encoder};
 use blake2b_simd::Params;
 use chrono::{DateTime, Utc};
 use hex::FromHexError;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
-use serde_with::{serde_as, FromInto};
 use std::convert::From;
 use std::convert::TryInto;
 use std::fmt;
 use std::str::FromStr;
+
+mod hash;
+pub use hash::{Hash256, ParseHashError};
+
+mod signature;
+pub use signature::{Signature, SignatureError};
+
+mod keypair;
+pub use keypair::{Keypair, PrivateKeyError, PublicKey, PublicKeyError};
+
+mod spend_policy;
+pub use spend_policy::*;
+
+mod transaction;
+pub use transaction::*;
+
+mod specifier;
+pub use specifier::*;
+
+mod atomic_swap;
+pub use atomic_swap::*;
 
 const ADDRESS_HASH_LENGTH: usize = 32;
 const ADDRESS_CHECKSUM_LENGTH: usize = 6;
@@ -22,7 +37,7 @@ const ADDRESS_CHECKSUM_LENGTH: usize = 6;
 // TODO this could probably include the checksum within the data type
 // generating the checksum on the fly is how Sia Go does this however
 #[derive(Debug, Clone, PartialEq)]
-pub struct Address(pub H256);
+pub struct Address(pub Hash256);
 
 impl Serialize for Address {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -66,6 +81,13 @@ impl Address {
         let checksum = blake2b_checksum(bytes);
         format!("{}{}", hex::encode(bytes), hex::encode(checksum))
     }
+
+    pub fn standard_address_v1(pubkey: &PublicKey) -> Self {
+        let hash = standard_unlock_hash(pubkey);
+        Address(hash)
+    }
+
+    pub fn from_public_key(pubkey: &PublicKey) -> Self { SpendPolicy::PublicKey(pubkey.clone()).address() }
 }
 
 impl Encodable for Address {
@@ -121,7 +143,7 @@ impl FromStr for Address {
             return Err(ParseAddressError::InvalidChecksum);
         }
 
-        Ok(Address(H256::from(address_bytes)))
+        Ok(Address(Hash256(address_bytes)))
     }
 }
 
@@ -132,20 +154,15 @@ fn blake2b_checksum(preimage: &[u8]) -> [u8; 6] {
     hash.as_bytes()[0..6].try_into().expect("array is 64 bytes long")
 }
 
-pub fn v1_standard_address_from_pubkey(pubkey: &PublicKey) -> Address {
-    let hash = standard_unlock_hash(pubkey);
-    Address(hash)
-}
-
 #[derive(Clone, Debug, PartialEq)]
-pub struct BlockID(pub H256);
+pub struct BlockID(pub Hash256);
 
-impl From<BlockID> for H256 {
+impl From<BlockID> for Hash256 {
     fn from(sia_hash: BlockID) -> Self { sia_hash.0 }
 }
 
-impl From<H256> for BlockID {
-    fn from(h256: H256) -> Self { BlockID(h256) }
+impl From<Hash256> for BlockID {
+    fn from(h256: Hash256) -> Self { BlockID(h256) }
 }
 
 impl<'de> Deserialize<'de> for BlockID {
@@ -167,7 +184,7 @@ impl<'de> Deserialize<'de> for BlockID {
                 E: serde::de::Error,
             {
                 if let Some(hex_str) = value.strip_prefix("bid:") {
-                    H256::from_str(hex_str)
+                    Hash256::from_str_no_prefix(hex_str)
                         .map(BlockID)
                         .map_err(|_| E::invalid_value(serde::de::Unexpected::Str(value), &self))
                 } else {
@@ -190,7 +207,7 @@ impl Serialize for BlockID {
 }
 
 impl fmt::Display for BlockID {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "bid:{}", self.0) }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "bid:{:02x}", self.0) }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -203,7 +220,7 @@ pub struct ChainIndex {
 impl Encodable for ChainIndex {
     fn encode(&self, encoder: &mut Encoder) {
         encoder.write_u64(self.height);
-        let block_id: H256 = self.id.clone().into();
+        let block_id: Hash256 = self.id.clone().into();
         block_id.encode(encoder);
     }
 }
@@ -242,11 +259,9 @@ pub enum EventType {
     V2ContractResolution,
 }
 
-#[serde_as]
 #[derive(Clone, Debug, Serialize)]
 pub struct Event {
-    #[serde_as(as = "FromInto<PrefixedH256>")]
-    pub id: H256,
+    pub id: Hash256,
     pub index: ChainIndex,
     pub timestamp: DateTime<Utc>,
     #[serde(rename = "maturityHeight")]
@@ -265,7 +280,7 @@ impl<'de> Deserialize<'de> for Event {
     {
         #[derive(Deserialize, Debug)]
         struct EventHelper {
-            id: PrefixedH256,
+            id: Hash256,
             index: ChainIndex,
             timestamp: DateTime<Utc>,
             #[serde(rename = "maturityHeight")]
