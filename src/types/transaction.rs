@@ -21,6 +21,10 @@ impl Currency {
     pub const ZERO: Currency = Currency(0);
 
     pub const COIN: Currency = Currency(1e24 as u128);
+
+    /// The minimum amount of currency for a transaction output
+    // FIXME this is a placeholder value until testing is complete
+    pub const DUST: Currency = Currency(1_000_000);
 }
 
 // TODO does this also need to be able to deserialize from an integer?
