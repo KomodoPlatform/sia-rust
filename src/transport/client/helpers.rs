@@ -6,7 +6,7 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum ApiClientHelpersError {
-    #[error("ApiClientHelpersError::SelectOutputs: insufficent amount, available: {:?} required: {:?}", .available, .required)]
+    #[error("ApiClientHelpersError::SelectOutputs: insufficent amount, available: {available:?} required: {required:?}")]
     SelectOutputs {
         available: Currency,
         required: Currency,
