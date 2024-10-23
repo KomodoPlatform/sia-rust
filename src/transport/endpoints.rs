@@ -1,5 +1,5 @@
 use crate::transport::client::{ApiClientError, Body, EndpointSchema, EndpointSchemaBuilder, SchemaMethod};
-use crate::types::{Address, BlockID, Event, Hash256, Currency, SiacoinElement, V1Transaction, V2Transaction};
+use crate::types::{Address, BlockID, Currency, Event, Hash256, SiacoinElement, V1Transaction, V2Transaction};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
