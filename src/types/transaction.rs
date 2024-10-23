@@ -1087,6 +1087,7 @@ impl Encodable for V2Transaction {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct V2TransactionBuilder {
     pub siacoin_inputs: Vec<SiacoinInputV2>,
     pub siacoin_outputs: Vec<SiacoinOutput>,
