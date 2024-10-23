@@ -1076,17 +1076,17 @@ impl Encodable for V2Transaction {
 }
 
 pub struct V2TransactionBuilder {
-    siacoin_inputs: Vec<SiacoinInputV2>,
-    siacoin_outputs: Vec<SiacoinOutput>,
-    siafund_inputs: Vec<SiafundInputV2>,
-    siafund_outputs: Vec<SiafundOutput>,
-    file_contracts: Vec<V2FileContract>,
-    file_contract_revisions: Vec<FileContractRevisionV2>,
-    file_contract_resolutions: Vec<V2FileContractResolution>,
-    attestations: Vec<Attestation>,
-    arbitrary_data: Vec<u8>,
-    new_foundation_address: Option<Address>,
-    miner_fee: Currency,
+    pub siacoin_inputs: Vec<SiacoinInputV2>,
+    pub siacoin_outputs: Vec<SiacoinOutput>,
+    pub siafund_inputs: Vec<SiafundInputV2>,
+    pub siafund_outputs: Vec<SiafundOutput>,
+    pub file_contracts: Vec<V2FileContract>,
+    pub file_contract_revisions: Vec<FileContractRevisionV2>,
+    pub file_contract_resolutions: Vec<V2FileContractResolution>,
+    pub attestations: Vec<Attestation>,
+    pub arbitrary_data: Vec<u8>,
+    pub new_foundation_address: Option<Address>,
+    pub miner_fee: Currency,
 }
 
 impl V2TransactionBuilder {
@@ -1175,57 +1175,57 @@ impl V2TransactionBuilder {
         }
     }
 
-    pub fn siacoin_inputs(mut self, inputs: Vec<SiacoinInputV2>) -> Self {
+    pub fn siacoin_inputs(&mut self, inputs: Vec<SiacoinInputV2>) -> &mut Self {
         self.siacoin_inputs = inputs;
         self
     }
 
-    pub fn siacoin_outputs(mut self, outputs: Vec<SiacoinOutput>) -> Self {
+    pub fn siacoin_outputs(&mut self, outputs: Vec<SiacoinOutput>) -> &mut Self {
         self.siacoin_outputs = outputs;
         self
     }
 
-    pub fn siafund_inputs(mut self, inputs: Vec<SiafundInputV2>) -> Self {
+    pub fn siafund_inputs(&mut self, inputs: Vec<SiafundInputV2>) -> &mut Self {
         self.siafund_inputs = inputs;
         self
     }
 
-    pub fn siafund_outputs(mut self, outputs: Vec<SiafundOutput>) -> Self {
+    pub fn siafund_outputs(&mut self, outputs: Vec<SiafundOutput>) -> &mut Self {
         self.siafund_outputs = outputs;
         self
     }
 
-    pub fn file_contracts(mut self, contracts: Vec<V2FileContract>) -> Self {
+    pub fn file_contracts(&mut self, contracts: Vec<V2FileContract>) -> &mut Self {
         self.file_contracts = contracts;
         self
     }
 
-    pub fn file_contract_revisions(mut self, revisions: Vec<FileContractRevisionV2>) -> Self {
+    pub fn file_contract_revisions(&mut self, revisions: Vec<FileContractRevisionV2>) -> &mut Self {
         self.file_contract_revisions = revisions;
         self
     }
 
-    pub fn file_contract_resolutions(mut self, resolutions: Vec<V2FileContractResolution>) -> Self {
+    pub fn file_contract_resolutions(&mut self, resolutions: Vec<V2FileContractResolution>) -> &mut Self {
         self.file_contract_resolutions = resolutions;
         self
     }
 
-    pub fn attestations(mut self, attestations: Vec<Attestation>) -> Self {
+    pub fn attestations(&mut self, attestations: Vec<Attestation>) -> &mut Self {
         self.attestations = attestations;
         self
     }
 
-    pub fn arbitrary_data(mut self, data: Vec<u8>) -> Self {
+    pub fn arbitrary_data(&mut self, data: Vec<u8>) -> &mut Self {
         self.arbitrary_data = data;
         self
     }
 
-    pub fn new_foundation_address(mut self, address: Address) -> Self {
+    pub fn new_foundation_address(&mut self, address: Address) -> &mut Self {
         self.new_foundation_address = Some(address);
         self
     }
 
-    pub fn miner_fee(mut self, fee: Currency) -> Self {
+    pub fn miner_fee(&mut self, fee: Currency) -> &mut Self {
         self.miner_fee = fee;
         self
     }
@@ -1236,7 +1236,7 @@ impl V2TransactionBuilder {
     Policy is included here to give any signing function or method a schema for producing a
     signature for the input. Do not use this method if you are manually creating SatisfiedPolicys.
     Use siacoin_inputs() to add fully formed inputs instead. */
-    pub fn add_siacoin_input(mut self, parent: SiacoinElement, policy: SpendPolicy) -> Self {
+    pub fn add_siacoin_input(&mut self, parent: SiacoinElement, policy: SpendPolicy) -> &mut Self {
         self.siacoin_inputs.push(SiacoinInputV2 {
             parent,
             satisfied_policy: SatisfiedPolicy {
@@ -1248,7 +1248,7 @@ impl V2TransactionBuilder {
         self
     }
 
-    pub fn add_siacoin_output(mut self, output: SiacoinOutput) -> Self {
+    pub fn add_siacoin_output(&mut self, output: SiacoinOutput) -> &mut Self {
         self.siacoin_outputs.push(output);
         self
     }
@@ -1263,7 +1263,7 @@ impl V2TransactionBuilder {
 
     // Sign all PublicKey or UnlockConditions policies with the provided keypairs
     // Incapable of handling threshold policies
-    pub fn sign_simple(mut self, keypairs: Vec<&Keypair>) -> Result<Self, String> {
+    pub fn sign_simple(mut self, keypairs: Vec<&Keypair>) -> Self {
         let sig_hash = self.input_sig_hash();
         for keypair in keypairs {
             let sig = keypair.sign(&sig_hash.0);
@@ -1286,7 +1286,7 @@ impl V2TransactionBuilder {
                 }
             }
         }
-        Ok(self)
+        self
     }
 
     pub fn build(self) -> V2Transaction {
