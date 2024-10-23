@@ -386,6 +386,14 @@ pub struct SiacoinOutput {
     pub address: Address,
 }
 
+impl From<(Currency, Address)> for SiacoinOutput {
+    fn from(tuple: (Currency, Address)) -> Self { SiacoinOutput { value: tuple.0, address: tuple.1 } }
+}
+
+impl From<(Address, Currency)> for SiacoinOutput {
+    fn from(tuple: (Address, Currency)) -> Self { SiacoinOutput { address: tuple.0, value: tuple.1 } }
+}
+
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(default)]
