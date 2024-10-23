@@ -1,6 +1,6 @@
 use super::{ApiClient, ApiClientError};
 use crate::transport::endpoints::{AddressBalanceRequest, ConsensusTipRequest, GetAddressUtxosRequest, AddressBalanceResponse};
-use crate::types::{Address, Currency, SiacoinElement};
+use crate::types::{Address, Currency, SiacoinElement, V2TransactionBuilder, PublicKey, SpendPolicy};
 use async_trait::async_trait;
 use thiserror::Error;
 
@@ -74,5 +74,36 @@ pub trait ApiClientHelpers: ApiClient {
         let change = selected_amount as u128 - *total_amount;
 
         Ok((selected, change.into()))
+    }
+
+    /// Fund a transaction with utxos from the given address.
+    /// Will add inputs from the given address until the total amount from outputs is reached.
+    /// Will add the change amount to the transaction outputs
+    /// Returns the difference between inputs and outputs that would be paid to the miner.
+    /// See `select_unspent_outputs` for more details.
+    /// # Arguments
+    /// * `tx_builder` - A mutable reference to a `V2TransactionBuilder.
+    /// * `public_key` - The public key of the address to spend utxos from.
+    /// * `miner_fee` - The amount to pay to the miner.
+    /// # Returns
+    /// * `Ok(Currency)` - The difference between inputs and outputs that would be paid to the miner.
+    async fn fund_tx_single_source(&self, tx_builder: &mut V2TransactionBuilder, public_key: &PublicKey, miner_fee: Currency) -> Result<(), ApiClientHelpersError> {
+        let address = public_key.address();
+        let outputs_total : Currency = tx_builder.siacoin_outputs.iter().map(|output| output.value).sum();
+
+        // select utxos from public key's address that total at least the sum of outputs and miner fee
+        let (selected_utxos, change) = self.select_unspent_outputs(&address, outputs_total+miner_fee).await?;
+        // FIXME OMAR take a look
+        // add selected utxos as inputs to the transaction
+        // for utxo in &selected_utxos {
+        //     tx_builder.add_siacoin_input(utxo.clone(), SpendPolicy::PublicKey(public_key.clone()));
+        // }
+
+        // if change > Currency::DUST {
+        //     // add change as an output
+        //     tx_builder.add_siacoin_output((address, change).into());
+        // }
+
+        Ok(())
     }
 }
