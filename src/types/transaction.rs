@@ -1334,19 +1334,20 @@ impl V2TransactionBuilder {
         self
     }
 
-    pub fn build(self) -> V2Transaction {
+    pub fn build(&mut self) -> V2Transaction {
+        let cloned = self.clone();
         V2Transaction {
-            siacoin_inputs: self.siacoin_inputs,
-            siacoin_outputs: self.siacoin_outputs,
-            siafund_inputs: self.siafund_inputs,
-            siafund_outputs: self.siafund_outputs,
-            file_contracts: self.file_contracts,
-            file_contract_revisions: self.file_contract_revisions,
-            file_contract_resolutions: self.file_contract_resolutions,
-            attestations: self.attestations,
-            arbitrary_data: self.arbitrary_data,
-            new_foundation_address: self.new_foundation_address,
-            miner_fee: self.miner_fee,
+            siacoin_inputs: cloned.siacoin_inputs,
+            siacoin_outputs: cloned.siacoin_outputs,
+            siafund_inputs: cloned.siafund_inputs,
+            siafund_outputs: cloned.siafund_outputs,
+            file_contracts: cloned.file_contracts,
+            file_contract_revisions: cloned.file_contract_revisions,
+            file_contract_resolutions: cloned.file_contract_resolutions,
+            attestations: cloned.attestations,
+            arbitrary_data: cloned.arbitrary_data,
+            new_foundation_address: cloned.new_foundation_address,
+            miner_fee: cloned.miner_fee,
         }
     }
 }
