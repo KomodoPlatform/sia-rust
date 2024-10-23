@@ -95,14 +95,14 @@ pub trait ApiClientHelpers: ApiClient {
         let (selected_utxos, change) = self.select_unspent_outputs(&address, outputs_total+miner_fee).await?;
         // FIXME OMAR take a look
         // add selected utxos as inputs to the transaction
-        // for utxo in &selected_utxos {
-        //     tx_builder.add_siacoin_input(utxo.clone(), SpendPolicy::PublicKey(public_key.clone()));
-        // }
+        for utxo in &selected_utxos {
+            tx_builder.add_siacoin_input(utxo.clone(), SpendPolicy::PublicKey(public_key.clone()));
+        }
 
-        // if change > Currency::DUST {
-        //     // add change as an output
-        //     tx_builder.add_siacoin_output((address, change).into());
-        // }
+        if change > Currency::DUST {
+            // add change as an output
+            tx_builder.add_siacoin_output((address, change).into());
+        }
 
         Ok(())
     }
