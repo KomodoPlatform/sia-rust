@@ -2,9 +2,9 @@
 mod test {
     use crate::encoding::Encoder;
     use crate::types::{Address, Attestation, Currency, CurrencyVersion, FileContractRevisionV2, Hash256, Keypair,
-                       PublicKey, SatisfiedPolicy, SiacoinElement, SiacoinInputV1, SiacoinInputV2, SiacoinOutput,
-                       SiacoinOutputVersion, Signature, SpendPolicy, StateElement, UnlockCondition, V2FileContract,
-                       V2FileContractElement, V2Transaction};
+                       Preimage, PublicKey, SatisfiedPolicy, SiacoinElement, SiacoinInputV1, SiacoinInputV2,
+                       SiacoinOutput, SiacoinOutputVersion, Signature, SpendPolicy, StateElement, UnlockCondition,
+                       V2FileContract, V2FileContractElement, V2Transaction};
     use std::convert::TryFrom;
     use std::str::FromStr;
 
