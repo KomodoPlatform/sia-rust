@@ -1119,6 +1119,20 @@ impl Encodable for V2Transaction {
     }
 }
 
+/// FeePolicy is data optionally included in V2TransactionBuilder to allow easier fee calculation.
+/// Sia fee calculation can be complex in comparison to a typical UTXO protocol because the fee paid
+/// to the miner is not simply the sum of the inputs minus the sum of the outputs. Instead, the
+/// miner fee is a distinct field within the transaction, `miner_fee`. This `miner_fee` field is part
+/// of signature calculation. As a result, you can build a transaction, produce signatures and preimages
+/// for the inputs only to find out that the miner_fee hastings/byte rate is lower than expected.
+/// Therefore a precise hastings/byte calculation requires correctly estimating the size of all
+/// satifsfied inputs prior to producing signatures.
+#[derive(Clone, Debug)]
+pub enum FeePolicy {
+    HastingsPerByte(Currency),
+    HastingsFixed(Currency),
+}
+
 #[derive(Clone, Debug)]
 pub struct V2TransactionBuilder {
     pub siacoin_inputs: Vec<SiacoinInputV2>,
@@ -1132,19 +1146,9 @@ pub struct V2TransactionBuilder {
     pub arbitrary_data: Vec<u8>,
     pub new_foundation_address: Option<Address>,
     pub miner_fee: Currency,
-}
-
-impl V2TransactionBuilder {
-    /**
-     * "weight" is the size of the transaction in bytes. This can be used to estimate miner fees.
-     * The recommended method for calculating a suitable fee is to multiply the response of `/txpool/fee` API endpoint
-     * and the weight to get the fee in hastings.
-     */
-    pub fn weight(&self) -> u64 {
-        let mut encoder = Encoder::default();
-        self.encode(&mut encoder);
-        encoder.buffer.len() as u64
-    }
+    // fee_policy is not part Sia consensus and it not encoded into any resulting transaction.
+    // fee_policy has no effect unless a helper like `ApiClientHelpers::fund_tx_single_source` utilizes it.
+    pub fee_policy: Option<FeePolicy>,
 }
 
 impl Encodable for V2TransactionBuilder {
@@ -1217,6 +1221,7 @@ impl V2TransactionBuilder {
             arbitrary_data: Vec::new(),
             new_foundation_address: None,
             miner_fee: Currency::ZERO,
+            fee_policy: None,
         }
     }
 
@@ -1273,6 +1278,17 @@ impl V2TransactionBuilder {
     pub fn miner_fee(&mut self, fee: Currency) -> &mut Self {
         self.miner_fee = fee;
         self
+    }
+
+    /**
+     * "weight" is the size of the transaction in bytes. This can be used to estimate miner fees.
+     * The recommended method for calculating a suitable fee is to multiply the response of
+     * `/txpool/fee` API endpoint and the weight to get the fee in hastings.
+     */
+    pub fn weight(&self) -> u64 {
+        let mut encoder = Encoder::default();
+        self.encode(&mut encoder);
+        encoder.buffer.len() as u64
     }
 
     /* Input is a special case becuase we cannot generate signatures until after fully constructing
