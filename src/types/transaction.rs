@@ -1128,7 +1128,7 @@ impl Encodable for V2Transaction {
 /// of signature calculation. As a result, you can build a transaction, produce signatures and preimages
 /// for the inputs only to find out that the miner_fee hastings/byte rate is lower than expected.
 /// Therefore a precise hastings/byte calculation requires correctly estimating the size of all
-/// satifsfied inputs prior to producing signatures.
+/// satisfied inputs prior to producing signatures.
 #[derive(Clone, Debug)]
 pub enum FeePolicy {
     HastingsPerByte(Currency),
