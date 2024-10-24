@@ -49,13 +49,13 @@ pub trait ApiClientHelpers: ApiClient {
     /// # Arguments
     ///
     /// * `unspent_outputs` - A vector of `SiacoinElement`s representing unspent Siacoin outputs.
-    /// * `total_amount` - The total amount (in u128) required for the selection.
+    /// * `total_amount` - The total amount required for the selection. Should generally be the sum of the outputs and miner fee.
     ///
     /// # Returns
     ///
     /// This function returns `Result<(Vec<SiacoinElement>, Currency), ApiClientHelpersError>`:
     /// * `Ok((Vec<SiacoinElement>, Currency))` - A tuple containing, a vector of the selected unspent outputs and the change amount.
-    /// * `Err(MmError<SelectOutputsError>)` - An error is returned if the available outputs cannot meet the required amount or a transport error is encountered.
+    /// * `Err(ApiClientHelpersError)` - An error is returned if the available outputs cannot meet the required amount or a transport error is encountered.
     async fn select_unspent_outputs(
         &self,
         address: &Address,
