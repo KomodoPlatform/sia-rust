@@ -1,4 +1,4 @@
-use super::{ApiClient, ApiClientError};
+use super::ApiClient;
 use crate::transport::endpoints::{AddressBalanceRequest, AddressBalanceResponse, ConsensusTipRequest,
                                   GetAddressUtxosRequest};
 use crate::types::{Address, Currency, PublicKey, SiacoinElement, SpendPolicy, V2TransactionBuilder};
@@ -6,13 +6,13 @@ use async_trait::async_trait;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum ApiClientHelpersError {
+pub enum ApiClientHelpersError<E> {
     #[error(
         "ApiClientHelpersError::SelectOutputs: insufficent amount, available: {available:?} required: {required:?}"
     )]
     SelectOutputs { available: Currency, required: Currency },
     #[error("ApiClientHelpersError::ApiClientError: {0}")]
-    ApiClientError(#[from] ApiClientError),
+    ApiClientError(#[from] E),
 }
 
 /// Helper methods for the ApiClient trait
@@ -20,11 +20,11 @@ pub enum ApiClientHelpersError {
 /// This crate is focused on catering to the Komodo Defi Framework integration
 #[async_trait]
 pub trait ApiClientHelpers: ApiClient {
-    async fn current_height(&self) -> Result<u64, ApiClientError> {
+    async fn current_height(&self) -> Result<u64, Self::Error> {
         Ok(self.dispatcher(ConsensusTipRequest).await?.height)
     }
 
-    async fn address_balance(&self, address: Address) -> Result<AddressBalanceResponse, ApiClientError> {
+    async fn address_balance(&self, address: Address) -> Result<AddressBalanceResponse, Self::Error> {
         self.dispatcher(AddressBalanceRequest { address }).await
     }
 
@@ -33,7 +33,7 @@ pub trait ApiClientHelpers: ApiClient {
         address: &Address,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<SiacoinElement>, ApiClientError> {
+    ) -> Result<Vec<SiacoinElement>, Self::Error> {
         self.dispatcher(GetAddressUtxosRequest {
             address: address.clone(),
             limit,
@@ -60,7 +60,7 @@ pub trait ApiClientHelpers: ApiClient {
         &self,
         address: &Address,
         total_amount: Currency,
-    ) -> Result<(Vec<SiacoinElement>, Currency), ApiClientHelpersError> {
+    ) -> Result<(Vec<SiacoinElement>, Currency), ApiClientHelpersError<Self::Error>> {
         let mut unspent_outputs = self.get_unspent_outputs(address, None, None).await?;
 
         // Sort outputs from largest to smallest
@@ -106,7 +106,7 @@ pub trait ApiClientHelpers: ApiClient {
         tx_builder: &mut V2TransactionBuilder,
         public_key: &PublicKey,
         miner_fee: Currency,
-    ) -> Result<(), ApiClientHelpersError> {
+    ) -> Result<(), ApiClientHelpersError<Self::Error>> {
         let address = public_key.address();
         let outputs_total: Currency = tx_builder.siacoin_outputs.iter().map(|output| output.value).sum();
 
