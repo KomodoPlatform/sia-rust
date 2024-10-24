@@ -122,6 +122,8 @@ impl<'a> Encodable for CurrencyVersion<'a> {
     }
 }
 
+/// Preimage is a 32-byte array representing the preimage of a hash used in Sia's SpendPolicy::Hash
+/// Used to allow HLTC-style hashlock contracts in Sia
 pub type Preimage = [u8; 32];
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
