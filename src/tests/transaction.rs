@@ -185,11 +185,12 @@ mod test {
             let satisfied_policy = SatisfiedPolicy {
                 policy,
                 signatures: vec![],
-                preimages: vec![vec![]], // vec!(1u8, 2u8, 3u8, 4u8)
+                preimages: vec![Preimage::default()],
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            let expected = Hash256::try_from("h:86b4b84950016d711732617d2501bd22e41614535f2705a65bd5b0e95c992a44").unwrap();
+            // FIXME update this in go equivalent. Preimage was changed from Vec<u8> to [u8; 32]
+            let expected = Hash256::try_from("h:51eb259ed69313a81d72ea5ee1eb7c7111469e66720f2faef0a19054f959d375").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -197,29 +198,36 @@ mod test {
         fn test_satisfied_policy_encode_hash_frivulous_signature() {
             let policy = SpendPolicy::Hash(Hash256::default());
 
+            let mut preimage = [0u8; 32];
+            preimage[..4].copy_from_slice(&[1, 2, 3, 4]);
+
             let satisfied_policy = SatisfiedPolicy {
                 policy,
                 signatures: vec!(Signature::from_bytes(
                     &hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap()),
-                preimages: vec!(vec!(1u8, 2u8, 3u8, 4u8)),
+                preimages: vec!(preimage),
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            let expected = Hash256::try_from("h:7424653d0ca3ffded9a029bebe75f9ae9c99b5f284e23e9d07c0b03456f724f9").unwrap();
+            // FIXME update this in go equivalent. Preimage was changed from Vec<u8> to [u8; 32]
+            let expected = Hash256::try_from("h:af7df9041212334ae04b007035e862449ddcb3c1a007da2bd609f65f0392f99a").unwrap();
             assert_eq!(hash, expected);
         }
 
         fn test_satisfied_policy_encode_hash() {
             let policy = SpendPolicy::Hash(Hash256::default());
 
+            let mut preimage = [0u8; 32];
+            preimage[..4].copy_from_slice(&[1, 2, 3, 4]);
             let satisfied_policy = SatisfiedPolicy {
                 policy,
                 signatures: vec![],
-                preimages: vec![vec![1u8, 2u8, 3u8, 4u8]],
+                preimages: vec![preimage],
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            let expected = Hash256::try_from("h:7424653d0ca3ffded9a029bebe75f9ae9c99b5f284e23e9d07c0b03456f724f9").unwrap();
+            // FIXME update this in go equivalent. Preimage was changed from Vec<u8> to [u8; 32]
+            let expected = Hash256::try_from("h:af7df9041212334ae04b007035e862449ddcb3c1a007da2bd609f65f0392f99a").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -289,15 +297,17 @@ mod test {
                 n: 1,
                 of: vec![sub_policy],
             };
-
+            let mut preimage = [0u8; 32];
+            preimage[..4].copy_from_slice(&[1, 2, 3, 4]);
             let satisfied_policy = SatisfiedPolicy {
                 policy,
                 signatures: vec![],
-                preimages: vec![vec![1u8, 2u8, 3u8, 4u8]],
+                preimages: vec![preimage],
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            let expected = Hash256::try_from("h:50f4808b0661f56842472aed259136a43ed2bd7d59a88a3be28de9883af4a92d").unwrap();
+            // FIXME update this in go equivalent. Preimage was changed from Vec<u8> to [u8; 32]
+            let expected = Hash256::try_from("h:d7270a87868f9127bf99cc33a3548b669afb308c49760c840d7a15e8066f8c47").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -317,14 +327,17 @@ mod test {
             let signature = Signature::from_bytes(
                 &hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
 
+            let mut preimage = [0u8; 32];
+            preimage[..4].copy_from_slice(&[1, 2, 3, 4]);
             let satisfied_policy = SatisfiedPolicy {
                 policy,
                 signatures: vec![signature],
-                preimages: vec![vec![1u8, 2u8, 3u8, 4u8]],
+                preimages: vec![preimage],
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            let expected = Hash256::try_from("h:c835e516bbf76602c897a9160c17bfe0e4a8bc9044f62b3e5e45a381232a2f86").unwrap();
+            // FIXME update this in go equivalent. Preimage was changed from Vec<u8> to [u8; 32]
+            let expected = Hash256::try_from("h:4da166c66b22c6cc825253d4e9b4f5319549b82ade6f9c8a037d8e7a4acfcdfa").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -344,10 +357,12 @@ mod test {
             let signature = Signature::from_bytes(
                 &hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
 
+            let mut preimage = [0u8; 32];
+            preimage[..4].copy_from_slice(&[1, 2, 3, 4]);
             let satisfied_policy = SatisfiedPolicy {
                 policy,
                 signatures: vec![signature],
-                preimages: vec![vec![1u8, 2u8, 3u8, 4u8]],
+                preimages: vec![preimage],
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
@@ -361,11 +376,13 @@ mod test {
                 n: 1,
                 of: vec![sub_policy],
             };
+            let mut preimage = [0u8; 32];
+            preimage[..4].copy_from_slice(&[1, 2, 3, 4]);
 
             let satisfied_policy = SatisfiedPolicy {
                 policy: policy.clone(),
                 signatures: vec![],
-                preimages: vec![vec![1u8, 2u8, 3u8, 4u8]],
+                preimages: vec![preimage],
             };
 
             let vin = SiacoinInputV2 {
@@ -385,7 +402,8 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&vin);
-            let expected = Hash256::try_from("h:a8ab11b91ee19ce68f2d608bd4d19212841842f0c50151ae4ccb8e9db68cd6c4").unwrap();
+            // FIXME update this in go equivalent. Preimage was changed from Vec<u8> to [u8; 32]
+            let expected = Hash256::try_from("h:10497f5864991eb72c2bc49ad61a5afdd068bb48dca9db825b5adb94b49b9cbe").unwrap();
             assert_eq!(hash, expected);
         }
 
