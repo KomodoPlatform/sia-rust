@@ -122,7 +122,7 @@ impl<'a> Encodable for CurrencyVersion<'a> {
     }
 }
 
-pub type Preimage = Vec<u8>;
+pub type Preimage = [u8; 32];
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
