@@ -43,7 +43,7 @@ pub struct Currency(pub u128);
 impl Currency {
     pub const ZERO: Currency = Currency(0);
 
-    pub const COIN: Currency = Currency(1e24 as u128);
+    pub const COIN: Currency = Currency(1000000000000000000000000);
 
     /// The minimum amount of currency for a transaction output
     // FIXME this is a placeholder value until testing is complete
