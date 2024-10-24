@@ -29,7 +29,7 @@ mod test {
         }
 
         fn test_siacoin_currency_encode_v1() {
-            let currency: Currency = 1.into();
+            let currency: Currency = 1u64.into();
 
             let hash = Encoder::encode_and_hash(&CurrencyVersion::V1(&currency));
             let expected = Hash256::try_from("h:a1cc3a97fc1ebfa23b0b128b153a29ad9f918585d1d8a32354f547d8451b7826").unwrap();
@@ -37,7 +37,7 @@ mod test {
         }
 
         fn test_siacoin_currency_encode_v2() {
-            let currency: Currency = 1.into();
+            let currency: Currency = 1u64.into();
 
             let hash = Encoder::encode_and_hash(&CurrencyVersion::V2(&currency));
             let expected = Hash256::try_from("h:a3865e5e284e12e0ea418e73127db5d1092bfb98ed372ca9a664504816375e1d").unwrap();
@@ -62,7 +62,7 @@ mod test {
 
         fn test_siacoin_output_encode_v1() {
             let vout = SiacoinOutput {
-                value: 1.into(),
+                value: 1u64.into(),
                 address: Address::from_str("addr:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515dd64b9a56043a")
                     .unwrap(),
             };
@@ -74,7 +74,7 @@ mod test {
 
         fn test_siacoin_output_encode_v2() {
             let vout = SiacoinOutput {
-                value: 1.into(),
+                value: 1u64.into(),
                 address: Address::from_str("addr:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515dd64b9a56043a")
                     .unwrap(),
             };
@@ -96,7 +96,7 @@ mod test {
             let siacoin_element = SiacoinElement {
                 state_element,
                 siacoin_output: SiacoinOutput {
-                    value: 1.into(),
+                    value: 1u64.into(),
                     address: Address::from_str(
                         "addr:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515dd64b9a56043a",
                     )
@@ -376,7 +376,7 @@ mod test {
                         merkle_proof: Some(vec![Hash256::default()]),
                     },
                     siacoin_output: SiacoinOutput {
-                        value: 1.into(),
+                        value: 1u64.into(),
                         address: policy.address(),
                     },
                     maturity_height: 0,
@@ -428,11 +428,11 @@ mod test {
             let address1 = Address::standard_address_v1(&pubkey1);
 
             let vout0 = SiacoinOutput {
-                value: 1.into(),
+                value: 1u64.into(),
                 address: address0,
             };
             let vout1 = SiacoinOutput {
-                value: 1.into(),
+                value: 1u64.into(),
                 address: address1,
             };
 
@@ -443,8 +443,8 @@ mod test {
                 expiration_height: 1,
                 renter_output: vout0,
                 host_output: vout1,
-                missed_host_value: 1.into(),
-                total_collateral: 1.into(),
+                missed_host_value: 1u64.into(),
+                total_collateral: 1u64.into(),
                 renter_public_key: pubkey0,
                 host_public_key: pubkey1,
                 revision_number: 1,
@@ -476,11 +476,11 @@ mod test {
             let address1 = Address::standard_address_v1(&pubkey1);
 
             let vout0 = SiacoinOutput {
-                value: 1.into(),
+                value: 1u64.into(),
                 address: address0,
             };
             let vout1 = SiacoinOutput {
-                value: 1.into(),
+                value: 1u64.into(),
                 address: address1,
             };
 
@@ -491,8 +491,8 @@ mod test {
                 expiration_height: 1,
                 renter_output: vout0,
                 host_output: vout1,
-                missed_host_value: 1.into(),
-                total_collateral: 1.into(),
+                missed_host_value: 1u64.into(),
+                total_collateral: 1u64.into(),
                 renter_public_key: pubkey0,
                 host_public_key: pubkey1,
                 revision_number: 1,
@@ -538,11 +538,11 @@ mod test {
             let address1 = Address::standard_address_v1(&pubkey1);
 
             let vout0 = SiacoinOutput {
-                value: 1.into(),
+                value: 1u64.into(),
                 address: address0,
             };
             let vout1 = SiacoinOutput {
-                value: 1.into(),
+                value: 1u64.into(),
                 address: address1,
             };
 
@@ -553,8 +553,8 @@ mod test {
                 expiration_height: 1,
                 renter_output: vout0,
                 host_output: vout1,
-                missed_host_value: 1.into(),
-                total_collateral: 1.into(),
+                missed_host_value: 1u64.into(),
+                total_collateral: 1u64.into(),
                 renter_public_key: pubkey0,
                 host_public_key: pubkey1,
                 revision_number: 1,
