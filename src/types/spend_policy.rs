@@ -126,6 +126,10 @@ impl SpendPolicy {
 
     pub fn opaque(p: &SpendPolicy) -> Self { SpendPolicy::Opaque(p.address()) }
 
+    pub fn unlock_condition(pubkeys: Vec<PublicKey>, timelock: u64, signatures_required: u64) -> Self {
+        SpendPolicy::UnlockConditions(UnlockCondition::new(pubkeys, timelock, signatures_required))
+    }
+
     pub fn anyone_can_spend() -> Self { SpendPolicy::threshold(0, vec![]) }
 
     pub fn opacify(&self) -> Self { SpendPolicy::Opaque(self.address()) }
