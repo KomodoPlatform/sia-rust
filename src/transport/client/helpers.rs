@@ -82,10 +82,10 @@ pub trait ApiClientHelpers: ApiClient {
         if selected_amount < *total_amount {
             return Err(ApiClientHelpersError::SelectOutputs {
                 available: selected_amount.into(),
-                required: total_amount.into(),
+                required: total_amount,
             });
         }
-        let change = selected_amount as u128 - *total_amount;
+        let change = selected_amount - *total_amount;
 
         Ok((selected, change.into()))
     }
