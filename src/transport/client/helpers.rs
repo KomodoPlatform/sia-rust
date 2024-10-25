@@ -91,28 +91,31 @@ pub trait ApiClientHelpers: ApiClient {
     }
 
     /// Fund a transaction with utxos from the given address.
-    /// Will add inputs from the given address until the total amount from outputs is reached.
-    /// Will add the change amount to the transaction outputs
-    /// Returns the difference between inputs and outputs that would be paid to the miner.
-    /// See `select_unspent_outputs` for more details.
+    /// This should generally be used only after all outputs and miner_fee have been added to the builder.
+    /// Assumes no file contracts or resolutions. This is a helper designed for Komodo DeFi Framework.
+    /// Adds inputs from the given address until the total amount from outputs and miner_fee is reached.
+    /// Adds the change amount to the transaction outputs
+    /// See `select_unspent_outputs` for more details on UTXO selection.
     /// # Arguments
     /// * `tx_builder` - A mutable reference to a `V2TransactionBuilder.
     /// * `public_key` - The public key of the address to spend utxos from.
-    /// * `miner_fee` - The amount to pay to the miner.
     /// # Returns
-    /// * `Ok(Currency)` - The difference between inputs and outputs that would be paid to the miner.
+    /// * `Ok(())` - The transaction builder has been successfully funded
+    /// * `Err(ApiClientHelpersError)` - An error is returned if the available outputs cannot meet
+    ///     the required amount or a transport error is encountered.
     async fn fund_tx_single_source(
         &self,
         tx_builder: &mut V2TransactionBuilder,
         public_key: &PublicKey,
-        miner_fee: Currency,
     ) -> Result<(), ApiClientHelpersError> {
         let address = public_key.address();
         let outputs_total: Currency = tx_builder.siacoin_outputs.iter().map(|output| output.value).sum();
 
         // select utxos from public key's address that total at least the sum of outputs and miner fee
-        let (selected_utxos, change) = self.select_unspent_outputs(&address, outputs_total + miner_fee).await?;
-        // FIXME OMAR take a look
+        let (selected_utxos, change) = self
+            .select_unspent_outputs(&address, outputs_total + tx_builder.miner_fee)
+            .await?;
+
         // add selected utxos as inputs to the transaction
         for utxo in &selected_utxos {
             tx_builder.add_siacoin_input(utxo.clone(), SpendPolicy::PublicKey(public_key.clone()));
