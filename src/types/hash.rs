@@ -12,6 +12,8 @@ pub enum ParseHashError {
     InvalidHex(String),
     #[error("invalid length: expected 32 byte hex string prefixed with 'h:', found {0}")]
     InvalidLength(String),
+    #[error("invalid slice length: expected 32 byte slice, found {0} byte slice")]
+    InvalidSliceLength(usize),
 }
 #[derive(Clone, Eq, PartialEq)]
 pub struct Hash256(pub [u8; 32]);
@@ -105,6 +107,21 @@ impl TryFrom<&str> for Hash256 {
     type Error = ParseHashError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> { Hash256::from_str(value) }
+}
+
+impl TryFrom<&[u8]> for Hash256 {
+    type Error = ParseHashError;
+
+    fn try_from(slice: &[u8]) -> Result<Self, Self::Error> {
+        let slice_len = slice.len();
+        if slice_len == 32 {
+            let mut array = [0u8; 32];
+            array.copy_from_slice(slice);
+            Ok(Hash256(array))
+        } else {
+            Err(ParseHashError::InvalidSliceLength(slice_len))
+        }
+    }
 }
 
 #[cfg(test)]
