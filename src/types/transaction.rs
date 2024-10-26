@@ -380,8 +380,29 @@ impl<'a> Encodable for SiacoinOutputVersion<'a> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+/// A Sia transaction id aka "txid"
+/// This could be a newtype like SiacoinOutputId with custom serde, but we have no use for this beyond
+/// making SiacoinOutputId::new more explicit.
+/// Sia Go uses "txid:" prefix for this type, but walletd API generally represents this with the
+/// more generic "h:" prefix. related: https://github.com/SiaFoundation/core/pull/199
+pub type TransactionId = Hash256;
+
+#[derive(Clone, Debug, PartialEq, From, Into)]
 pub struct SiacoinOutputId(pub Hash256);
+
+impl SiacoinOutputId {
+    pub fn new(txid: TransactionId, index: u64) -> Self {
+        let mut encoder = Encoder::default();
+        encoder.write_distinguisher("id/siacoinoutput");
+        txid.encode(&mut encoder);
+        encoder.write_u64(index);
+        SiacoinOutputId(encoder.hash())
+    }
+}
+
+impl Encodable for SiacoinOutputId {
+    fn encode(&self, encoder: &mut Encoder) { encoder.write_slice(&self.0 .0); }
+}
 
 impl<'de> Deserialize<'de> for SiacoinOutputId {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -426,14 +447,6 @@ impl Serialize for SiacoinOutputId {
 
 impl fmt::Display for SiacoinOutputId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "scoid:{:02x}", self.0) }
-}
-
-impl From<SiacoinOutputId> for Hash256 {
-    fn from(sia_hash: SiacoinOutputId) -> Self { sia_hash.0 }
-}
-
-impl From<Hash256> for SiacoinOutputId {
-    fn from(h256: Hash256) -> Self { SiacoinOutputId(h256) }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -1084,7 +1097,7 @@ impl V2Transaction {
         encoder.hash()
     }
 
-    pub fn txid(&self) -> Hash256 {
+    pub fn txid(&self) -> TransactionId {
         let mut encoder = Encoder::default();
         encoder.write_distinguisher("id/transaction");
         self.encode(&mut encoder);
