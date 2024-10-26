@@ -8,6 +8,7 @@ use serde_json::Value;
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::str::FromStr;
+use thiserror::Error;
 
 const V2_REPLAY_PREFIX: u8 = 2;
 
@@ -127,6 +128,31 @@ impl<'a> Encodable for CurrencyVersion<'a> {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, From, Into)]
 #[serde(transparent)]
 pub struct Preimage(pub [u8; 32]);
+
+#[derive(Debug, Error)]
+pub enum PreimageError {
+    #[error("PreimageError: failed to convert from slice")]
+    InvalidSliceLength(usize),
+}
+
+impl From<Preimage> for Vec<u8> {
+    fn from(preimage: Preimage) -> Self { preimage.0.to_vec() }
+}
+
+impl TryFrom<&[u8]> for Preimage {
+    type Error = PreimageError;
+
+    fn try_from(slice: &[u8]) -> Result<Self, Self::Error> {
+        let slice_len = slice.len();
+        if slice_len == 32 {
+            let mut array = [0u8; 32];
+            array.copy_from_slice(slice);
+            Ok(Preimage(array))
+        } else {
+            Err(PreimageError::InvalidSliceLength(slice_len))
+        }
+    }
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
