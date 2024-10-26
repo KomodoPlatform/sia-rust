@@ -3,7 +3,7 @@ use blake2b_simd::Params;
 use std::default::Default;
 
 #[cfg(test)] use hex;
-#[cfg(test)] use std::convert::{TryFrom, TryInto};
+#[cfg(test)] use std::convert::TryInto;
 
 const LEAF_HASH_PREFIX: [u8; 1] = [0u8];
 const NODE_HASH_PREFIX: [u8; 1] = [1u8];
@@ -154,6 +154,7 @@ fn hash_blake2b_pair(prefix: &[u8], leaf1: &[u8], leaf2: &[u8]) -> Hash256 {
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::str::FromStr;
 
     cross_target_tests! {
         fn test_accumulator_new() {
@@ -184,7 +185,7 @@ mod test {
             let sigs_required_leaf = sigs_required_leaf(1u64);
             accumulator.add_leaf(sigs_required_leaf);
 
-            let expected = Hash256::try_from("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
+            let expected = Hash256::from_str("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
             assert_eq!(accumulator.root(), expected);
         }
 
@@ -205,7 +206,7 @@ mod test {
             accumulator.add_leaf(sigs_required_leaf);
 
             let root = accumulator.root();
-            let expected = Hash256::try_from("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
+            let expected = Hash256::from_str("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
             assert_eq!(root, expected)
         }
 
@@ -233,7 +234,7 @@ mod test {
             accumulator.add_leaf(sigs_required_leaf);
 
             let root = accumulator.root();
-            let expected = Hash256::try_from("h:1e94357817d236167e54970a8c08bbd41b37bfceeeb52f6c1ce6dd01d50ea1e7").unwrap();
+            let expected = Hash256::from_str("h:1e94357817d236167e54970a8c08bbd41b37bfceeeb52f6c1ce6dd01d50ea1e7").unwrap();
             assert_eq!(root, expected)
         }
 
@@ -261,7 +262,7 @@ mod test {
             accumulator.add_leaf(sigs_required_leaf);
 
             let root = accumulator.root();
-            let expected = Hash256::try_from("h:d7f84e3423da09d111a17f64290c8d05e1cbe4cab2b6bed49e3a4d2f659f0585").unwrap();
+            let expected = Hash256::from_str("h:d7f84e3423da09d111a17f64290c8d05e1cbe4cab2b6bed49e3a4d2f659f0585").unwrap();
             assert_eq!(root, expected)
         }
 
@@ -272,7 +273,7 @@ mod test {
             .unwrap();
 
             let hash = standard_unlock_hash(&pubkey);
-            let expected = Hash256::try_from("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
+            let expected = Hash256::from_str("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
             assert_eq!(hash, expected)
         }
 
@@ -287,7 +288,7 @@ mod test {
                 .unwrap();
 
             let hash = hash_blake2b_pair(&NODE_HASH_PREFIX, &left, &right);
-            let expected = Hash256::try_from("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
+            let expected = Hash256::from_str("h:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515d").unwrap();
             assert_eq!(hash, expected)
         }
 
@@ -305,7 +306,7 @@ mod test {
 
         fn test_hash_blake2b_single() {
             let hash = hash_blake2b_single(&hex::decode("006564323535313900000000000000000020000000000000000102030000000000000000000000000000000000000000000000000000000000").unwrap());
-            let expected = Hash256::try_from("h:21ce940603a2ee3a283685f6bfb4b122254894fd1ed3eb59434aadbf00c75d5b").unwrap();
+            let expected = Hash256::from_str("h:21ce940603a2ee3a283685f6bfb4b122254894fd1ed3eb59434aadbf00c75d5b").unwrap();
             assert_eq!(hash, expected)
         }
 
@@ -316,7 +317,7 @@ mod test {
             .unwrap();
 
             let hash = public_key_leaf(&UnlockKey::Ed25519(pubkey));
-            let expected = Hash256::try_from("h:21ce940603a2ee3a283685f6bfb4b122254894fd1ed3eb59434aadbf00c75d5b").unwrap();
+            let expected = Hash256::from_str("h:21ce940603a2ee3a283685f6bfb4b122254894fd1ed3eb59434aadbf00c75d5b").unwrap();
             assert_eq!(hash, expected)
         }
     }

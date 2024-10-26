@@ -3,9 +3,8 @@ mod test {
     use crate::encoding::Encoder;
     use crate::types::{Address, Attestation, Currency, CurrencyVersion, FileContractRevisionV2, Hash256, Keypair,
                        Preimage, PublicKey, SatisfiedPolicy, SiacoinElement, SiacoinInputV1, SiacoinInputV2,
-                       SiacoinOutput, SiacoinOutputVersion, Signature, SpendPolicy, StateElement, UnlockCondition,
-                       V2FileContract, V2FileContractElement, V2Transaction};
-    use std::convert::TryFrom;
+                       SiacoinOutput, SiacoinOutputId, SiacoinOutputVersion, Signature, SpendPolicy, StateElement,
+                       UnlockCondition, V2FileContract, V2FileContractElement, V2Transaction};
     use std::str::FromStr;
 
     cross_target_tests! {
@@ -17,14 +16,14 @@ mod test {
             let unlock_condition = UnlockCondition::new(vec![public_key], 0, 1);
 
             let vin = SiacoinInputV1 {
-                parent_id: Hash256::try_from("h:0405060000000000000000000000000000000000000000000000000000000000")
+                parent_id: Hash256::from_str("h:0405060000000000000000000000000000000000000000000000000000000000")
                     .unwrap()
                     .into(),
                 unlock_condition,
             };
 
             let hash = Encoder::encode_and_hash(&vin);
-            let expected = Hash256::try_from("h:1d4b77aaa82c71ca68843210679b380f9638f8bec7addf0af16a6536dd54d6b4").unwrap();
+            let expected = Hash256::from_str("h:1d4b77aaa82c71ca68843210679b380f9638f8bec7addf0af16a6536dd54d6b4").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -32,7 +31,7 @@ mod test {
             let currency: Currency = 1u64.into();
 
             let hash = Encoder::encode_and_hash(&CurrencyVersion::V1(&currency));
-            let expected = Hash256::try_from("h:a1cc3a97fc1ebfa23b0b128b153a29ad9f918585d1d8a32354f547d8451b7826").unwrap();
+            let expected = Hash256::from_str("h:a1cc3a97fc1ebfa23b0b128b153a29ad9f918585d1d8a32354f547d8451b7826").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -40,7 +39,7 @@ mod test {
             let currency: Currency = 1u64.into();
 
             let hash = Encoder::encode_and_hash(&CurrencyVersion::V2(&currency));
-            let expected = Hash256::try_from("h:a3865e5e284e12e0ea418e73127db5d1092bfb98ed372ca9a664504816375e1d").unwrap();
+            let expected = Hash256::from_str("h:a3865e5e284e12e0ea418e73127db5d1092bfb98ed372ca9a664504816375e1d").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -48,7 +47,7 @@ mod test {
             let currency = Currency(u128::MAX);
 
             let hash = Encoder::encode_and_hash(&CurrencyVersion::V1(&currency));
-            let expected = Hash256::try_from("h:4b9ed7269cb15f71ddf7238172a593a8e7ffe68b12c1bf73d67ac8eec44355bb").unwrap();
+            let expected = Hash256::from_str("h:4b9ed7269cb15f71ddf7238172a593a8e7ffe68b12c1bf73d67ac8eec44355bb").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -56,7 +55,7 @@ mod test {
             let currency = Currency(u128::MAX);
 
             let hash = Encoder::encode_and_hash(&CurrencyVersion::V2(&currency));
-            let expected = Hash256::try_from("h:681467b3337425fd38fa3983531ca1a6214de9264eebabdf9c9bc5d157d202b4").unwrap();
+            let expected = Hash256::from_str("h:681467b3337425fd38fa3983531ca1a6214de9264eebabdf9c9bc5d157d202b4").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -68,7 +67,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&SiacoinOutputVersion::V1(&vout));
-            let expected = Hash256::try_from("h:3253c57e76600721f2bdf03497a71ed47c09981e22ef49aed92e40da1ea91b28").unwrap();
+            let expected = Hash256::from_str("h:3253c57e76600721f2bdf03497a71ed47c09981e22ef49aed92e40da1ea91b28").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -80,17 +79,17 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&SiacoinOutputVersion::V2(&vout));
-            let expected = Hash256::try_from("h:c278eceae42f594f5f4ca52c8a84b749146d08af214cc959ed2aaaa916eaafd3").unwrap();
+            let expected = Hash256::from_str("h:c278eceae42f594f5f4ca52c8a84b749146d08af214cc959ed2aaaa916eaafd3").unwrap();
             assert_eq!(hash, expected);
         }
 
         fn test_siacoin_element_encode() {
             let state_element = StateElement {
-                id: Hash256::try_from("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
+                id: Hash256::from_str("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
                 leaf_index: 1,
                 merkle_proof: Some(vec![
-                    Hash256::try_from("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
-                    Hash256::try_from("h:0708090000000000000000000000000000000000000000000000000000000000").unwrap(),
+                    Hash256::from_str("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
+                    Hash256::from_str("h:0708090000000000000000000000000000000000000000000000000000000000").unwrap(),
                 ]),
             };
             let siacoin_element = SiacoinElement {
@@ -106,34 +105,34 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&siacoin_element);
-            let expected = Hash256::try_from("h:3c867a54b7b3de349c56585f25a4365f31d632c3e42561b615055c77464d889e").unwrap();
+            let expected = Hash256::from_str("h:3c867a54b7b3de349c56585f25a4365f31d632c3e42561b615055c77464d889e").unwrap();
             assert_eq!(hash, expected);
         }
 
         fn test_state_element_encode() {
             let state_element = StateElement {
-                id: Hash256::try_from("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
+                id: Hash256::from_str("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
                 leaf_index: 1,
                 merkle_proof: Some(vec![
-                    Hash256::try_from("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
-                    Hash256::try_from("h:0708090000000000000000000000000000000000000000000000000000000000").unwrap(),
+                    Hash256::from_str("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
+                    Hash256::from_str("h:0708090000000000000000000000000000000000000000000000000000000000").unwrap(),
                 ]),
             };
 
             let hash = Encoder::encode_and_hash(&state_element);
-            let expected = Hash256::try_from("h:bf6d7b74fb1e15ec4e86332b628a450e387c45b54ea98e57a6da8c9af317e468").unwrap();
+            let expected = Hash256::from_str("h:bf6d7b74fb1e15ec4e86332b628a450e387c45b54ea98e57a6da8c9af317e468").unwrap();
             assert_eq!(hash, expected);
         }
 
         fn test_state_element_encode_null_merkle_proof() {
             let state_element = StateElement {
-                id: Hash256::try_from("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
+                id: Hash256::from_str("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
                 leaf_index: 1,
                 merkle_proof: None,
             };
 
             let hash = Encoder::encode_and_hash(&state_element);
-            let expected = Hash256::try_from("h:d69bc48bc797aff93050447aff0a3f7c4d489705378c122cd123841fe7778a3e").unwrap();
+            let expected = Hash256::from_str("h:d69bc48bc797aff93050447aff0a3f7c4d489705378c122cd123841fe7778a3e").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -144,7 +143,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&vin);
-            let expected = Hash256::try_from("h:2f806f905436dc7c5079ad8062467266e225d8110a3c58d17628d609cb1c99d0").unwrap();
+            let expected = Hash256::from_str("h:2f806f905436dc7c5079ad8062467266e225d8110a3c58d17628d609cb1c99d0").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -153,7 +152,7 @@ mod test {
                 &hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
 
             let hash = Encoder::encode_and_hash(&signature);
-            let expected = Hash256::try_from("h:1e6952fe04eb626ae759a0090af2e701ba35ee6ad15233a2e947cb0f7ae9f7c7").unwrap();
+            let expected = Hash256::from_str("h:1e6952fe04eb626ae759a0090af2e701ba35ee6ad15233a2e947cb0f7ae9f7c7").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -175,7 +174,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            let expected = Hash256::try_from("h:51832be911c7382502a2011cbddf1a9f689c4ca08c6a83ae3d021fb0dc781822").unwrap();
+            let expected = Hash256::from_str("h:51832be911c7382502a2011cbddf1a9f689c4ca08c6a83ae3d021fb0dc781822").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -190,7 +189,7 @@ mod test {
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
             // FIXME update this in go equivalent. Preimage was changed from Vec<u8> to [u8; 32]
-            let expected = Hash256::try_from("h:51eb259ed69313a81d72ea5ee1eb7c7111469e66720f2faef0a19054f959d375").unwrap();
+            let expected = Hash256::from_str("h:51eb259ed69313a81d72ea5ee1eb7c7111469e66720f2faef0a19054f959d375").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -205,12 +204,12 @@ mod test {
                 policy,
                 signatures: vec!(Signature::from_bytes(
                     &hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap()),
-                preimages: vec!(preimage),
+                preimages: vec!(preimage.into()),
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
             // FIXME update this in go equivalent. Preimage was changed from Vec<u8> to [u8; 32]
-            let expected = Hash256::try_from("h:af7df9041212334ae04b007035e862449ddcb3c1a007da2bd609f65f0392f99a").unwrap();
+            let expected = Hash256::from_str("h:af7df9041212334ae04b007035e862449ddcb3c1a007da2bd609f65f0392f99a").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -222,12 +221,12 @@ mod test {
             let satisfied_policy = SatisfiedPolicy {
                 policy,
                 signatures: vec![],
-                preimages: vec![preimage],
+                preimages: vec![preimage.into()],
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
             // FIXME update this in go equivalent. Preimage was changed from Vec<u8> to [u8; 32]
-            let expected = Hash256::try_from("h:af7df9041212334ae04b007035e862449ddcb3c1a007da2bd609f65f0392f99a").unwrap();
+            let expected = Hash256::from_str("h:af7df9041212334ae04b007035e862449ddcb3c1a007da2bd609f65f0392f99a").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -251,7 +250,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            let expected = Hash256::try_from("h:c749f9ac53395ec557aed7e21d202f76a58e0de79222e5756b27077e9295931f").unwrap();
+            let expected = Hash256::from_str("h:c749f9ac53395ec557aed7e21d202f76a58e0de79222e5756b27077e9295931f").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -287,7 +286,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            let expected = Hash256::try_from("h:13806b6c13a97478e476e0e5a0469c9d0ad8bf286bec0ada992e363e9fc60901").unwrap();
+            let expected = Hash256::from_str("h:13806b6c13a97478e476e0e5a0469c9d0ad8bf286bec0ada992e363e9fc60901").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -302,12 +301,12 @@ mod test {
             let satisfied_policy = SatisfiedPolicy {
                 policy,
                 signatures: vec![],
-                preimages: vec![preimage],
+                preimages: vec![preimage.into()],
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
             // FIXME update this in go equivalent. Preimage was changed from Vec<u8> to [u8; 32]
-            let expected = Hash256::try_from("h:d7270a87868f9127bf99cc33a3548b669afb308c49760c840d7a15e8066f8c47").unwrap();
+            let expected = Hash256::from_str("h:d7270a87868f9127bf99cc33a3548b669afb308c49760c840d7a15e8066f8c47").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -321,7 +320,7 @@ mod test {
             )
             .unwrap();
 
-            let secret_hash = Hash256::try_from("h:0100000000000000000000000000000000000000000000000000000000000000").unwrap();
+            let secret_hash = Hash256::from_str("h:0100000000000000000000000000000000000000000000000000000000000000").unwrap();
 
             let policy = SpendPolicy::atomic_swap_success(alice_pubkey, bob_pubkey, 77777777, secret_hash);
             let signature = Signature::from_bytes(
@@ -332,12 +331,12 @@ mod test {
             let satisfied_policy = SatisfiedPolicy {
                 policy,
                 signatures: vec![signature],
-                preimages: vec![preimage],
+                preimages: vec![preimage.into()],
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
             // FIXME update this in go equivalent. Preimage was changed from Vec<u8> to [u8; 32]
-            let expected = Hash256::try_from("h:4da166c66b22c6cc825253d4e9b4f5319549b82ade6f9c8a037d8e7a4acfcdfa").unwrap();
+            let expected = Hash256::from_str("h:4da166c66b22c6cc825253d4e9b4f5319549b82ade6f9c8a037d8e7a4acfcdfa").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -351,7 +350,7 @@ mod test {
             )
             .unwrap();
 
-            let secret_hash = Hash256::try_from("h:0100000000000000000000000000000000000000000000000000000000000000").unwrap();
+            let secret_hash = Hash256::from_str("h:0100000000000000000000000000000000000000000000000000000000000000").unwrap();
 
             let policy = SpendPolicy::atomic_swap_refund(alice_pubkey, bob_pubkey, 77777777, secret_hash);
             let signature = Signature::from_bytes(
@@ -362,11 +361,11 @@ mod test {
             let satisfied_policy = SatisfiedPolicy {
                 policy,
                 signatures: vec![signature],
-                preimages: vec![preimage],
+                preimages: vec![preimage.into()],
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            let expected = Hash256::try_from("h:8975e8cf990d5a20d9ec3dae18ed3b3a0c92edf967a8d93fcdef6a1eb73bb348").unwrap();
+            let expected = Hash256::from_str("h:8975e8cf990d5a20d9ec3dae18ed3b3a0c92edf967a8d93fcdef6a1eb73bb348").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -382,7 +381,7 @@ mod test {
             let satisfied_policy = SatisfiedPolicy {
                 policy: policy.clone(),
                 signatures: vec![],
-                preimages: vec![preimage],
+                preimages: vec![preimage.into()],
             };
 
             let vin = SiacoinInputV2 {
@@ -403,7 +402,7 @@ mod test {
 
             let hash = Encoder::encode_and_hash(&vin);
             // FIXME update this in go equivalent. Preimage was changed from Vec<u8> to [u8; 32]
-            let expected = Hash256::try_from("h:10497f5864991eb72c2bc49ad61a5afdd068bb48dca9db825b5adb94b49b9cbe").unwrap();
+            let expected = Hash256::from_str("h:10497f5864991eb72c2bc49ad61a5afdd068bb48dca9db825b5adb94b49b9cbe").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -423,7 +422,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&attestation);
-            let expected = Hash256::try_from("h:b28b32c6f91d1b57ab4a9ea9feecca16b35bb8febdee6a0162b22979415f519d").unwrap();
+            let expected = Hash256::from_str("h:b28b32c6f91d1b57ab4a9ea9feecca16b35bb8febdee6a0162b22979415f519d").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -471,7 +470,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&file_contract_v2);
-            let expected = Hash256::try_from("h:6171a8d8ec31e06f80d46efbd1aecf2c5a7c344b5f2a2d4f660654b0cb84113c").unwrap();
+            let expected = Hash256::from_str("h:6171a8d8ec31e06f80d46efbd1aecf2c5a7c344b5f2a2d4f660654b0cb84113c").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -519,11 +518,11 @@ mod test {
             };
 
             let state_element = StateElement {
-                id: Hash256::try_from("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
+                id: Hash256::from_str("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
                 leaf_index: 1,
                 merkle_proof: Some(vec![
-                    Hash256::try_from("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
-                    Hash256::try_from("h:0708090000000000000000000000000000000000000000000000000000000000").unwrap(),
+                    Hash256::from_str("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
+                    Hash256::from_str("h:0708090000000000000000000000000000000000000000000000000000000000").unwrap(),
                 ]),
             };
 
@@ -533,7 +532,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&file_contract_element_v2);
-            let expected = Hash256::try_from("h:4cde411635118b2b7e1b019c659a2327ada53b303da0e46524e604d228fcd039").unwrap();
+            let expected = Hash256::from_str("h:4cde411635118b2b7e1b019c659a2327ada53b303da0e46524e604d228fcd039").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -581,11 +580,11 @@ mod test {
             };
 
             let state_element = StateElement {
-                id: Hash256::try_from("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
+                id: Hash256::from_str("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
                 leaf_index: 1,
                 merkle_proof: Some(vec![
-                    Hash256::try_from("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
-                    Hash256::try_from("h:0708090000000000000000000000000000000000000000000000000000000000").unwrap(),
+                    Hash256::from_str("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
+                    Hash256::from_str("h:0708090000000000000000000000000000000000000000000000000000000000").unwrap(),
                 ]),
             };
 
@@ -600,7 +599,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&file_contract_revision_v2);
-            let expected = Hash256::try_from("h:22d5d1fd8c2762758f6b6ecf7058d73524ef209ac5a64f160b71ce91677db9a6").unwrap();
+            let expected = Hash256::from_str("h:22d5d1fd8c2762758f6b6ecf7058d73524ef209ac5a64f160b71ce91677db9a6").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -659,7 +658,7 @@ mod test {
 
             let tx = serde_json::from_value::<V2Transaction>(j).unwrap();
             let hash = tx.input_sig_hash();
-            let expected = Hash256::try_from("h:ef2f59bb25300bed9accbdcd95e1a2bd9f146ab6b474002670dc908ad68aacac").unwrap();
+            let expected = Hash256::from_str("h:ef2f59bb25300bed9accbdcd95e1a2bd9f146ab6b474002670dc908ad68aacac").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -727,6 +726,16 @@ mod test {
             // test that we can correctly regenerate the signature
             let sig: Signature = keypair.sign(&sig_hash.0);
             assert_eq!(tx.siacoin_inputs[0].satisfied_policy.signatures[0], sig);
+        }
+
+        fn test_siacoin_output_id_new() {
+            let txid = Hash256::from_str("h:31be0badc64d40fbcb91b63835c07d75ab49addd1fc1d839b8415e1e5ff38cb5").unwrap();
+            let output_index = 0u64;
+            let output_id = SiacoinOutputId::new(txid, output_index);
+            let expected = SiacoinOutputId(
+                Hash256::from_str("h:47b2ceee0a9e246d5f997129a250ecb3d0917f5e844989d520e246145349d292").unwrap(),
+            );
+            assert_eq!(output_id, expected);
         }
     }
 }
