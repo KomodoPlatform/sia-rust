@@ -103,12 +103,6 @@ impl FromStr for Hash256 {
     }
 }
 
-impl TryFrom<&str> for Hash256 {
-    type Error = ParseHashError;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> { Hash256::from_str(value) }
-}
-
 impl TryFrom<&[u8]> for Hash256 {
     type Error = ParseHashError;
 
