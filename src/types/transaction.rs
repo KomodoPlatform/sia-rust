@@ -391,11 +391,11 @@ pub type TransactionId = Hash256;
 pub struct SiacoinOutputId(pub Hash256);
 
 impl SiacoinOutputId {
-    pub fn new(txid: TransactionId, index: u64) -> Self {
+    pub fn new(txid: TransactionId, index: u32) -> Self {
         let mut encoder = Encoder::default();
         encoder.write_distinguisher("id/siacoinoutput");
         txid.encode(&mut encoder);
-        encoder.write_u64(index);
+        encoder.write_u64(index as u64);
         SiacoinOutputId(encoder.hash())
     }
 }

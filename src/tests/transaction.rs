@@ -730,7 +730,7 @@ mod test {
 
         fn test_siacoin_output_id_new() {
             let txid = Hash256::from_str("h:31be0badc64d40fbcb91b63835c07d75ab49addd1fc1d839b8415e1e5ff38cb5").unwrap();
-            let output_index = 0u64;
+            let output_index = 0u32;
             let output_id = SiacoinOutputId::new(txid, output_index);
             let expected = SiacoinOutputId(
                 Hash256::from_str("h:47b2ceee0a9e246d5f997129a250ecb3d0917f5e844989d520e246145349d292").unwrap(),
