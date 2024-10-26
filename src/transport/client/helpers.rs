@@ -1,7 +1,8 @@
 use super::{ApiClient, ApiClientError};
 use crate::transport::endpoints::{AddressBalanceRequest, AddressBalanceResponse, ConsensusTipRequest,
-                                  GetAddressUtxosRequest};
-use crate::types::{Address, Currency, PublicKey, SiacoinElement, SpendPolicy, V2TransactionBuilder};
+                                  GetAddressUtxosRequest, GetEventRequest};
+use crate::types::{Address, Currency, Event, EventDataWrapper, PublicKey, SiacoinElement, SiacoinOutputId,
+                   SpendPolicy, TransactionId, V2TransactionBuilder};
 use async_trait::async_trait;
 use thiserror::Error;
 
@@ -13,6 +14,22 @@ pub enum ApiClientHelpersError {
     SelectOutputs { available: Currency, required: Currency },
     #[error("ApiClientHelpersError::ApiClientError: {0}")]
     ApiClientError(#[from] ApiClientError),
+}
+
+#[derive(Debug, Error)]
+pub enum UtxoFromTxidError {
+    #[error("utxo_from_txid: failed to fetch event {0}")]
+    FetchEvent(ApiClientError),
+    #[error("utxo_from_txid: invalid event variant {0:?}")]
+    EventVariant(Event),
+    #[error("utxo_from_txid: output index out of bounds txid: {txid:?} index: {index:?}")]
+    OutputIndexOutOfBounds { txid: TransactionId, index: u32 },
+    #[error("utxo_from_txid: get_unspent_outputs helper failed {0}")]
+    FetchUtxos(ApiClientError),
+    #[error("utxo_from_txid: output not found txid: {txid:?} index: {index:?}")]
+    NotFound { txid: TransactionId, index: u32 },
+    #[error("utxo_from_txid: found duplicate utxo txid: {txid:?} index: {index:?}")]
+    DuplicateUtxoFound { txid: TransactionId, index: u32 },
 }
 
 /// Helper methods for the ApiClient trait
@@ -127,5 +144,59 @@ pub trait ApiClientHelpers: ApiClient {
         }
 
         Ok(())
+    }
+
+    /// Fetches a SiacoinElement(a UTXO) from a TransactionId and Index
+    /// Walletd doesn't currently offer an easy way to fetch the SiacoinElement type needed to build
+    /// SiacoinInputs.
+    async fn utxo_from_txid(&self, txid: &TransactionId, vout_index: u32) -> Result<SiacoinElement, UtxoFromTxidError> {
+        let output_id = SiacoinOutputId::new(txid.clone(), vout_index);
+
+        // fetch the Event via /api/events/{txid}
+        let event = self
+            .dispatcher(GetEventRequest { txid: txid.clone() })
+            .await
+            .map_err(|e| UtxoFromTxidError::FetchEvent(e))?;
+
+        // check that the fetched event is V2Transaction
+        let tx = match event.data {
+            EventDataWrapper::V2Transaction(tx) => tx,
+            _ => return Err(UtxoFromTxidError::EventVariant(event)),
+        };
+
+        // check that the output index is within bounds
+        if (tx.siacoin_outputs.len() as u32) <= vout_index {
+            return Err(UtxoFromTxidError::OutputIndexOutOfBounds {
+                txid: txid.clone(),
+                index: vout_index,
+            });
+        }
+
+        let output_address = tx.siacoin_outputs[vout_index as usize].address.clone();
+
+        // fetch unspent outputs of the address
+        let address_utxos = self
+            .get_unspent_outputs(&output_address, None, None)
+            .await
+            .map_err(|e| UtxoFromTxidError::FetchUtxos(e))?;
+
+        // filter the utxos to find any matching the expected SiacoinOutputId
+        let filtered_utxos: Vec<SiacoinElement> = address_utxos
+            .into_iter()
+            .filter(|element| element.state_element.id == output_id.clone().into())
+            .collect();
+
+        // ensure only one utxo was found
+        match filtered_utxos.len() {
+            1 => Ok(filtered_utxos[0].clone()),
+            0 => Err(UtxoFromTxidError::NotFound {
+                txid: txid.clone(),
+                index: vout_index,
+            }),
+            _ => Err(UtxoFromTxidError::DuplicateUtxoFound {
+                txid: txid.clone(),
+                index: vout_index,
+            }),
+        }
     }
 }
