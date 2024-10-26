@@ -400,10 +400,6 @@ impl SiacoinOutputId {
     }
 }
 
-impl Encodable for SiacoinOutputId {
-    fn encode(&self, encoder: &mut Encoder) { encoder.write_slice(&self.0 .0); }
-}
-
 impl<'de> Deserialize<'de> for SiacoinOutputId {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
