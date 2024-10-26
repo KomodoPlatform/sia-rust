@@ -6,13 +6,13 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum ParseHashError {
-    #[error("invalid prefix: expected 32 byte hex string prefixed with 'h:', found {0}")]
+    #[error("Hash256 invalid prefix: expected 32 byte hex string prefixed with 'h:', found {0}")]
     InvalidPrefix(String),
-    #[error("invalid hex: expected 32 byte hex string prefixed with 'h:', found {0}")]
+    #[error("Hash256 invalid hex: expected 32 byte hex string prefixed with 'h:', found {0}")]
     InvalidHex(String),
-    #[error("invalid length: expected 32 byte hex string prefixed with 'h:', found {0}")]
+    #[error("Hash256 invalid length: expected 32 byte hex string prefixed with 'h:', found {0}")]
     InvalidLength(String),
-    #[error("invalid slice length: expected 32 byte slice, found {0} byte slice")]
+    #[error("Hash256 invalid slice length: expected 32 byte slice, found {0} byte slice")]
     InvalidSliceLength(usize),
 }
 #[derive(Clone, Eq, PartialEq)]
