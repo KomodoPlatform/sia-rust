@@ -169,7 +169,7 @@ pub trait ApiClientHelpers: ApiClient {
         };
 
         // check that the output index is within bounds
-        if (tx.siacoin_outputs.len() as u32) <= vout_index {
+        if tx.siacoin_outputs.len() <= (vout_index as usize) {
             return Err(UtxoFromTxidError::OutputIndexOutOfBounds {
                 txid: txid.clone(),
                 index: vout_index,
