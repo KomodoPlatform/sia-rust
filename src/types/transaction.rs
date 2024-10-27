@@ -8,6 +8,7 @@ use serde_json::Value;
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::str::FromStr;
+use thiserror::Error;
 
 const V2_REPLAY_PREFIX: u8 = 2;
 
@@ -43,7 +44,7 @@ pub struct Currency(pub u128);
 impl Currency {
     pub const ZERO: Currency = Currency(0);
 
-    pub const COIN: Currency = Currency(1e24 as u128);
+    pub const COIN: Currency = Currency(1000000000000000000000000);
 
     /// The minimum amount of currency for a transaction output
     // FIXME this is a placeholder value until testing is complete
@@ -122,7 +123,36 @@ impl<'a> Encodable for CurrencyVersion<'a> {
     }
 }
 
-pub type Preimage = Vec<u8>;
+/// Preimage is a 32-byte array representing the preimage of a hash used in Sia's SpendPolicy::Hash
+/// Used to allow HLTC-style hashlock contracts in Sia
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, From, Into)]
+#[serde(transparent)]
+pub struct Preimage(pub [u8; 32]);
+
+#[derive(Debug, Error)]
+pub enum PreimageError {
+    #[error("PreimageError: failed to convert from slice")]
+    InvalidSliceLength(usize),
+}
+
+impl From<Preimage> for Vec<u8> {
+    fn from(preimage: Preimage) -> Self { preimage.0.to_vec() }
+}
+
+impl TryFrom<&[u8]> for Preimage {
+    type Error = PreimageError;
+
+    fn try_from(slice: &[u8]) -> Result<Self, Self::Error> {
+        let slice_len = slice.len();
+        if slice_len == 32 {
+            let mut array = [0u8; 32];
+            array.copy_from_slice(slice);
+            Ok(Preimage(array))
+        } else {
+            Err(PreimageError::InvalidSliceLength(slice_len))
+        }
+    }
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -158,7 +188,7 @@ impl Encodable for SatisfiedPolicy {
                 },
                 SpendPolicy::Hash(_) => {
                     if *prei < sp.preimages.len() {
-                        encoder.write_len_prefixed_bytes(&sp.preimages[*prei]);
+                        encoder.write_len_prefixed_bytes(&sp.preimages[*prei].0.to_vec());
                         *prei += 1;
                     } else {
                         // Sia Go code panics here but our code assumes encoding will always be successful
@@ -350,8 +380,25 @@ impl<'a> Encodable for SiacoinOutputVersion<'a> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+/// A Sia transaction id aka "txid"
+/// This could be a newtype like SiacoinOutputId with custom serde, but we have no use for this beyond
+/// making SiacoinOutputId::new more explicit.
+/// Sia Go uses "txid:" prefix for this type, but walletd API generally represents this with the
+/// more generic "h:" prefix. related: https://github.com/SiaFoundation/core/pull/199
+pub type TransactionId = Hash256;
+
+#[derive(Clone, Debug, PartialEq, From, Into)]
 pub struct SiacoinOutputId(pub Hash256);
+
+impl SiacoinOutputId {
+    pub fn new(txid: TransactionId, index: u64) -> Self {
+        let mut encoder = Encoder::default();
+        encoder.write_distinguisher("id/siacoinoutput");
+        txid.encode(&mut encoder);
+        encoder.write_u64(index);
+        SiacoinOutputId(encoder.hash())
+    }
+}
 
 impl<'de> Deserialize<'de> for SiacoinOutputId {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -396,14 +443,6 @@ impl Serialize for SiacoinOutputId {
 
 impl fmt::Display for SiacoinOutputId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "scoid:{:02x}", self.0) }
-}
-
-impl From<SiacoinOutputId> for Hash256 {
-    fn from(sia_hash: SiacoinOutputId) -> Self { sia_hash.0 }
-}
-
-impl From<Hash256> for SiacoinOutputId {
-    fn from(h256: Hash256) -> Self { SiacoinOutputId(h256) }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -1054,7 +1093,7 @@ impl V2Transaction {
         encoder.hash()
     }
 
-    pub fn txid(&self) -> Hash256 {
+    pub fn txid(&self) -> TransactionId {
         let mut encoder = Encoder::default();
         encoder.write_distinguisher("id/transaction");
         self.encode(&mut encoder);
@@ -1119,6 +1158,20 @@ impl Encodable for V2Transaction {
     }
 }
 
+/// FeePolicy is data optionally included in V2TransactionBuilder to allow easier fee calculation.
+/// Sia fee calculation can be complex in comparison to a typical UTXO protocol because the fee paid
+/// to the miner is not simply the sum of the inputs minus the sum of the outputs. Instead, the
+/// miner fee is a distinct field within the transaction, `miner_fee`. This `miner_fee` field is part
+/// of signature calculation. As a result, you can build a transaction, produce signatures and preimages
+/// for the inputs only to find out that the miner_fee hastings/byte rate is lower than expected.
+/// Therefore a precise hastings/byte calculation requires correctly estimating the size of all
+/// satisfied inputs prior to producing signatures.
+#[derive(Clone, Debug)]
+pub enum FeePolicy {
+    HastingsPerByte(Currency),
+    HastingsFixed(Currency),
+}
+
 #[derive(Clone, Debug)]
 pub struct V2TransactionBuilder {
     pub siacoin_inputs: Vec<SiacoinInputV2>,
@@ -1132,19 +1185,9 @@ pub struct V2TransactionBuilder {
     pub arbitrary_data: Vec<u8>,
     pub new_foundation_address: Option<Address>,
     pub miner_fee: Currency,
-}
-
-impl V2TransactionBuilder {
-    /**
-     * "weight" is the size of the transaction in bytes. This can be used to estimate miner fees.
-     * The recommended method for calculating a suitable fee is to multiply the response of `/txpool/fee` API endpoint
-     * and the weight to get the fee in hastings.
-     */
-    pub fn weight(&self) -> u64 {
-        let mut encoder = Encoder::default();
-        self.encode(&mut encoder);
-        encoder.buffer.len() as u64
-    }
+    // fee_policy is not part Sia consensus and it not encoded into any resulting transaction.
+    // fee_policy has no effect unless a helper like `ApiClientHelpers::fund_tx_single_source` utilizes it.
+    pub fee_policy: Option<FeePolicy>,
 }
 
 impl Encodable for V2TransactionBuilder {
@@ -1217,6 +1260,7 @@ impl V2TransactionBuilder {
             arbitrary_data: Vec::new(),
             new_foundation_address: None,
             miner_fee: Currency::ZERO,
+            fee_policy: None,
         }
     }
 
@@ -1273,6 +1317,17 @@ impl V2TransactionBuilder {
     pub fn miner_fee(&mut self, fee: Currency) -> &mut Self {
         self.miner_fee = fee;
         self
+    }
+
+    /**
+     * "weight" is the size of the transaction in bytes. This can be used to estimate miner fees.
+     * The recommended method for calculating a suitable fee is to multiply the response of
+     * `/txpool/fee` API endpoint and the weight to get the fee in hastings.
+     */
+    pub fn weight(&self) -> u64 {
+        let mut encoder = Encoder::default();
+        self.encode(&mut encoder);
+        encoder.buffer.len() as u64
     }
 
     /* Input is a special case becuase we cannot generate signatures until after fully constructing

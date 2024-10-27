@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod test {
     use crate::types::{Address, Hash256, PublicKey, SpendPolicy, UnlockCondition, UnlockKey};
-    use std::convert::TryFrom;
     use std::str::FromStr;
 
     cross_target_tests! {
@@ -57,7 +56,7 @@ mod test {
                 "policy": "h:0102030000000000000000000000000000000000000000000000000000000000"
             }
             );
-            let hash = Hash256::try_from("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap();
+            let hash = Hash256::from_str("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap();
             let spend_policy_deser: SpendPolicy = serde_json::from_value::<SpendPolicy>(j).unwrap();
             let spend_policy = SpendPolicy::Hash(hash);
 
@@ -89,7 +88,7 @@ mod test {
             )
             .unwrap();
 
-            let secret_hash = Hash256::try_from("h:0100000000000000000000000000000000000000000000000000000000000000").unwrap();
+            let secret_hash = Hash256::from_str("h:0100000000000000000000000000000000000000000000000000000000000000").unwrap();
             let spend_policy = SpendPolicy::atomic_swap_success(alice_pubkey, bob_pubkey, 77777777, secret_hash);
 
             let j = json!(

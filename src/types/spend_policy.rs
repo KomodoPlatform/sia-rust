@@ -1,6 +1,6 @@
 use crate::blake2b_internal::{public_key_leaf, sigs_required_leaf, standard_unlock_hash, timelock_leaf, Accumulator};
 use crate::encoding::{Encodable, Encoder};
-use crate::types::{Address, Hash256, Preimage, PublicKey, SatisfiedPolicy, Signature, Specifier};
+use crate::types::{Address, Hash256, PublicKey, Specifier};
 use nom::bytes::complete::{take_until, take_while, take_while_m_n};
 use nom::character::complete::char;
 use nom::combinator::all_consuming;
@@ -133,51 +133,6 @@ impl SpendPolicy {
     pub fn anyone_can_spend() -> Self { SpendPolicy::threshold(0, vec![]) }
 
     pub fn opacify(&self) -> Self { SpendPolicy::Opaque(self.address()) }
-
-    pub fn satisfy<T: SatisfyPolicy>(&self, data: T) -> Result<SatisfiedPolicy, String> { data.satisfy(self) }
-}
-
-pub trait SatisfyPolicy {
-    fn satisfy(self, policy: &SpendPolicy) -> Result<SatisfiedPolicy, String>;
-}
-
-impl SatisfyPolicy for Signature {
-    fn satisfy(self, policy: &SpendPolicy) -> Result<SatisfiedPolicy, String> {
-        match policy {
-            SpendPolicy::PublicKey(_) | SpendPolicy::UnlockConditions(_) => Ok(SatisfiedPolicy {
-                policy: policy.clone(),
-                signatures: vec![self],
-                preimages: vec![],
-            }),
-            _ => Err("Failed to satisfy. Policy is not PublicKey or UnlockConditions".to_string()),
-        }
-    }
-}
-
-impl SatisfyPolicy for Preimage {
-    fn satisfy(self, policy: &SpendPolicy) -> Result<SatisfiedPolicy, String> {
-        match policy {
-            SpendPolicy::Hash(_) => Ok(SatisfiedPolicy {
-                policy: policy.clone(),
-                signatures: vec![],
-                preimages: vec![self],
-            }),
-            _ => Err("Failed to satisfy. Policy is not Hash".to_string()),
-        }
-    }
-}
-
-impl SatisfyPolicy for () {
-    fn satisfy(self, policy: &SpendPolicy) -> Result<SatisfiedPolicy, String> {
-        match policy {
-            SpendPolicy::Above(_) | SpendPolicy::After(_) | SpendPolicy::Opaque(_) => Ok(SatisfiedPolicy {
-                policy: policy.clone(),
-                signatures: vec![],
-                preimages: vec![],
-            }),
-            _ => Err("Failed to satisfy. Policy is not Above, After or Opaque".to_string()),
-        }
-    }
 }
 
 impl SpendPolicy {
