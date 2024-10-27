@@ -12,6 +12,86 @@ use std::str::FromStr;
 
 const POLICY_VERSION: u8 = 1u8;
 
+/*
+The full representation of the atomic swap contract is as follows:
+    SpendPolicy::Threshold {
+        n: 1,
+        of: vec![
+            SpendPolicy::Threshold {
+                n: 2,
+                of: vec![
+                    SpendPolicy::Hash(<sha256(secret)>),
+                    SpendPolicy::PublicKey(<Alice pubkey>)
+                ]
+            },
+            SpendPolicy::Threshold {
+                n: 2,
+                of: vec![
+                    SpendPolicy::After(<timestamp>),
+                    SpendPolicy::PublicKey(<Bob pubkey>)
+                ]
+            },
+        ]
+    }
+
+In English, the above specifies that:
+    - Alice can spend the UTXO if:
+        - Alice provides the preimage of the SHA256 hash specified in the UTXO (the secret)
+        - Alice provides a valid signature
+    - Bob can spend the UTXO if:
+        - the current time is greater than the specified timestamp
+        - Bob provides a valid signature
+
+To lock funds in such a contract, we generate the address(see SpendPolicy::address) of the above SpendPolicy and use this Address in a transaction output.
+
+The resulting UTXO can then be spent by either Alice or Bob by meeting the conditions specified above.
+
+It is only neccesary to reveal the path that will be satisfied. The other path will be opacified(see SpendPolicy::opacify) and replaced with SpendPolicy::Opaque(<hash of unused path>).
+
+Alice can spend the UTXO by providing a signature, the secret and revealing the relevant path within the full SpendPolicy.
+
+Alice can construct the following SatisfiedPolicy to spend the UTXO:
+
+SatisfiedPolicy {
+    policy: SpendPolicy::Threshold {
+                n: 1,
+                of: vec![
+                    SpendPolicy::Threshold {
+                        n: 2,
+                        of: vec![
+                            SpendPolicy::Hash(<sha256(secret)>),
+                            SpendPolicy::PublicKey(<Alice pubkey>)
+                        ]
+                    },
+                    SpendPolicy::Opaque(<hash of unused path>),
+                ]
+            },
+    signatures: vec![<Alice signature>],
+    preimages: vec![<secret>]
+}
+
+Similarly, Bob can spend the UTXO with the following SatisfiedPolicy assuming he waits until the timestamp has passed:
+
+SatisfiedPolicy {
+    policy: SpendPolicy::Threshold {
+                n: 1,
+                of: vec![
+                    SpendPolicy::Threshold {
+                        n: 2,
+                        of: vec![
+                            SpendPolicy::After(<timestamp>),
+                            SpendPolicy::PublicKey(<Bob pubkey>)
+                        ]
+                    },
+                    SpendPolicy::Opaque(<hash of unused path>),
+                ]
+            },
+    signatures: vec![<Bob signature>],
+    preimages: vec![<secret>]
+}
+
+*/
+
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 #[serde(tag = "type", content = "policy")]
 pub enum SpendPolicy {
