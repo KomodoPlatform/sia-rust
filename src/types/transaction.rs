@@ -48,7 +48,11 @@ impl Currency {
 
     /// The minimum amount of currency for a transaction output
     // FIXME this is a placeholder value until testing is complete
-    pub const DUST: Currency = Currency(1_000_000);
+    pub const DUST: Currency = Currency(1);
+
+    /// A default fee amount for transactions
+    /// FIXME This is a placeholder value until testing is complete
+    pub const DEFAULT_FEE: Currency = Currency(10000000000000000000);
 }
 
 // TODO does this also need to be able to deserialize from an integer?
