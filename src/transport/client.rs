@@ -10,7 +10,7 @@ use url::Url;
 #[cfg(target_arch = "wasm32")] pub mod wasm;
 
 mod helpers;
-pub use helpers::{ApiClientHelpers, ApiClientHelpersError};
+pub use helpers::{ApiClientHelpers, ApiClientHelpersError, UtxoFromTxidError};
 
 // FIXME remove these client specific error types
 #[cfg(not(target_arch = "wasm32"))]
