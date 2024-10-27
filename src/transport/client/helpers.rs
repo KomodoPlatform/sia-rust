@@ -183,7 +183,7 @@ pub trait ApiClientHelpers: ApiClient {
         let event = self
             .dispatcher(GetEventRequest { txid: txid.clone() })
             .await
-            .map_err(|e| UtxoFromTxidError::FetchEvent(e))?;
+            .map_err(UtxoFromTxidError::FetchEvent)?;
 
         // check that the fetched event is V2Transaction
         let tx = match event.data {
@@ -205,7 +205,7 @@ pub trait ApiClientHelpers: ApiClient {
         let address_utxos = self
             .get_unspent_outputs(&output_address, None, None)
             .await
-            .map_err(|e| UtxoFromTxidError::FetchUtxos(e))?;
+            .map_err(UtxoFromTxidError::FetchUtxos)?;
 
         // filter the utxos to find any matching the expected SiacoinOutputId
         let filtered_utxos: Vec<SiacoinElement> = address_utxos

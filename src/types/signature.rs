@@ -73,7 +73,7 @@ impl Signature {
     }
 
     pub fn verify(&self, message: &[u8], public_key: &PublicKey) -> Result<(), SignatureError> {
-        public_key.verify(message, &self)
+        public_key.verify(message, self)
     }
 }
 
