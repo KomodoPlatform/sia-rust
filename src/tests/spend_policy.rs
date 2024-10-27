@@ -89,7 +89,7 @@ mod test {
             .unwrap();
 
             let secret_hash = Hash256::from_str("h:0100000000000000000000000000000000000000000000000000000000000000").unwrap();
-            let spend_policy = SpendPolicy::atomic_swap_success(alice_pubkey, bob_pubkey, 77777777, secret_hash);
+            let spend_policy = SpendPolicy::atomic_swap_success(&alice_pubkey, &bob_pubkey, 77777777, &secret_hash);
 
             let j = json!(
                 {

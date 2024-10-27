@@ -322,7 +322,7 @@ mod test {
 
             let secret_hash = Hash256::from_str("h:0100000000000000000000000000000000000000000000000000000000000000").unwrap();
 
-            let policy = SpendPolicy::atomic_swap_success(alice_pubkey, bob_pubkey, 77777777, secret_hash);
+            let policy = SpendPolicy::atomic_swap_success(&alice_pubkey, &bob_pubkey, 77777777, &secret_hash);
             let signature = Signature::from_bytes(
                 &hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
 
@@ -352,7 +352,7 @@ mod test {
 
             let secret_hash = Hash256::from_str("h:0100000000000000000000000000000000000000000000000000000000000000").unwrap();
 
-            let policy = SpendPolicy::atomic_swap_refund(alice_pubkey, bob_pubkey, 77777777, secret_hash);
+            let policy = SpendPolicy::atomic_swap_refund(&alice_pubkey, &bob_pubkey, 77777777, &secret_hash);
             let signature = Signature::from_bytes(
                 &hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
 
