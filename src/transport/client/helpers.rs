@@ -107,27 +107,27 @@ pub trait ApiClientHelpers: ApiClient {
         unspent_outputs.sort_by(|a, b| b.siacoin_output.value.0.cmp(&a.siacoin_output.value.0));
 
         let mut selected = Vec::new();
-        let mut selected_amount = 0;
+        let mut selected_amount = Currency::ZERO;
 
         // Select outputs until the total amount is reached
         for output in unspent_outputs {
-            selected_amount += *output.siacoin_output.value;
+            selected_amount += output.siacoin_output.value;
             selected.push(output);
 
-            if selected_amount >= *total_amount {
+            if selected_amount >= total_amount {
                 break;
             }
         }
 
-        if selected_amount < *total_amount {
+        if selected_amount < total_amount {
             return Err(SelectUtxosError::Funding {
-                available: selected_amount.into(),
-                required: total_amount.into(),
+                available: selected_amount,
+                required: total_amount,
             })?;
         }
-        let change = selected_amount as u128 - *total_amount;
+        let change = selected_amount - total_amount;
 
-        Ok((selected, change.into()))
+        Ok((selected, change))
     }
 
     /// Fund a transaction with utxos from the given address.
