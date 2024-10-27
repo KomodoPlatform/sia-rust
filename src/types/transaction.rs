@@ -188,7 +188,7 @@ impl Encodable for SatisfiedPolicy {
                 },
                 SpendPolicy::Hash(_) => {
                     if *prei < sp.preimages.len() {
-                        encoder.write_len_prefixed_bytes(&sp.preimages[*prei].0.to_vec());
+                        encoder.write_len_prefixed_bytes(&sp.preimages[*prei].0);
                         *prei += 1;
                     } else {
                         // Sia Go code panics here but our code assumes encoding will always be successful
