@@ -120,6 +120,10 @@ pub trait ApiClientHelpers: ApiClient {
     /// * `Ok(())` - The transaction builder has been successfully funded
     /// * `Err(ApiClientHelpersError)` - An error is returned if the available outputs cannot meet
     ///     the required amount or a transport error is encountered.
+    // Alright TODO - move V2TransactionBuilder to a separate module then move this logic to a
+    // method of V2TransactionBuilder to allow chaining. It was included here because V2TransactionBuilder
+    // is currently inside the transaction module which is generally meant for consensnus related types.
+    // It would not be appropriate to include ApiClient-related code in transaction.rs
     async fn fund_tx_single_source(
         &self,
         tx_builder: &mut V2TransactionBuilder,
