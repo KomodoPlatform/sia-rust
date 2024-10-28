@@ -21,12 +21,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          components: clippy, rustfmt
-          override: true
-          profile: minimal
-          toolchain: nightly-2023-06-01
+        run: |
+          rustup toolchain install nightly-2023-06-01 --no-self-update --profile minimal
+          rustup default nightly-2023-06-01
 
       - name: Cargo cache
         uses: ./.github/actions/cargo-cache
