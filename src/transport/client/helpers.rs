@@ -1,18 +1,55 @@
 use super::{ApiClient, ApiClientError};
 use crate::transport::endpoints::{AddressBalanceRequest, AddressBalanceResponse, ConsensusTipRequest,
-                                  GetAddressUtxosRequest};
-use crate::types::{Address, Currency, PublicKey, SiacoinElement, SpendPolicy, V2TransactionBuilder};
+                                  GetAddressUtxosRequest, GetEventRequest};
+use crate::types::{Address, Currency, Event, EventDataWrapper, Hash256, PublicKey, SiacoinElement, SiacoinOutputId,
+                   SpendPolicy, TransactionId, V2Transaction, V2TransactionBuilder};
 use async_trait::async_trait;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum ApiClientHelpersError {
+pub enum HelperError {
+    #[error("ApiClientHelpers::utxo_from_txid: {0}")]
+    UtxoFromTxid(#[from] UtxoFromTxidError),
+    #[error("ApiClientHelpers::get_transaction: {0}")]
+    GetTx(#[from] GetTransactionError),
+    #[error("ApiClientHelpers::select_unspent_outputs: {0}")]
+    SelectUtxos(#[from] SelectUtxosError),
+    #[error("ApiClientHelpers::get_event: failed to fetch event {0}")]
+    GetEvent(ApiClientError),
+}
+
+#[derive(Debug, Error)]
+pub enum UtxoFromTxidError {
+    #[error("ApiClientHelpers::utxo_from_txid: failed to fetch event {0}")]
+    FetchEvent(ApiClientError),
+    #[error("ApiClientHelpers::utxo_from_txid: invalid event variant {0:?}")]
+    EventVariant(Event),
+    #[error("ApiClientHelpers::utxo_from_txid: output index out of bounds txid: {txid} index: {index}")]
+    OutputIndexOutOfBounds { txid: TransactionId, index: u32 },
+    #[error("ApiClientHelpers::utxo_from_txid: get_unspent_outputs helper failed {0}")]
+    FetchUtxos(ApiClientError),
+    #[error("ApiClientHelpers::utxo_from_txid: output not found txid: {txid} index: {index}")]
+    NotFound { txid: TransactionId, index: u32 },
+    #[error("ApiClientHelpers::utxo_from_txid: found duplicate utxo txid: {txid} index: {index}")]
+    DuplicateUtxoFound { txid: TransactionId, index: u32 },
+}
+
+#[derive(Debug, Error)]
+pub enum GetTransactionError {
+    #[error("ApiClientHelpers::get_transaction: failed to fetch event {0}")]
+    FetchEvent(#[from] ApiClientError),
+    #[error("ApiClientHelpers::get_transaction: unexpected variant error {0:?}")]
+    EventVariant(EventDataWrapper),
+}
+
+#[derive(Debug, Error)]
+pub enum SelectUtxosError {
     #[error(
-        "ApiClientHelpersError::SelectOutputs: insufficent amount, available: {available:?} required: {required:?}"
+        "ApiClientHelpers::select_unspent_outputs: insufficent funds, available: {available:?} required: {required:?}"
     )]
-    SelectOutputs { available: Currency, required: Currency },
-    #[error("ApiClientHelpersError::ApiClientError: {0}")]
-    ApiClientError(#[from] ApiClientError),
+    Funding { available: Currency, required: Currency },
+    #[error("ApiClientHelpers::select_unspent_outputs: failed to fetch UTXOs {0}")]
+    FetchUtxos(#[from] ApiClientError),
 }
 
 /// Helper methods for the ApiClient trait
@@ -60,34 +97,37 @@ pub trait ApiClientHelpers: ApiClient {
         &self,
         address: &Address,
         total_amount: Currency,
-    ) -> Result<(Vec<SiacoinElement>, Currency), ApiClientHelpersError> {
-        let mut unspent_outputs = self.get_unspent_outputs(address, None, None).await?;
+    ) -> Result<(Vec<SiacoinElement>, Currency), HelperError> {
+        let mut unspent_outputs = self
+            .get_unspent_outputs(address, None, None)
+            .await
+            .map_err(SelectUtxosError::FetchUtxos)?;
 
         // Sort outputs from largest to smallest
         unspent_outputs.sort_by(|a, b| b.siacoin_output.value.0.cmp(&a.siacoin_output.value.0));
 
         let mut selected = Vec::new();
-        let mut selected_amount = 0;
+        let mut selected_amount = Currency::ZERO;
 
         // Select outputs until the total amount is reached
         for output in unspent_outputs {
-            selected_amount += *output.siacoin_output.value;
+            selected_amount += output.siacoin_output.value;
             selected.push(output);
 
-            if selected_amount >= *total_amount {
+            if selected_amount >= total_amount {
                 break;
             }
         }
 
-        if selected_amount < *total_amount {
-            return Err(ApiClientHelpersError::SelectOutputs {
-                available: selected_amount.into(),
+        if selected_amount < total_amount {
+            return Err(SelectUtxosError::Funding {
+                available: selected_amount,
                 required: total_amount,
-            });
+            })?;
         }
-        let change = selected_amount - *total_amount;
+        let change = selected_amount - total_amount;
 
-        Ok((selected, change.into()))
+        Ok((selected, change))
     }
 
     /// Fund a transaction with utxos from the given address.
@@ -103,11 +143,15 @@ pub trait ApiClientHelpers: ApiClient {
     /// * `Ok(())` - The transaction builder has been successfully funded
     /// * `Err(ApiClientHelpersError)` - An error is returned if the available outputs cannot meet
     ///     the required amount or a transport error is encountered.
+    // Alright TODO - move V2TransactionBuilder to a separate module then move this logic to a
+    // method of V2TransactionBuilder to allow chaining. It was included here because V2TransactionBuilder
+    // is currently inside the transaction module which is generally meant for consensnus related types.
+    // It would not be appropriate to include ApiClient-related code in transaction.rs
     async fn fund_tx_single_source(
         &self,
         tx_builder: &mut V2TransactionBuilder,
         public_key: &PublicKey,
-    ) -> Result<(), ApiClientHelpersError> {
+    ) -> Result<(), HelperError> {
         let address = public_key.address();
         let outputs_total: Currency = tx_builder.siacoin_outputs.iter().map(|output| output.value).sum();
 
@@ -127,5 +171,76 @@ pub trait ApiClientHelpers: ApiClient {
         }
 
         Ok(())
+    }
+
+    /// Fetches a SiacoinElement(a UTXO) from a TransactionId and Index
+    /// Walletd doesn't currently offer an easy way to fetch the SiacoinElement type needed to build
+    /// SiacoinInputs.
+    async fn utxo_from_txid(&self, txid: &TransactionId, vout_index: u32) -> Result<SiacoinElement, HelperError> {
+        let output_id = SiacoinOutputId::new(txid.clone(), vout_index);
+
+        // fetch the Event via /api/events/{txid}
+        let event = self
+            .dispatcher(GetEventRequest { txid: txid.clone() })
+            .await
+            .map_err(UtxoFromTxidError::FetchEvent)?;
+
+        // check that the fetched event is V2Transaction
+        let tx = match event.data {
+            EventDataWrapper::V2Transaction(tx) => tx,
+            _ => return Err(UtxoFromTxidError::EventVariant(event))?,
+        };
+
+        // check that the output index is within bounds
+        if tx.siacoin_outputs.len() <= (vout_index as usize) {
+            return Err(UtxoFromTxidError::OutputIndexOutOfBounds {
+                txid: txid.clone(),
+                index: vout_index,
+            })?;
+        }
+
+        let output_address = tx.siacoin_outputs[vout_index as usize].address.clone();
+
+        // fetch unspent outputs of the address
+        let address_utxos = self
+            .get_unspent_outputs(&output_address, None, None)
+            .await
+            .map_err(UtxoFromTxidError::FetchUtxos)?;
+
+        // filter the utxos to find any matching the expected SiacoinOutputId
+        let filtered_utxos: Vec<SiacoinElement> = address_utxos
+            .into_iter()
+            .filter(|element| element.state_element.id == output_id.clone().into())
+            .collect();
+
+        // ensure only one utxo was found
+        match filtered_utxos.len() {
+            1 => Ok(filtered_utxos[0].clone()),
+            0 => Err(UtxoFromTxidError::NotFound {
+                txid: txid.clone(),
+                index: vout_index,
+            })?,
+            _ => Err(UtxoFromTxidError::DuplicateUtxoFound {
+                txid: txid.clone(),
+                index: vout_index,
+            })?,
+        }
+    }
+
+    async fn get_event(&self, event_id: &Hash256) -> Result<Event, HelperError> {
+        self.dispatcher(GetEventRequest { txid: event_id.clone() })
+            .await
+            .map_err(HelperError::GetEvent)
+    }
+
+    async fn get_transaction(&self, txid: &TransactionId) -> Result<V2Transaction, HelperError> {
+        let event = self
+            .dispatcher(GetEventRequest { txid: txid.clone() })
+            .await
+            .map_err(GetTransactionError::FetchEvent)?;
+        match event.data {
+            EventDataWrapper::V2Transaction(tx) => Ok(tx),
+            wrong_variant => Err(GetTransactionError::EventVariant(wrong_variant))?,
+        }
     }
 }

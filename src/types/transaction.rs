@@ -48,7 +48,11 @@ impl Currency {
 
     /// The minimum amount of currency for a transaction output
     // FIXME this is a placeholder value until testing is complete
-    pub const DUST: Currency = Currency(1_000_000);
+    pub const DUST: Currency = Currency(1);
+
+    /// A default fee amount for transactions
+    /// FIXME This is a placeholder value until testing is complete
+    pub const DEFAULT_FEE: Currency = Currency(10000000000000000000);
 }
 
 // TODO does this also need to be able to deserialize from an integer?
@@ -391,11 +395,11 @@ pub type TransactionId = Hash256;
 pub struct SiacoinOutputId(pub Hash256);
 
 impl SiacoinOutputId {
-    pub fn new(txid: TransactionId, index: u64) -> Self {
+    pub fn new(txid: TransactionId, index: u32) -> Self {
         let mut encoder = Encoder::default();
         encoder.write_distinguisher("id/siacoinoutput");
         txid.encode(&mut encoder);
-        encoder.write_u64(index);
+        encoder.write_u64(index as u64);
         SiacoinOutputId(encoder.hash())
     }
 }
@@ -1389,6 +1393,29 @@ impl V2TransactionBuilder {
         self
     }
 
+    pub fn satisfy_atomic_swap_success(
+        &mut self,
+        keypair: &Keypair,
+        secret: Preimage,
+        input_index: u32,
+    ) -> Result<&mut Self, SatisfyAtomicSwapSuccessError> {
+        let sig_hash = self.input_sig_hash();
+        let sig = keypair.sign(&sig_hash.0);
+
+        // check input_index exists prior to indexing into the vector
+        if self.siacoin_inputs.len() <= (input_index as usize) {
+            return Err(SatisfyAtomicSwapSuccessError::IndexOutOfBounds {
+                len: self.siacoin_inputs.len(),
+                index: input_index,
+            });
+        }
+
+        let htlc_input = &mut self.siacoin_inputs[input_index as usize];
+        htlc_input.satisfied_policy.signatures.push(sig);
+        htlc_input.satisfied_policy.preimages.push(secret);
+        Ok(self)
+    }
+
     pub fn build(&mut self) -> V2Transaction {
         let cloned = self.clone();
         V2Transaction {
@@ -1409,4 +1436,10 @@ impl V2TransactionBuilder {
 
 impl Default for V2TransactionBuilder {
     fn default() -> Self { V2TransactionBuilder::new() }
+}
+
+#[derive(Debug, Error)]
+pub enum SatisfyAtomicSwapSuccessError {
+    #[error("satisfy_atomic_swap_success: provided index: {index} is out of bounds for inputs of length: {len}")]
+    IndexOutOfBounds { len: usize, index: u32 },
 }
