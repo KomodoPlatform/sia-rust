@@ -76,18 +76,18 @@ SatisfiedPolicy {
     policy: SpendPolicy::Threshold {
                 n: 1,
                 of: vec![
+                    SpendPolicy::Opaque(<hash of unused path>),
                     SpendPolicy::Threshold {
                         n: 2,
                         of: vec![
                             SpendPolicy::After(<timestamp>),
                             SpendPolicy::PublicKey(<Bob pubkey>)
                         ]
-                    },
-                    SpendPolicy::Opaque(<hash of unused path>),
+                    }
                 ]
             },
     signatures: vec![<Bob signature>],
-    preimages: vec![<secret>]
+    preimages: vec![]
 }
 
 */
