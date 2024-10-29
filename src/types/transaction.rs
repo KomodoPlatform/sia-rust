@@ -1296,6 +1296,14 @@ impl Encodable for V2TransactionBuilder {
     }
 }
 
+#[derive(Debug, Error)]
+pub enum V2TransactionBuilderError {
+    #[error("V2TransactionBuilder::satisfy_atomic_swap_success: provided index: {index} is out of bounds for inputs of length: {len}")]
+    SatisfySuccessIndexOutOfBounds { len: usize, index: u32 },
+    #[error("V2TransactionBuilder::satisfy_atomic_swap_refund: provided index: {index} is out of bounds for inputs of length: {len}")]
+    SatisfyRefundIndexOutOfBounds { len: usize, index: u32 },
+}
+
 impl V2TransactionBuilder {
     pub fn new() -> Self {
         Self {
@@ -1444,13 +1452,13 @@ impl V2TransactionBuilder {
         keypair: &Keypair,
         secret: Preimage,
         input_index: u32,
-    ) -> Result<&mut Self, SatisfyAtomicSwapSuccessError> {
+    ) -> Result<&mut Self, V2TransactionBuilderError> {
         let sig_hash = self.input_sig_hash();
         let sig = keypair.sign(&sig_hash.0);
 
         // check input_index exists prior to indexing into the vector
         if self.siacoin_inputs.len() <= (input_index as usize) {
-            return Err(SatisfyAtomicSwapSuccessError::IndexOutOfBounds {
+            return Err(V2TransactionBuilderError::SatisfySuccessIndexOutOfBounds {
                 len: self.siacoin_inputs.len(),
                 index: input_index,
             });
@@ -1459,6 +1467,27 @@ impl V2TransactionBuilder {
         let htlc_input = &mut self.siacoin_inputs[input_index as usize];
         htlc_input.satisfied_policy.signatures.push(sig);
         htlc_input.satisfied_policy.preimages.push(secret);
+        Ok(self)
+    }
+
+    pub fn satisfy_atomic_swap_refund(
+        &mut self,
+        keypair: &Keypair,
+        input_index: u32,
+    ) -> Result<&mut Self, V2TransactionBuilderError> {
+        let sig_hash = self.input_sig_hash();
+        let sig = keypair.sign(&sig_hash.0);
+
+        // check input_index exists prior to indexing into the vector
+        if self.siacoin_inputs.len() <= (input_index as usize) {
+            return Err(V2TransactionBuilderError::SatisfyRefundIndexOutOfBounds {
+                len: self.siacoin_inputs.len(),
+                index: input_index,
+            });
+        }
+
+        let htlc_input = &mut self.siacoin_inputs[input_index as usize];
+        htlc_input.satisfied_policy.signatures.push(sig);
         Ok(self)
     }
 
@@ -1482,10 +1511,4 @@ impl V2TransactionBuilder {
 
 impl Default for V2TransactionBuilder {
     fn default() -> Self { V2TransactionBuilder::new() }
-}
-
-#[derive(Debug, Error)]
-pub enum SatisfyAtomicSwapSuccessError {
-    #[error("satisfy_atomic_swap_success: provided index: {index} is out of bounds for inputs of length: {len}")]
-    IndexOutOfBounds { len: usize, index: u32 },
 }
