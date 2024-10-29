@@ -129,13 +129,59 @@ impl<'a> Encodable for CurrencyVersion<'a> {
 
 /// Preimage is a 32-byte array representing the preimage of a hash used in Sia's SpendPolicy::Hash
 /// Used to allow HLTC-style hashlock contracts in Sia
-#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, From, Into)]
-#[serde(transparent)]
+#[derive(Clone, Debug, Default, PartialEq, From, Into)]
 pub struct Preimage(pub [u8; 32]);
+
+impl Serialize for Preimage {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // Use hex::encode to convert the byte array to a lowercase hex string
+        let hex_string = hex::encode(&self.0);
+        serializer.serialize_str(&hex_string)
+    }
+}
+
+impl<'de> Deserialize<'de> for Preimage {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct PreimageVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for PreimageVisitor {
+            type Value = Preimage;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a 32 byte hex string")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                // Ensure the length is correct for a 32 byte hex string (64 hex characters)
+                if value.len() != 64 {
+                    return Err(E::invalid_length(value.len(), &self));
+                }
+
+                // Decode the hex string into a byte array
+                let mut bytes = [0u8; 32];
+                hex::decode_to_slice(value, &mut bytes)
+                    .map_err(|_| E::invalid_value(serde::de::Unexpected::Str(value), &self))?;
+
+                Ok(Preimage(bytes))
+            }
+        }
+
+        deserializer.deserialize_str(PreimageVisitor)
+    }
+}
 
 #[derive(Debug, Error)]
 pub enum PreimageError {
-    #[error("PreimageError: failed to convert from slice")]
+    #[error("PreimageError: failed to convert from slice invalid length: {0}")]
     InvalidSliceLength(usize),
 }
 
