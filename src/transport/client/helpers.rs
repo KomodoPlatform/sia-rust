@@ -1,6 +1,6 @@
 use super::{ApiClient, ApiClientError};
 use crate::transport::endpoints::{AddressBalanceRequest, AddressBalanceResponse, ConsensusTipRequest,
-                                  GetAddressUtxosRequest, GetEventRequest};
+                                  GetAddressUtxosRequest, GetEventRequest, TxpoolBroadcastRequest};
 use crate::types::{Address, Currency, Event, EventDataWrapper, Hash256, PublicKey, SiacoinElement, SiacoinOutputId,
                    SpendPolicy, TransactionId, V2Transaction, V2TransactionBuilder};
 use async_trait::async_trait;
@@ -16,6 +16,8 @@ pub enum HelperError {
     SelectUtxos(#[from] SelectUtxosError),
     #[error("ApiClientHelpers::get_event: failed to fetch event {0}")]
     GetEvent(ApiClientError),
+    #[error("ApiClientHelpers::broadcast_transaction: failed to broadcast transaction {0}")]
+    BroadcastTx(ApiClientError),
 }
 
 #[derive(Debug, Error)]
@@ -242,5 +244,17 @@ pub trait ApiClientHelpers: ApiClient {
             EventDataWrapper::V2Transaction(tx) => Ok(tx),
             wrong_variant => Err(GetTransactionError::EventVariant(wrong_variant))?,
         }
+    }
+
+    async fn broadcast_transaction(&self, tx: &V2Transaction) -> Result<(), HelperError> {
+        let request = TxpoolBroadcastRequest {
+            transactions: vec![],
+            v2transactions: vec![tx.clone()],
+        };
+
+        self.dispatcher(request)
+            .await
+            .map_err(|e| HelperError::BroadcastTx(e))?;
+        Ok(())
     }
 }
