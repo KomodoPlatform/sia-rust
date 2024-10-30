@@ -1,6 +1,6 @@
 use super::{ApiClient, ApiClientError};
-use crate::transport::endpoints::{AddressBalanceRequest, AddressBalanceResponse, ConsensusTipRequest,
-                                  GetAddressUtxosRequest, GetEventRequest, TxpoolBroadcastRequest};
+use crate::transport::endpoints::{AddressBalanceRequest, AddressBalanceResponse, AddressesEventsRequest,
+                                  ConsensusTipRequest, GetAddressUtxosRequest, GetEventRequest, TxpoolBroadcastRequest};
 use crate::types::{Address, Currency, Event, EventDataWrapper, Hash256, PublicKey, SiacoinElement, SiacoinOutputId,
                    SpendPolicy, TransactionId, V2Transaction, V2TransactionBuilder};
 use async_trait::async_trait;
@@ -16,6 +16,8 @@ pub enum HelperError {
     SelectUtxos(#[from] SelectUtxosError),
     #[error("ApiClientHelpers::get_event: failed to fetch event {0}")]
     GetEvent(ApiClientError),
+    #[error("ApiClientHelpers::get_address_events: failed {0}")]
+    GetAddressEvents(ApiClientError),
     #[error("ApiClientHelpers::broadcast_transaction: failed to broadcast transaction {0}")]
     BroadcastTx(ApiClientError),
 }
@@ -233,6 +235,15 @@ pub trait ApiClientHelpers: ApiClient {
         self.dispatcher(GetEventRequest { txid: event_id.clone() })
             .await
             .map_err(HelperError::GetEvent)
+    }
+
+    async fn get_address_events(&self, address: Address) -> Result<Vec<Event>, HelperError> {
+        let request = AddressesEventsRequest {
+            address,
+            limit: None,
+            offset: None,
+        };
+        self.dispatcher(request).await.map_err(HelperError::GetAddressEvents)
     }
 
     async fn get_transaction(&self, txid: &TransactionId) -> Result<V2Transaction, HelperError> {
