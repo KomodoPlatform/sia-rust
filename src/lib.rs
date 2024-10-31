@@ -1,6 +1,7 @@
 #[macro_use]
-mod macros;
+pub(crate) mod utils;
 
+// TODO Alright - if this is truly "internal" it should not be public
 pub mod blake2b_internal;
 pub mod encoding;
 pub mod transport;
