@@ -54,12 +54,6 @@ impl SiaApiRequest for ConsensusTipRequest {
     }
 }
 
-// #[derive(Clone, Deserialize, Serialize, Debug)]
-// pub struct ConsensusTipResponse {
-//     pub height: u64,
-//     pub id: BlockID,
-// }
-
 /// Represents the request-response pair for fetching the current consensus tipstate of the Sia network.
 ///
 /// # Walletd Endpoint
