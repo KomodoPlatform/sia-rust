@@ -1,5 +1,6 @@
 use crate::transport::client::{ApiClientError, Body, EndpointSchema, EndpointSchemaBuilder, SchemaMethod};
-use crate::types::{Address, BlockID, Currency, Event, Hash256, SiacoinElement, V1Transaction, V2Transaction};
+use crate::types::{Address, ChainIndex, Currency, Event, Hash256, SiacoinElement, V1Transaction, V2Transaction};
+use chrono::{DateTime, Utc};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -8,6 +9,7 @@ const ENDPOINT_ADDRESSES_BALANCE: &str = "api/addresses/{address}/balance";
 const ENDPOINT_ADDRESSES_EVENTS: &str = "api/addresses/{address}/events";
 const ENDPOINT_ADDRESSES_UTXOS_SIACOIN: &str = "api/addresses/{address}/outputs/siacoin";
 const ENDPOINT_CONSENSUS_TIP: &str = "api/consensus/tip";
+const ENDPOINT_CONSENSUS_TIPSTATE: &str = "api/consensus/tipstate";
 const ENDPOINT_EVENTS: &str = "api/events/{txid}";
 const ENDPOINT_TXPOOL_BROADCAST: &str = "api/txpool/broadcast";
 const ENDPOINT_TXPOOL_FEE: &str = "api/txpool/fee";
@@ -45,17 +47,53 @@ pub trait SiaApiRequest: Send {
 pub struct ConsensusTipRequest;
 
 impl SiaApiRequest for ConsensusTipRequest {
-    type Response = ConsensusTipResponse;
+    type Response = ChainIndex;
 
     fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
         Ok(EndpointSchemaBuilder::new(ENDPOINT_CONSENSUS_TIP.to_owned(), SchemaMethod::Get).build())
     }
 }
 
+// #[derive(Clone, Deserialize, Serialize, Debug)]
+// pub struct ConsensusTipResponse {
+//     pub height: u64,
+//     pub id: BlockID,
+// }
+
+/// Represents the request-response pair for fetching the current consensus tipstate of the Sia network.
+///
+/// # Walletd Endpoint
+/// `GET /consensus/tipstate`
+///
+/// # Description
+/// Returns the current consensus state of the Sia network.
+///
+/// # Response
+/// - The response is a `ConsensusTipstateResponse`, which is a partial implementation of the `consensus.State` type in Go.
+///   This response includes the current block's height and ID, as well as timestamps of the previous 11 blocks.
+///   The median of the provided timestamps is the medianTimestamp used to evaluate SpendPolicy::After.
+///   SpendPolicy::After(time) evaluates to true if `time > medianTimestamp`.
+///
+/// # References
+/// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/d71cf08d4579ba952c51e535f988000e43ed8722/api/server.go#L162)
+/// - [Go Source for the consensus.State Type](https://github.com/SiaFoundation/core/blob/00682daf422864b250b6bc750d4229dd76a8632d/consensus/state.go#L111)
+///
+/// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
 #[derive(Clone, Deserialize, Serialize, Debug)]
-pub struct ConsensusTipResponse {
-    pub height: u64,
-    pub id: BlockID,
+pub struct ConsensusTipstateRequest;
+
+impl SiaApiRequest for ConsensusTipstateRequest {
+    type Response = ConsensusTipstateResponse;
+
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
+        Ok(EndpointSchemaBuilder::new(ENDPOINT_CONSENSUS_TIPSTATE.to_owned(), SchemaMethod::Get).build())
+    }
+}
+
+#[derive(Clone, Deserialize, Serialize, Debug)]
+pub struct ConsensusTipstateResponse {
+    pub index: ChainIndex,
+    pub prev_timestamps: Vec<DateTime<Utc>>,
 }
 
 /// Represents the request-response pair for fetching the balance of an individual address.

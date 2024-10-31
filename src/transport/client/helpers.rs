@@ -1,6 +1,7 @@
 use super::{ApiClient, ApiClientError};
 use crate::transport::endpoints::{AddressBalanceRequest, AddressBalanceResponse, AddressesEventsRequest,
-                                  ConsensusTipRequest, GetAddressUtxosRequest, GetEventRequest, TxpoolBroadcastRequest};
+                                  ConsensusTipRequest, ConsensusTipstateRequest, ConsensusTipstateResponse,
+                                  GetAddressUtxosRequest, GetEventRequest, TxpoolBroadcastRequest};
 use crate::types::{Address, Currency, Event, EventDataWrapper, Hash256, PublicKey, SiacoinElement, SiacoinOutputId,
                    SpendPolicy, TransactionId, V2Transaction, V2TransactionBuilder};
 use async_trait::async_trait;
@@ -20,6 +21,8 @@ pub enum HelperError {
     GetAddressEvents(ApiClientError),
     #[error("ApiClientHelpers::broadcast_transaction: failed to broadcast transaction {0}")]
     BroadcastTx(ApiClientError),
+    #[error("ApiClientHelpers::get_median_timestamp: failed: {0}")]
+    GetMedianTimestamp(#[from] GetMedianTimestampError),
 }
 
 #[derive(Debug, Error)]
@@ -54,6 +57,18 @@ pub enum SelectUtxosError {
     Funding { available: Currency, required: Currency },
     #[error("ApiClientHelpers::select_unspent_outputs: failed to fetch UTXOs {0}")]
     FetchUtxos(#[from] ApiClientError),
+}
+
+#[derive(Debug, Error)]
+pub enum GetMedianTimestampError {
+    #[error("ApiClientHelpers::get_median_timestamp: failed to fetch consensus tipstate: {0}")]
+    FetchTipstate(#[from] ApiClientError),
+    #[error(
+        r#"ApiClientHelpers::get_median_timestamp: expected 11 timestamps in response: {0:?}.
+           The walletd state is likely corrupt as it is evidently reporting a chain height of less
+           than 11 blocks."#
+    )]
+    TimestampVecLen(ConsensusTipstateResponse),
 }
 
 /// Helper methods for the ApiClient trait
@@ -255,6 +270,24 @@ pub trait ApiClientHelpers: ApiClient {
             EventDataWrapper::V2Transaction(tx) => Ok(tx),
             wrong_variant => Err(GetTransactionError::EventVariant(wrong_variant))?,
         }
+    }
+
+    /// Get the median timestamp of the chain's last 11 blocks
+    /// This is used in the evaluation of SpendPolicy::After
+    async fn get_median_timestamp(&self) -> Result<u64, HelperError> {
+        let tipstate = self
+            .dispatcher(ConsensusTipstateRequest)
+            .await
+            .map_err(GetMedianTimestampError::FetchTipstate)?;
+
+        // This can happen if the chain has less than 11 blocks
+        // We assume the chain is at least 11 blocks long for this helper.
+        if tipstate.prev_timestamps.len() != 11 {
+            return Err(GetMedianTimestampError::TimestampVecLen(tipstate))?;
+        }
+
+        let median_timestamp = tipstate.prev_timestamps[5];
+        Ok(median_timestamp.timestamp() as u64)
     }
 
     async fn broadcast_transaction(&self, tx: &V2Transaction) -> Result<(), HelperError> {
