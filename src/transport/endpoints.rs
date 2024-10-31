@@ -1,9 +1,10 @@
 use crate::transport::client::{ApiClientError, Body, EndpointSchema, EndpointSchemaBuilder, SchemaMethod};
-use crate::types::{Address, BlockID, ChainIndex, Currency, Event, Hash256, SiacoinElement, V1Transaction,
-                   V2Transaction};
+use crate::types::{Address, ApiApplyUpdate, BlockID, ChainIndex, Currency, Event, Hash256, SiacoinElement,
+                   V1Transaction, V2Transaction};
+use crate::utils::deserialize_null_as_empty_vec;
 use chrono::{DateTime, Utc};
 use serde::de::DeserializeOwned;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 const ENDPOINT_ADDRESSES_BALANCE: &str = "api/addresses/{address}/balance";
@@ -184,48 +185,7 @@ impl SiaApiRequest for ConsensusUpdatesRequest {
 #[serde(rename_all = "camelCase")]
 pub struct ConsensusUpdatesResponse {
     #[serde(deserialize_with = "deserialize_null_as_empty_vec")]
-    pub applied: Vec<ApplyUpdate>,
-}
-
-#[derive(Clone, Deserialize, Serialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct ApplyUpdate {
-    pub update: Update,
-    pub block: Block,
-    // pub state: State, // This field is not implemented in the Rust
-}
-
-/// Equivalent of Go type `consensus.ApplyUpdate`
-/// Many fields are not implemented here in rust because we only need the SiacoinOutputId's found
-/// in the `spent` field for ApiClientHelpers::find_where_utxo_spent method.
-#[derive(Clone, Serialize, Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Update {
-    #[serde(deserialize_with = "deserialize_null_as_empty_vec")]
-    pub spent: Vec<Hash256>,
-}
-
-/// Deserialize a null value as an empty vector.
-fn deserialize_null_as_empty_vec<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
-where
-    D: Deserializer<'de>,
-    T: Deserialize<'de>,
-{
-    Option::deserialize(deserializer).map(|opt| opt.unwrap_or_default())
-}
-
-#[derive(Clone, Deserialize, Serialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct Block {
-    pub v2: V2BlockData,
-}
-
-#[derive(Clone, Deserialize, Serialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct V2BlockData {
-    pub height: u64,
-    #[serde(deserialize_with = "deserialize_null_as_empty_vec")]
-    pub transactions: Vec<V2Transaction>,
+    pub applied: Vec<ApiApplyUpdate>,
 }
 
 /// Represents the request-response pair for fetching the balance of an individual address.
