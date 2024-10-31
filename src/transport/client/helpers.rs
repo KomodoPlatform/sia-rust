@@ -3,8 +3,8 @@ use crate::transport::endpoints::{AddressBalanceRequest, AddressBalanceResponse,
                                   ConsensusIndexRequest, ConsensusTipRequest, ConsensusTipstateRequest,
                                   ConsensusTipstateResponse, ConsensusUpdatesRequest, ConsensusUpdatesResponse,
                                   GetAddressUtxosRequest, GetEventRequest, TxpoolBroadcastRequest};
-use crate::types::{Address, ChainIndex, Currency, Event, EventDataWrapper, Hash256, PublicKey, SiacoinElement,
-                   SiacoinOutputId, SpendPolicy, TransactionId, V2Transaction, V2TransactionBuilder};
+use crate::types::{Address, Currency, Event, EventDataWrapper, Hash256, PublicKey, SiacoinElement, SiacoinOutputId,
+                   SpendPolicy, TransactionId, V2Transaction, V2TransactionBuilder};
 use async_trait::async_trait;
 use thiserror::Error;
 
@@ -340,22 +340,48 @@ pub trait ApiClientHelpers: ApiClient {
         // the SiacoinOutputId is displayed with h: prefix in the endpoint response so use we Hash256
         let output_id = siacoin_output_id.0.clone();
 
-        // let updates = self.get_consensus_updates_since_height(begin_height).await?;
-        // // // find the update that has siacoin_output_id in "spent" field
-        // updates.applied.iter().find_map(|applied_update| {
-        //     if applied_update.update.spent.contains(&output_id) {
-        //         // if the output is in the spent field, we must search the corresponding block for the
-        //         // transaction that spent the output
-        //         applied_update.block.v2.transactions.iter().find_map(|tx| {
-        //             // find the one that spend the output
-        //             todo!()
-        //         })
-        //     } else {
-        //         None
-        //     }
-        // });
-        todo!()
+        let updates = self
+            .get_consensus_updates_since_height(begin_height)
+            .await
+            .map_err(|e| FindWhereUtxoSpentError::FetchUpdates(Box::new(e)))?;
+
+        // find the update that has the provided `siacoin_output_id`` in its "spent" field
+        let update_option = updates
+            .applied
+            .into_iter()
+            .find(|applied_update| applied_update.update.spent.contains(&output_id));
+
+        // If no update with the output_id was found, return Ok(None) indicating no error occured,
+        // but the spend transaction has not been found
+        let update = match update_option {
+            Some(update) => update,
+            None => return Ok(None),
+        };
+
+        // scan the block indicated by the update to find the transaction that spent the utxo
+        let tx = update
+            .block
+            .v2
+            .transactions
+            .into_iter()
+            .find(|tx| {
+                tx.siacoin_inputs
+                    .iter()
+                    .any(|input| input.parent.state_element.id == output_id)
+            })
+            .ok_or(FindWhereUtxoSpentError::SpendNotInBlock { id: output_id })?;
+
+        Ok(Some(tx))
     }
+}
+
+#[derive(Debug, Error)]
+pub enum FindWhereUtxoSpentError {
+    // Boxed to allow HelperError to be held within itself
+    #[error("ApiClientHelpers::find_where_utxo_spent: failed to fetch consensus updates {0}")]
+    FetchUpdates(#[from] Box<HelperError>),
+    #[error("ApiClientHelpers::find_where_utxo_spent: scoid:{id} was not spent in the expected block")]
+    SpendNotInBlock { id: Hash256 },
 }
 
 #[derive(Debug, Error)]
