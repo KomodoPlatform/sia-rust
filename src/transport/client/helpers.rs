@@ -10,22 +10,24 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum HelperError {
-    #[error("ApiClientHelpers::utxo_from_txid: {0}")]
+    #[error("ApiClientHelpers::utxo_from_txid failed: {0}")]
     UtxoFromTxid(#[from] UtxoFromTxidError),
-    #[error("ApiClientHelpers::get_transaction: {0}")]
+    #[error("ApiClientHelpers::get_transaction failed: {0}")]
     GetTx(#[from] GetTransactionError),
-    #[error("ApiClientHelpers::select_unspent_outputs: {0}")]
+    #[error("ApiClientHelpers::select_unspent_outputs failed: {0}")]
     SelectUtxos(#[from] SelectUtxosError),
-    #[error("ApiClientHelpers::get_event: failed to fetch event {0}")]
+    #[error("ApiClientHelpers::get_event failed to fetch event: {0}")]
     GetEvent(ApiClientError),
-    #[error("ApiClientHelpers::get_address_events: failed {0}")]
+    #[error("ApiClientHelpers::get_address_events failed: {0}")]
     GetAddressEvents(ApiClientError),
-    #[error("ApiClientHelpers::broadcast_transaction: failed to broadcast transaction {0}")]
+    #[error("ApiClientHelpers::broadcast_transaction failed to broadcast transaction: {0}")]
     BroadcastTx(ApiClientError),
-    #[error("ApiClientHelpers::get_median_timestamp: failed: {0}")]
+    #[error("ApiClientHelpers::get_median_timestamp failed: {0}")]
     GetMedianTimestamp(#[from] GetMedianTimestampError),
-    #[error("ApiClientHelpers::get_consensus_updates_since_height: failed {0}")]
+    #[error("ApiClientHelpers::get_consensus_updates_since_height failed: {0}")]
     UpdatesSinceHeight(#[from] UpdatesSinceHeightError),
+    #[error("ApiClientHelpers::find_where_utxo_spent failed: {0}")]
+    FindWhereUtxoSpent(#[from] FindWhereUtxoSpentError),
 }
 
 #[derive(Debug, Error)]
