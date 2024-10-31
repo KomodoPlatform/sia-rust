@@ -1,15 +1,18 @@
 use crate::transport::client::{ApiClientError, Body, EndpointSchema, EndpointSchemaBuilder, SchemaMethod};
-use crate::types::{Address, ChainIndex, Currency, Event, Hash256, SiacoinElement, V1Transaction, V2Transaction};
+use crate::types::{Address, BlockID, ChainIndex, Currency, Event, Hash256, SiacoinElement, V1Transaction,
+                   V2Transaction};
 use chrono::{DateTime, Utc};
 use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 
 const ENDPOINT_ADDRESSES_BALANCE: &str = "api/addresses/{address}/balance";
 const ENDPOINT_ADDRESSES_EVENTS: &str = "api/addresses/{address}/events";
 const ENDPOINT_ADDRESSES_UTXOS_SIACOIN: &str = "api/addresses/{address}/outputs/siacoin";
 const ENDPOINT_CONSENSUS_TIP: &str = "api/consensus/tip";
+const ENDPOINT_CONSENSUS_INDEX: &str = "api/consensus/index/{height}";
 const ENDPOINT_CONSENSUS_TIPSTATE: &str = "api/consensus/tipstate";
+const ENDPOINT_CONSENSUS_UPDATES: &str = "api/consensus/updates/{height}::{hash}";
 const ENDPOINT_EVENTS: &str = "api/events/{txid}";
 const ENDPOINT_TXPOOL_BROADCAST: &str = "api/txpool/broadcast";
 const ENDPOINT_TXPOOL_FEE: &str = "api/txpool/fee";
@@ -35,7 +38,7 @@ pub trait SiaApiRequest: Send {
 /// and its block ID, representing the latest state of the blockchain.
 ///
 /// # Response
-/// - The response is a `ConsensusTipResponse`, which contains the block's height and ID.
+/// - The response is a `ChainIndex`, which contains the block's height and ID.
 ///   This corresponds to the `types.ChainIndex` type in Go.
 ///
 /// # References
@@ -51,6 +54,45 @@ impl SiaApiRequest for ConsensusTipRequest {
 
     fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
         Ok(EndpointSchemaBuilder::new(ENDPOINT_CONSENSUS_TIP.to_owned(), SchemaMethod::Get).build())
+    }
+}
+
+/// Represents the request-response pair for fetching a BlockId from a provided height.
+///
+/// # Walletd Endpoint
+/// `GET /consensus/index/{height}`
+///
+/// # Description
+/// Returns the ChainIndex of the Block at the provided height. The consensus tip includes the block's height
+/// and its BlockId.
+///
+/// # Response
+/// - The response is a `ChainIndex`, which contains the block's height and ID.
+///   This corresponds to the `types.ChainIndex` type in Go.
+///
+/// # References
+/// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/6ff23fe34f6fa45a19bfb6e4bacc8a16d2c48144/api/server.go#L158)
+/// - [Go Source for the ChainIndex Type](https://github.com/SiaFoundation/core/blob/300042fd2129381468356dcd87c5e9a6ad94c0ef/types/types.go#L194)
+///
+/// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
+#[derive(Clone, Deserialize, Serialize, Debug)]
+pub struct ConsensusIndexRequest {
+    pub height: u64,
+}
+
+impl SiaApiRequest for ConsensusIndexRequest {
+    type Response = ChainIndex;
+
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
+        // Create the path_params HashMap to substitute {height} in the path schema
+        let mut path_params = HashMap::new();
+        path_params.insert("height".to_owned(), self.height.to_string());
+
+        Ok(
+            EndpointSchemaBuilder::new(ENDPOINT_CONSENSUS_INDEX.to_owned(), SchemaMethod::Get)
+                .path_params(path_params)
+                .build(),
+        )
     }
 }
 
@@ -88,6 +130,102 @@ impl SiaApiRequest for ConsensusTipstateRequest {
 pub struct ConsensusTipstateResponse {
     pub index: ChainIndex,
     pub prev_timestamps: Vec<DateTime<Utc>>,
+}
+
+/// Represents the request-response pair for fetching consensus updates of the Sia network.
+///
+/// # Walletd Endpoint
+/// `GET /consensus/updates/{height}::{hash}`
+///
+/// # Description
+/// Returns consensus updates since the specific block height until the current consensus tip.
+///
+/// # Response
+/// - The response is a `ConsensusUpdatesResponse`, which is a partial implementation of the `ConsensusUpdatesResponse` type in Go.
+///   This endpoint only partially implements the Go type provided as response.
+///   This endpoints implements the minimum required fields to facilitate the logic of ApiClientHelpers::find_where_utxo_spent method.
+///
+/// # References
+/// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/d71cf08d4579ba952c51e535f988000e43ed8722/api/server.go#L162)
+/// - [Go Source for the consensus.State Type](https://github.com/SiaFoundation/core/blob/00682daf422864b250b6bc750d4229dd76a8632d/consensus/state.go#L111)
+///
+/// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
+#[derive(Clone, Deserialize, Serialize, Debug)]
+pub struct ConsensusUpdatesRequest {
+    pub height: u64,
+    pub block_hash: BlockID,
+    pub limit: Option<i64>,
+}
+
+impl SiaApiRequest for ConsensusUpdatesRequest {
+    type Response = ConsensusUpdatesResponse;
+
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
+        // Create the path_params HashMap to substitute {height} and {hash} in the path schema
+        let mut path_params = HashMap::new();
+        path_params.insert("height".to_owned(), self.height.to_string());
+        path_params.insert("hash".to_owned(), format!("{:02x}", self.block_hash.0));
+
+        let mut query_params = HashMap::new();
+        if let Some(limit) = self.limit {
+            query_params.insert("limit".to_owned(), limit.to_string());
+        }
+
+        Ok(
+            EndpointSchemaBuilder::new(ENDPOINT_CONSENSUS_UPDATES.to_owned(), SchemaMethod::Get)
+                .path_params(path_params) // Set the path params containing the height and hash
+                .query_params(query_params) // Set the query params for ?limit=
+                .build(),
+        )
+    }
+}
+
+#[derive(Clone, Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ConsensusUpdatesResponse {
+    #[serde(deserialize_with = "deserialize_null_as_empty_vec")]
+    pub applied: Vec<ApplyUpdate>,
+}
+
+#[derive(Clone, Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ApplyUpdate {
+    pub update: Update,
+    pub block: Block,
+    // pub state: State, // This field is not implemented in the Rust
+}
+
+/// Equivalent of Go type `consensus.ApplyUpdate`
+/// Many fields are not implemented here in rust because we only need the SiacoinOutputId's found
+/// in the `spent` field for ApiClientHelpers::find_where_utxo_spent method.
+#[derive(Clone, Serialize, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Update {
+    #[serde(deserialize_with = "deserialize_null_as_empty_vec")]
+    pub spent: Vec<Hash256>,
+}
+
+/// Deserialize a null value as an empty vector.
+fn deserialize_null_as_empty_vec<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    Option::deserialize(deserializer).map(|opt| opt.unwrap_or_default())
+}
+
+#[derive(Clone, Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Block {
+    pub v2: V2BlockData,
+}
+
+#[derive(Clone, Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct V2BlockData {
+    pub height: u64,
+    #[serde(deserialize_with = "deserialize_null_as_empty_vec")]
+    pub transactions: Vec<V2Transaction>,
 }
 
 /// Represents the request-response pair for fetching the balance of an individual address.

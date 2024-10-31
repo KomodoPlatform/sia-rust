@@ -1,9 +1,10 @@
 use super::{ApiClient, ApiClientError};
 use crate::transport::endpoints::{AddressBalanceRequest, AddressBalanceResponse, AddressesEventsRequest,
-                                  ConsensusTipRequest, ConsensusTipstateRequest, ConsensusTipstateResponse,
+                                  ConsensusIndexRequest, ConsensusTipRequest, ConsensusTipstateRequest,
+                                  ConsensusTipstateResponse, ConsensusUpdatesRequest, ConsensusUpdatesResponse,
                                   GetAddressUtxosRequest, GetEventRequest, TxpoolBroadcastRequest};
-use crate::types::{Address, Currency, Event, EventDataWrapper, Hash256, PublicKey, SiacoinElement, SiacoinOutputId,
-                   SpendPolicy, TransactionId, V2Transaction, V2TransactionBuilder};
+use crate::types::{Address, ChainIndex, Currency, Event, EventDataWrapper, Hash256, PublicKey, SiacoinElement,
+                   SiacoinOutputId, SpendPolicy, TransactionId, V2Transaction, V2TransactionBuilder};
 use async_trait::async_trait;
 use thiserror::Error;
 
@@ -23,6 +24,8 @@ pub enum HelperError {
     BroadcastTx(ApiClientError),
     #[error("ApiClientHelpers::get_median_timestamp: failed: {0}")]
     GetMedianTimestamp(#[from] GetMedianTimestampError),
+    #[error("ApiClientHelpers::get_consensus_updates_since_height: failed {0}")]
+    UpdatesSinceHeight(#[from] UpdatesSinceHeightError),
 }
 
 #[derive(Debug, Error)]
@@ -301,4 +304,62 @@ pub trait ApiClientHelpers: ApiClient {
             .map_err(|e| HelperError::BroadcastTx(e))?;
         Ok(())
     }
+
+    async fn get_consensus_updates_since_height(
+        &self,
+        begin_height: u64,
+    ) -> Result<ConsensusUpdatesResponse, HelperError> {
+        let index_request = ConsensusIndexRequest { height: begin_height };
+        let chain_index = self
+            .dispatcher(index_request)
+            .await
+            .map_err(UpdatesSinceHeightError::FetchIndex)?;
+
+        let updates_request = ConsensusUpdatesRequest {
+            height: chain_index.height,
+            block_hash: chain_index.id,
+            limit: None,
+        };
+
+        self.dispatcher(updates_request)
+            .await
+            .map_err(UpdatesSinceHeightError::FetchUpdates)
+            .map_err(HelperError::UpdatesSinceHeight)
+    }
+
+    /// Find the transaction that spent the given utxo
+    /// Scans the blockchain starting from `begin_height`
+    /// Returns Ok(None) if the utxo has not been spent
+    async fn find_where_utxo_spent(
+        &self,
+        siacoin_output_id: &SiacoinOutputId,
+        begin_height: u64,
+    ) -> Result<Option<V2Transaction>, HelperError> {
+        // the SiacoinOutputId is displayed with h: prefix in the endpoint response so use we Hash256
+        let output_id = siacoin_output_id.0.clone();
+
+        // let updates = self.get_consensus_updates_since_height(begin_height).await?;
+        // // // find the update that has siacoin_output_id in "spent" field
+        // updates.applied.iter().find_map(|applied_update| {
+        //     if applied_update.update.spent.contains(&output_id) {
+        //         // if the output is in the spent field, we must search the corresponding block for the
+        //         // transaction that spent the output
+        //         applied_update.block.v2.transactions.iter().find_map(|tx| {
+        //             // find the one that spend the output
+        //             todo!()
+        //         })
+        //     } else {
+        //         None
+        //     }
+        // });
+        todo!()
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum UpdatesSinceHeightError {
+    #[error("ApiClientHelpers::get_consensus_updates_since_height: failed to fetch ChainIndex {0}")]
+    FetchIndex(ApiClientError),
+    #[error("ApiClientHelpers::get_consensus_updates_since_height: failed to fetch updates {0}")]
+    FetchUpdates(ApiClientError),
 }
