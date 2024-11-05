@@ -263,6 +263,7 @@ pub enum EventType {
 pub struct Event {
     pub id: Hash256,
     pub index: ChainIndex,
+    pub confirmations: u64,
     pub timestamp: DateTime<Utc>,
     #[serde(rename = "maturityHeight")]
     pub maturity_height: u64,
@@ -282,6 +283,7 @@ impl<'de> Deserialize<'de> for Event {
         struct EventHelper {
             id: Hash256,
             index: ChainIndex,
+            confirmations: u64,
             timestamp: DateTime<Utc>,
             #[serde(rename = "maturityHeight")]
             maturity_height: u64,
@@ -309,7 +311,8 @@ impl<'de> Deserialize<'de> for Event {
                 .map(EventDataWrapper::V2Transaction)
                 .map_err(serde::de::Error::custom),
             EventType::V1ContractResolution => {
-                return Err(serde::de::Error::custom("V1ContractResolution not supported"))
+                // FIXME we require this to safely deser V2Transactions sent over the wire
+                return Err(serde::de::Error::custom("V1ContractResolution not supported"));
             },
             EventType::V2ContractResolution => serde_json::from_value::<EventV2ContractResolution>(helper.data)
                 .map(|data| EventDataWrapper::V2FileContractResolution(Box::new(data)))
@@ -319,6 +322,7 @@ impl<'de> Deserialize<'de> for Event {
         Ok(Event {
             id: helper.id,
             index: helper.index,
+            confirmations: helper.confirmations,
             timestamp: helper.timestamp,
             maturity_height: helper.maturity_height,
             event_type: helper.event_type,
