@@ -421,6 +421,8 @@ pub struct TxpoolBroadcastRequest {
     pub v2transactions: Vec<V2Transaction>,
 }
 
+// TODO Alright - this was initially thought neccesary to implement methods on it, but it seems ()
+// will work in its place
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct EmptyResponse;
 
