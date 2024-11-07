@@ -501,10 +501,17 @@ impl SiaApiRequest for TxpoolFeeRequest {
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct TxpoolTransactionsRequest;
 
-impl SiaApiRequest for TxpoolTransactionsRequest {
-    type Response = EmptyResponse;
+#[derive(Clone, Deserialize, Serialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct TxpoolTransactionsResponse {
+    #[serde(deserialize_with = "deserialize_null_as_empty_vec")]
+    pub transactions: Vec<V1Transaction>,
+    #[serde(deserialize_with = "deserialize_null_as_empty_vec")]
+    pub v2transactions: Vec<V2Transaction>,
+}
 
-    fn is_empty_response() -> Option<Self::Response> { Some(EmptyResponse) }
+impl SiaApiRequest for TxpoolTransactionsRequest {
+    type Response = TxpoolTransactionsResponse;
 
     fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
         Ok(
