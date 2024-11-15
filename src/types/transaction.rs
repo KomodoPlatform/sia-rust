@@ -270,27 +270,22 @@ impl Encodable for SatisfiedPolicy {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct StateElement {
-    pub id: Hash256,
     pub leaf_index: u64,
     #[serde(default)]
-    pub merkle_proof: Option<Vec<Hash256>>,
+    pub merkle_proof: Vec<Hash256>,
 }
 
+// FIXME Alright requires new unit tests and corresponding rust_port_test.go tests
+// merkle_proof was previously Option<Vec<Hash256>> because Walletd can return null for this field
+// Test unintialized slice (ie, null) vs empty slice - do they encode the same?
+// the following encoding assumes that they do encode the same
 impl Encodable for StateElement {
     fn encode(&self, encoder: &mut Encoder) {
-        self.id.encode(encoder);
         encoder.write_u64(self.leaf_index);
+        encoder.write_u64(self.merkle_proof.len() as u64);
 
-        match &self.merkle_proof {
-            Some(proof) => {
-                encoder.write_u64(proof.len() as u64);
-                for p in proof {
-                    p.encode(encoder);
-                }
-            },
-            None => {
-                encoder.write_u64(0u64);
-            },
+        for proof in &self.merkle_proof {
+            proof.encode(encoder);
         }
     }
 }
@@ -298,7 +293,8 @@ impl Encodable for StateElement {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct SiafundElement {
-    #[serde(flatten)]
+    #[serde(rename = "ID")]
+    pub id: SiafundOutputId,
     pub state_element: StateElement,
     pub siafund_output: SiafundOutput,
     pub claim_start: Currency,
@@ -320,7 +316,8 @@ impl Encodable for SiafundElement {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct SiacoinElement {
-    #[serde(flatten)]
+    #[serde(rename = "ID")]
+    pub id: SiacoinOutputId,
     pub state_element: StateElement,
     pub siacoin_output: SiacoinOutput,
     pub maturity_height: u64,
@@ -437,8 +434,13 @@ impl<'a> Encodable for SiacoinOutputVersion<'a> {
 /// more generic "h:" prefix. related: <https://github.com/SiaFoundation/core/pull/199>
 pub type TransactionId = Hash256;
 
-#[derive(Clone, Debug, PartialEq, From, Into)]
+#[derive(Clone, Debug, PartialEq, From, Into, Deserialize, Serialize, Display)]
+#[serde(transparent)]
 pub struct SiacoinOutputId(pub Hash256);
+
+impl Encodable for SiacoinOutputId {
+    fn encode(&self, encoder: &mut Encoder) { self.0.encode(encoder) }
+}
 
 impl SiacoinOutputId {
     pub fn new(txid: TransactionId, index: u32) -> Self {
@@ -450,49 +452,12 @@ impl SiacoinOutputId {
     }
 }
 
-impl<'de> Deserialize<'de> for SiacoinOutputId {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct SiacoinOutputIdVisitor;
+#[derive(Clone, Debug, PartialEq, From, Into, Deserialize, Serialize, Display)]
+#[serde(transparent)]
+pub struct SiafundOutputId(pub Hash256);
 
-        impl<'de> serde::de::Visitor<'de> for SiacoinOutputIdVisitor {
-            type Value = SiacoinOutputId;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a string prefixed with 'scoid:' and followed by a 64-character hex string")
-            }
-
-            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                if let Some(hex_str) = value.strip_prefix("scoid:") {
-                    Hash256::from_str_no_prefix(hex_str)
-                        .map(SiacoinOutputId)
-                        .map_err(|_| E::invalid_value(serde::de::Unexpected::Str(value), &self))
-                } else {
-                    Err(E::invalid_value(serde::de::Unexpected::Str(value), &self))
-                }
-            }
-        }
-
-        deserializer.deserialize_str(SiacoinOutputIdVisitor)
-    }
-}
-
-impl Serialize for SiacoinOutputId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&format!("{}", self))
-    }
-}
-
-impl fmt::Display for SiacoinOutputId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "scoid:{:02x}", self.0) }
+impl Encodable for SiafundOutputId {
+    fn encode(&self, encoder: &mut Encoder) { self.0.encode(encoder) }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -661,7 +626,8 @@ impl Encodable for V2FileContract {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct V2FileContractElement {
-    #[serde(flatten)]
+    #[serde(rename = "ID")]
+    pub id: FileContractID,
     pub state_element: StateElement,
     pub v2_file_contract: V2FileContract,
 }
@@ -749,7 +715,6 @@ impl Encodable for StorageProof {
     }
 }
 
-type SiafundOutputID = Hash256;
 type FileContractID = Hash256;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -783,7 +748,7 @@ impl Encodable for FileContractRevision {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct SiafundInputV1 {
-    pub parent_id: SiafundOutputID,
+    pub parent_id: SiafundOutputId,
     pub unlock_condition: UnlockCondition,
     pub claim_address: Address,
 }
@@ -960,7 +925,7 @@ impl V2StorageProof {
         V2StorageProof {
             proof_index: ChainIndexElement {
                 state_element: StateElement {
-                    merkle_proof: None,
+                    merkle_proof: vec![],
                     ..self.proof_index.state_element.clone()
                 },
                 ..self.proof_index.clone()
@@ -1156,7 +1121,7 @@ impl Encodable for V2Transaction {
     fn encode(&self, encoder: &mut Encoder) {
         encoder.write_u64(self.siacoin_inputs.len() as u64);
         for si in &self.siacoin_inputs {
-            si.parent.state_element.id.encode(encoder);
+            si.parent.id.encode(encoder);
         }
 
         encoder.write_u64(self.siacoin_outputs.len() as u64);
@@ -1166,7 +1131,7 @@ impl Encodable for V2Transaction {
 
         encoder.write_u64(self.siafund_inputs.len() as u64);
         for si in &self.siafund_inputs {
-            si.parent.state_element.id.encode(encoder);
+            si.parent.id.encode(encoder);
         }
 
         encoder.write_u64(self.siafund_outputs.len() as u64);
@@ -1181,13 +1146,13 @@ impl Encodable for V2Transaction {
 
         encoder.write_u64(self.file_contract_revisions.len() as u64);
         for fcr in &self.file_contract_revisions {
-            fcr.parent.state_element.id.encode(encoder);
+            fcr.parent.id.encode(encoder);
             fcr.revision.with_nil_sigs().encode(encoder);
         }
 
         encoder.write_u64(self.file_contract_resolutions.len() as u64);
         for fcr in &self.file_contract_resolutions {
-            fcr.parent.state_element.id.encode(encoder);
+            fcr.parent.id.encode(encoder);
             fcr.with_nil_sigs().encode(encoder);
             // FIXME .encode() leads to unimplemented!()
         }
@@ -1244,7 +1209,7 @@ impl Encodable for V2TransactionBuilder {
     fn encode(&self, encoder: &mut Encoder) {
         encoder.write_u64(self.siacoin_inputs.len() as u64);
         for si in &self.siacoin_inputs {
-            si.parent.state_element.id.encode(encoder);
+            si.parent.id.encode(encoder);
         }
 
         encoder.write_u64(self.siacoin_outputs.len() as u64);
@@ -1254,7 +1219,7 @@ impl Encodable for V2TransactionBuilder {
 
         encoder.write_u64(self.siafund_inputs.len() as u64);
         for si in &self.siafund_inputs {
-            si.parent.state_element.id.encode(encoder);
+            si.parent.id.encode(encoder);
         }
 
         encoder.write_u64(self.siafund_outputs.len() as u64);
@@ -1269,13 +1234,13 @@ impl Encodable for V2TransactionBuilder {
 
         encoder.write_u64(self.file_contract_revisions.len() as u64);
         for fcr in &self.file_contract_revisions {
-            fcr.parent.state_element.id.encode(encoder);
+            fcr.parent.id.encode(encoder);
             fcr.revision.with_nil_sigs().encode(encoder);
         }
 
         encoder.write_u64(self.file_contract_resolutions.len() as u64);
         for fcr in &self.file_contract_resolutions {
-            fcr.parent.state_element.id.encode(encoder);
+            fcr.parent.id.encode(encoder);
             fcr.with_nil_sigs().encode(encoder);
             // FIXME .encode() leads to unimplemented!()
         }

@@ -234,7 +234,7 @@ pub trait ApiClientHelpers: ApiClient {
         // filter the utxos to find any matching the expected SiacoinOutputId
         let filtered_utxos: Vec<SiacoinElement> = address_utxos
             .into_iter()
-            .filter(|element| element.state_element.id == output_id.clone().into())
+            .filter(|element| element.id == output_id)
             .collect();
 
         // ensure only one utxo was found
@@ -338,7 +338,7 @@ pub trait ApiClientHelpers: ApiClient {
         begin_height: u64,
     ) -> Result<Option<V2Transaction>, HelperError> {
         // the SiacoinOutputId is displayed with h: prefix in the endpoint response so use we Hash256
-        let output_id = siacoin_output_id.0.clone();
+        let output_id = siacoin_output_id;
 
         let updates = self
             .get_consensus_updates_since_height(begin_height)
@@ -349,7 +349,7 @@ pub trait ApiClientHelpers: ApiClient {
         let update_option = updates
             .applied
             .into_iter()
-            .find(|applied_update| applied_update.update.spent.contains(&output_id));
+            .find(|applied_update| applied_update.update.spent.contains(&output_id.0));
 
         // If no update with the output_id was found, return Ok(None) indicating no error occured,
         // but the spend transaction has not been found
@@ -364,12 +364,8 @@ pub trait ApiClientHelpers: ApiClient {
             .v2
             .transactions
             .into_iter()
-            .find(|tx| {
-                tx.siacoin_inputs
-                    .iter()
-                    .any(|input| input.parent.state_element.id == output_id)
-            })
-            .ok_or(FindWhereUtxoSpentError::SpendNotInBlock { id: output_id })?;
+            .find(|tx| tx.siacoin_inputs.iter().any(|input| input.parent.id == *output_id))
+            .ok_or(FindWhereUtxoSpentError::SpendNotInBlock { id: output_id.clone() })?;
 
         Ok(Some(tx))
     }
@@ -381,7 +377,7 @@ pub enum FindWhereUtxoSpentError {
     #[error("ApiClientHelpers::find_where_utxo_spent: failed to fetch consensus updates {0}")]
     FetchUpdates(#[from] Box<HelperError>),
     #[error("ApiClientHelpers::find_where_utxo_spent: scoid:{id} was not spent in the expected block")]
-    SpendNotInBlock { id: Hash256 },
+    SpendNotInBlock { id: SiacoinOutputId },
 }
 
 #[derive(Debug, Error)]
