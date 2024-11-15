@@ -140,17 +140,17 @@ fn blake2b_checksum(preimage: &[u8]) -> [u8; 6] {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct BlockID(pub Hash256);
+pub struct BlockId(pub Hash256);
 
-impl From<BlockID> for Hash256 {
-    fn from(sia_hash: BlockID) -> Self { sia_hash.0 }
+impl From<BlockId> for Hash256 {
+    fn from(sia_hash: BlockId) -> Self { sia_hash.0 }
 }
 
-impl From<Hash256> for BlockID {
-    fn from(h256: Hash256) -> Self { BlockID(h256) }
+impl From<Hash256> for BlockId {
+    fn from(h256: Hash256) -> Self { BlockId(h256) }
 }
 
-impl<'de> Deserialize<'de> for BlockID {
+impl<'de> Deserialize<'de> for BlockId {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -158,7 +158,7 @@ impl<'de> Deserialize<'de> for BlockID {
         struct BlockIDVisitor;
 
         impl<'de> serde::de::Visitor<'de> for BlockIDVisitor {
-            type Value = BlockID;
+            type Value = BlockId;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("a string prefixed with 'bid:' and followed by a 64-character hex string")
@@ -170,7 +170,7 @@ impl<'de> Deserialize<'de> for BlockID {
             {
                 if let Some(hex_str) = value.strip_prefix("bid:") {
                     Hash256::from_str(hex_str)
-                        .map(BlockID)
+                        .map(BlockId)
                         .map_err(|_| E::invalid_value(serde::de::Unexpected::Str(value), &self))
                 } else {
                     Err(E::invalid_value(serde::de::Unexpected::Str(value), &self))
@@ -182,7 +182,7 @@ impl<'de> Deserialize<'de> for BlockID {
     }
 }
 
-impl Serialize for BlockID {
+impl Serialize for BlockId {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -191,14 +191,14 @@ impl Serialize for BlockID {
     }
 }
 
-impl fmt::Display for BlockID {
+impl fmt::Display for BlockId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.0) }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct ChainIndex {
     pub height: u64,
-    pub id: BlockID,
+    pub id: BlockId,
 }
 
 // TODO unit test

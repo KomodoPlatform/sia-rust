@@ -1,5 +1,5 @@
 use crate::transport::client::{ApiClientError, Body, EndpointSchema, EndpointSchemaBuilder, SchemaMethod};
-use crate::types::{Address, ApiApplyUpdate, BlockID, ChainIndex, Currency, Event, Hash256, SiacoinElement,
+use crate::types::{Address, ApiApplyUpdate, BlockId, ChainIndex, Currency, Event, Hash256, SiacoinElement,
                    V1Transaction, V2Transaction};
 use crate::utils::deserialize_null_as_empty_vec;
 use chrono::{DateTime, Utc};
@@ -154,7 +154,7 @@ pub struct ConsensusTipstateResponse {
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct ConsensusUpdatesRequest {
     pub height: u64,
-    pub block_hash: BlockID,
+    pub block_hash: BlockId,
     pub limit: Option<i64>,
 }
 
