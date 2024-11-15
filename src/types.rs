@@ -11,7 +11,7 @@ use std::fmt;
 use std::str::FromStr;
 
 mod hash;
-pub use hash::{Hash256, ParseHashError};
+pub use hash::{Hash256, Hash256Error};
 
 mod signature;
 pub use signature::{Signature, SignatureError};
@@ -184,7 +184,7 @@ impl<'de> Deserialize<'de> for BlockID {
                 E: serde::de::Error,
             {
                 if let Some(hex_str) = value.strip_prefix("bid:") {
-                    Hash256::from_str_no_prefix(hex_str)
+                    Hash256::from_str(hex_str)
                         .map(BlockID)
                         .map_err(|_| E::invalid_value(serde::de::Unexpected::Str(value), &self))
                 } else {
@@ -207,7 +207,7 @@ impl Serialize for BlockID {
 }
 
 impl fmt::Display for BlockID {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "bid:{:02x}", self.0) }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.0) }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]

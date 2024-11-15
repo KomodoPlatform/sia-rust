@@ -165,7 +165,7 @@ impl SiaApiRequest for ConsensusUpdatesRequest {
         // Create the path_params HashMap to substitute {height} and {hash} in the path schema
         let mut path_params = HashMap::new();
         path_params.insert("height".to_owned(), self.height.to_string());
-        path_params.insert("hash".to_owned(), format!("{:02x}", self.block_hash.0));
+        path_params.insert("hash".to_owned(), format!("{}", self.block_hash.0));
 
         let mut query_params = HashMap::new();
         if let Some(limit) = self.limit {
