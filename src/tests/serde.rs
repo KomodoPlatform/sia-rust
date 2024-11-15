@@ -44,11 +44,11 @@ fn test_serde_event_v2_contract_resolution_finalization() {
               "expirationHeight": 20,
               "renterOutput": {
                 "value": "10000000000000000000000000000",
-                "address": "addr:c899f7795bb20c94e57c764f06699e09e6ad071ad95539eef4fb505e79ab22e8be4d64067ccc"
+                "address": "c899f7795bb20c94e57c764f06699e09e6ad071ad95539eef4fb505e79ab22e8be4d64067ccc"
               },
               "hostOutput": {
                 "value": "0",
-                "address": "addr:000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
+                "address": "000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
               },
               "missedHostValue": "0",
               "totalCollateral": "0",
@@ -67,11 +67,11 @@ fn test_serde_event_v2_contract_resolution_finalization() {
             "expirationHeight": 20,
             "renterOutput": {
               "value": "10000000000000000000000000000",
-              "address": "addr:c899f7795bb20c94e57c764f06699e09e6ad071ad95539eef4fb505e79ab22e8be4d64067ccc"
+              "address": "c899f7795bb20c94e57c764f06699e09e6ad071ad95539eef4fb505e79ab22e8be4d64067ccc"
             },
             "hostOutput": {
               "value": "0",
-              "address": "addr:000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
+              "address": "000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
             },
             "missedHostValue": "0",
             "totalCollateral": "0",
@@ -108,7 +108,7 @@ mod test {
             fn test_serde_address() {
                 test_serde!(
                     Address,
-                    json!("addr:591fcf237f8854b5653d1ac84ae4c107b37f148c3c7b413f292d48db0c25a8840be0653e411f")
+                    json!("591fcf237f8854b5653d1ac84ae4c107b37f148c3c7b413f292d48db0c25a8840be0653e411f")
                 );
             }
 
@@ -129,7 +129,7 @@ mod test {
             fn test_serde_siacoin_output() {
                 let j = json!({
                     "value": "300000000000000000000000000000",
-                    "address": "addr:591fcf237f8854b5653d1ac84ae4c107b37f148c3c7b413f292d48db0c25a8840be0653e411f"
+                    "address": "591fcf237f8854b5653d1ac84ae4c107b37f148c3c7b413f292d48db0c25a8840be0653e411f"
                 });
                 test_serde!(SiacoinOutput, j);
             }
@@ -145,14 +145,19 @@ mod test {
 
             fn test_serde_siacoin_element() {
                 let j = json!(  {
-                    "id": "dc07e5bf84fbda867a7ed7ca80c6d1d81db05cef16ff38f6ba80b6bf01e1ddb1",
-                    "leafIndex": 21,
-                    "merkleProof": ["8dfc4731c4ef4bf35f789893e72402a39c7ea63ba9e75565cb11000d0159959e"],
-                    "siacoinOutput": {
-                        "value": "300000000000000000000000000000",
-                        "address": "addr:591fcf237f8854b5653d1ac84ae4c107b37f148c3c7b413f292d48db0c25a8840be0653e411f"
+                    "id": "0102030000000000000000000000000000000000000000000000000000000000",
+                    "stateElement": {
+                        "leafIndex": 1,
+                        "merkleProof": [
+                            "0405060000000000000000000000000000000000000000000000000000000000",
+                            "0708090000000000000000000000000000000000000000000000000000000000"
+                        ]
                     },
-                    "maturityHeight": 154
+                    "siacoinOutput": {
+                        "value": "1",
+                        "address": "72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515dd64b9a56043a"
+                    },
+                    "maturityHeight": 0
                 }
             );
             serde_json::from_value::<SiacoinElement>(j).unwrap();
@@ -165,7 +170,7 @@ mod test {
                 "merkleProof": null,
                 "siacoinOutput": {
                     "value": "300000000000000000000000000000",
-                    "address": "addr:591fcf237f8854b5653d1ac84ae4c107b37f148c3c7b413f292d48db0c25a8840be0653e411f"
+                    "address": "591fcf237f8854b5653d1ac84ae4c107b37f148c3c7b413f292d48db0c25a8840be0653e411f"
                 },
                 "maturityHeight": 154
             }
@@ -203,11 +208,11 @@ mod test {
                                 "expirationHeight": 210,
                                 "renterOutput": {
                                     "value": "0",
-                                    "address": "addr:000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
+                                    "address": "000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
                                 },
                                 "hostOutput": {
                                     "value": "10000000000000000000000000000",
-                                    "address": "addr:f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
+                                    "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
                                 },
                                 "missedHostValue": "0",
                                 "totalCollateral": "0",
@@ -239,7 +244,7 @@ mod test {
                         "merkleProof": null,
                         "siacoinOutput": {
                             "value": "10000000000000000000000000000",
-                            "address": "addr:f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
+                            "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
                         },
                         "maturityHeight": 345
                     },
@@ -282,11 +287,11 @@ mod test {
                                 "expirationHeight": 221,
                                 "renterOutput": {
                                     "value": "10000000000000000000000000000",
-                                    "address": "addr:f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
+                                    "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
                                 },
                                 "hostOutput": {
                                     "value": "0",
-                                    "address": "addr:000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
+                                    "address": "000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
                                 },
                                 "missedHostValue": "0",
                                 "totalCollateral": "0",
@@ -306,11 +311,11 @@ mod test {
                                 "expirationHeight": 221,
                                 "renterOutput": {
                                     "value": "10000000000000000000000000000",
-                                    "address": "addr:f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
+                                    "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
                                 },
                                 "hostOutput": {
                                     "value": "0",
-                                    "address": "addr:000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
+                                    "address": "000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
                                 },
                                 "missedHostValue": "0",
                                 "totalCollateral": "0",
@@ -327,11 +332,11 @@ mod test {
                                 "expirationHeight": 231,
                                 "renterOutput": {
                                     "value": "10000000000000000000000000000",
-                                    "address": "addr:f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
+                                    "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
                                 },
                                 "hostOutput": {
                                     "value": "0",
-                                    "address": "addr:000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
+                                    "address": "000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
                                 },
                                 "missedHostValue": "0",
                                 "totalCollateral": "0",
@@ -353,7 +358,7 @@ mod test {
                         "merkleProof": null,
                         "siacoinOutput": {
                             "value": "10000000000000000000000000000",
-                            "address": "addr:f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
+                            "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
                         },
                         "maturityHeight": 347
                     },
@@ -400,11 +405,11 @@ mod test {
                                 "expirationHeight": 189,
                                 "renterOutput": {
                                     "value": "10000000000000000000000000000",
-                                    "address": "addr:f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
+                                    "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
                                 },
                                 "hostOutput": {
                                     "value": "0",
-                                    "address": "addr:000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
+                                    "address": "000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
                                 },
                                 "missedHostValue": "0",
                                 "totalCollateral": "0",
@@ -424,7 +429,7 @@ mod test {
                         "merkleProof": null,
                         "siacoinOutput": {
                             "value": "10000000000000000000000000000",
-                            "address": "addr:f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
+                            "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
                         },
                         "maturityHeight": 334
                     },
@@ -460,7 +465,7 @@ mod test {
                             ],
                             "siacoinOutput": {
                                 "value": "256394172736732570239334030000",
-                                "address": "addr:f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
+                                "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
                             },
                             "maturityHeight": 0
                         },
@@ -484,11 +489,11 @@ mod test {
                     "siacoinOutputs": [
                     {
                         "value": "10400000000000000000000000000",
-                        "address": "addr:f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
+                        "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
                     },
                     {
                         "value": "245994172736732570239334030000",
-                        "address": "addr:f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
+                        "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
                     }
                     ],
                     "minerFee": "0"
@@ -518,7 +523,7 @@ mod test {
                         ],
                         "siacoinOutput": {
                             "value": "300000000000000000000000000000",
-                            "address": "addr:f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
+                            "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
                         },
                         "maturityHeight": 145
                     },
@@ -542,11 +547,11 @@ mod test {
                 "siacoinOutputs": [
                 {
                     "value": "1000000000000000000000000000",
-                    "address": "addr:000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
+                    "address": "000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
                 },
                 {
                     "value": "299000000000000000000000000000",
-                    "address": "addr:f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
+                    "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
                 }
                 ],
                 "minerFee": "0"

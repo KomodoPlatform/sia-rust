@@ -47,7 +47,7 @@ mod test {
 
             let address = policy.address();
             let expected =
-                Address::from_str("addr:188b997bb99dee13e95f92c3ea150bd76b3ec72e5ba57b0d57439a1a6e2865e9b25ea5d1825e").unwrap();
+                Address::from_str("188b997bb99dee13e95f92c3ea150bd76b3ec72e5ba57b0d57439a1a6e2865e9b25ea5d1825e").unwrap();
             assert_eq!(address, expected);
         }
 
@@ -59,7 +59,7 @@ mod test {
 
             let address = policy.address();
             let expected =
-                Address::from_str("addr:60c74e0ce5cede0f13f83b0132cb195c995bc7688c9fac34bbf2b14e14394b8bbe2991bc017f").unwrap();
+                Address::from_str("60c74e0ce5cede0f13f83b0132cb195c995bc7688c9fac34bbf2b14e14394b8bbe2991bc017f").unwrap();
             assert_eq!(address, expected);
         }
 
@@ -76,7 +76,7 @@ mod test {
 
             let address = policy.address();
             let expected =
-                Address::from_str("addr:55a7793237722c6df8222fd512063cb74228085ef1805c5184713648c159b919ac792fbad0e1").unwrap();
+                Address::from_str("55a7793237722c6df8222fd512063cb74228085ef1805c5184713648c159b919ac792fbad0e1").unwrap();
             assert_eq!(address, expected);
         }
 
@@ -90,7 +90,7 @@ mod test {
 
             let address = policy.address();
             let expected =
-                Address::from_str("addr:a4d5a06d8d3c2e45aa26627858ce8e881505ae3c9d122a1d282c7824163751936cffb347e435").unwrap();
+                Address::from_str("a4d5a06d8d3c2e45aa26627858ce8e881505ae3c9d122a1d282c7824163751936cffb347e435").unwrap();
             assert_eq!(address, expected);
         }
 
@@ -106,7 +106,7 @@ mod test {
 
             let address = policy.address();
             let expected =
-                Address::from_str("addr:4179b53aba165e46e4c85b3c8766bb758fb6f0bfa5721550b81981a3ec38efc460557dc1ded4").unwrap();
+                Address::from_str("4179b53aba165e46e4c85b3c8766bb758fb6f0bfa5721550b81981a3ec38efc460557dc1ded4").unwrap();
             assert_eq!(address, expected);
         }
 
@@ -120,7 +120,7 @@ mod test {
             let sub_policy = SpendPolicy::UnlockConditions(unlock_condition);
             let base_address = sub_policy.address();
             let expected =
-                Address::from_str("addr:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515dd64b9a56043a").unwrap();
+                Address::from_str("72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515dd64b9a56043a").unwrap();
             assert_eq!(base_address, expected);
 
             let policy = SpendPolicy::Threshold {
@@ -129,7 +129,7 @@ mod test {
             };
             let address = policy.address();
             let expected =
-                Address::from_str("addr:1498a58c843ce66740e52421632d67a0f6991ea96db1fc97c29e46f89ae56e3534078876331d").unwrap();
+                Address::from_str("1498a58c843ce66740e52421632d67a0f6991ea96db1fc97c29e46f89ae56e3534078876331d").unwrap();
             assert_eq!(address, expected);
         }
 

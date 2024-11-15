@@ -62,7 +62,7 @@ mod test {
         fn test_siacoin_output_encode_v1() {
             let vout = SiacoinOutput {
                 value: 1u64.into(),
-                address: Address::from_str("addr:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515dd64b9a56043a")
+                address: Address::from_str("72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515dd64b9a56043a")
                     .unwrap(),
             };
 
@@ -74,7 +74,7 @@ mod test {
         fn test_siacoin_output_encode_v2() {
             let vout = SiacoinOutput {
                 value: 1u64.into(),
-                address: Address::from_str("addr:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515dd64b9a56043a")
+                address: Address::from_str("72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515dd64b9a56043a")
                     .unwrap(),
             };
 
@@ -97,7 +97,7 @@ mod test {
                 siacoin_output: SiacoinOutput {
                     value: 1u64.into(),
                     address: Address::from_str(
-                        "addr:72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515dd64b9a56043a",
+                        "72b0762b382d4c251af5ae25b6777d908726d75962e5224f98d7f619bb39515dd64b9a56043a",
                     )
                     .unwrap(),
                 },
@@ -628,7 +628,7 @@ mod test {
                                 },
                                 "siacoinOutput": {
                                     "value": "288594172736732570239334030000",
-                                    "address": "addr:2757c80b7ec2e493a138fed45b906f9f5735a992b68dcbd2069fbdf418c8b25158f3ac7a816b"
+                                    "address": "2757c80b7ec2e493a138fed45b906f9f5735a992b68dcbd2069fbdf418c8b25158f3ac7a816b"
                                 },
                                 "maturityHeight": 0
                             },
@@ -652,11 +652,11 @@ mod test {
                     "siacoinOutputs": [
                         {
                             "value": "1000000000000000000000000000",
-                            "address": "addr:000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
+                            "address": "000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
                         },
                         {
                             "value": "287594172736732570239334030000",
-                            "address": "addr:2757c80b7ec2e493a138fed45b906f9f5735a992b68dcbd2069fbdf418c8b25158f3ac7a816b"
+                            "address": "2757c80b7ec2e493a138fed45b906f9f5735a992b68dcbd2069fbdf418c8b25158f3ac7a816b"
                         }
                     ],
                     "minerFee": "0"
@@ -691,7 +691,7 @@ mod test {
                                 },
                                 "siacoinOutput": {
                                     "value": "300000000000000000000000000000",
-                                    "address": "addr:f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
+                                    "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
                                 },
                                 "maturityHeight": 145
                             },
@@ -715,11 +715,11 @@ mod test {
                     "siacoinOutputs": [
                         {
                             "value": "1000000000000000000000000000",
-                            "address": "addr:000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
+                            "address": "000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
                         },
                         {
                             "value": "299000000000000000000000000000",
-                            "address": "addr:f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
+                            "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
                         }
                     ],
                     "minerFee": "0"

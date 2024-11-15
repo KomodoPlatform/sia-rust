@@ -152,10 +152,8 @@ mod tests {
     #[tokio::test]
     async fn test_api_address_balance() {
         let request = AddressBalanceRequest {
-            address: Address::from_str(
-                "addr:591fcf237f8854b5653d1ac84ae4c107b37f148c3c7b413f292d48db0c25a8840be0653e411f",
-            )
-            .unwrap(),
+            address: Address::from_str("591fcf237f8854b5653d1ac84ae4c107b37f148c3c7b413f292d48db0c25a8840be0653e411f")
+                .unwrap(),
         };
         let _response = test_dispatch(request).await;
     }

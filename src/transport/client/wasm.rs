@@ -152,7 +152,7 @@ mod wasm_tests {
                     ],
                     "siacoinOutput": {
                     "value": "772999980000000000000000000",
-                    "address": "addr:1599ea80d9af168ce823e58448fad305eac2faf260f7f0b56481c5ef18f0961057bf17030fb3"
+                    "address": "1599ea80d9af168ce823e58448fad305eac2faf260f7f0b56481c5ef18f0961057bf17030fb3"
                     },
                     "maturityHeight": 0
                 },
@@ -170,11 +170,11 @@ mod wasm_tests {
             "siacoinOutputs": [
                 {
                 "value": "2000000000000000000000000",
-                "address": "addr:1d9a926b1e14b54242375c7899a60de883c8cad0a45a49a7ca2fdb6eb52f0f01dfe678918204"
+                "address": "1d9a926b1e14b54242375c7899a60de883c8cad0a45a49a7ca2fdb6eb52f0f01dfe678918204"
                 },
                 {
                 "value": "770999970000000000000000000",
-                "address": "addr:1599ea80d9af168ce823e58448fad305eac2faf260f7f0b56481c5ef18f0961057bf17030fb3"
+                "address": "1599ea80d9af168ce823e58448fad305eac2faf260f7f0b56481c5ef18f0961057bf17030fb3"
                 }
             ],
             "minerFee": "10000000000000000000"
