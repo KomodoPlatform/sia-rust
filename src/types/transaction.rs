@@ -635,7 +635,6 @@ impl Encodable for V2FileContract {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct V2FileContractElement {
-    #[serde(rename = "ID")]
     pub id: FileContractID,
     pub state_element: StateElement,
     pub v2_file_contract: V2FileContract,
