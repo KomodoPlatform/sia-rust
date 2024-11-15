@@ -180,19 +180,20 @@ mod test {
             serde_json::from_value::<SiacoinElement>(j).unwrap();
         }
 
-        fn test_serde_siacoin_element_null_merkle_proof() {
-            let j = json!(  {
-                "id": "dc07e5bf84fbda867a7ed7ca80c6d1d81db05cef16ff38f6ba80b6bf01e1ddb1",
-                "leafIndex": 21,
-                "merkleProof": null,
-                "siacoinOutput": {
-                    "value": "300000000000000000000000000000",
-                    "address": "591fcf237f8854b5653d1ac84ae4c107b37f148c3c7b413f292d48db0c25a8840be0653e411f"
+        fn test_serde_siacoin_element_missing_merkle_proof() {
+            let json_str = r#"
+            {
+                "id": "16406893374eb18eeea95e8c0d6b6c325275ecb99cf2fec7a6708b0b8def75bd",
+                "stateElement": {
+                    "leafIndex": 391
                 },
-                "maturityHeight": 154
-            }
-        );
-        serde_json::from_value::<SiacoinElement>(j).unwrap();
+                "siacoinOutput": {
+                    "value": "10000000000000000000000000000",
+                    "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
+                },
+                "maturityHeight": 334
+            }"#;
+        serde_json::from_str::<SiacoinElement>(json_str).unwrap();
     }
 
     fn test_serde_event_v2_contract_resolution_storage_proof() {
