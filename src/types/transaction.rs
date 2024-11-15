@@ -316,7 +316,6 @@ impl Encodable for SiafundElement {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct SiacoinElement {
-    #[serde(rename = "ID")]
     pub id: SiacoinOutputId,
     pub state_element: StateElement,
     pub siacoin_output: SiacoinOutput,
