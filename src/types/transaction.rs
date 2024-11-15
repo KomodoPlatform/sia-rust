@@ -589,6 +589,7 @@ impl Encodable for FileContract {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct V2FileContract {
+    pub capacity: u64,
     pub filesize: u64,
     pub file_merkle_root: Hash256,
     pub proof_height: u64,
@@ -616,6 +617,7 @@ impl V2FileContract {
 
 impl Encodable for V2FileContract {
     fn encode(&self, encoder: &mut Encoder) {
+        encoder.write_u64(self.capacity);
         encoder.write_u64(self.filesize);
         self.file_merkle_root.encode(encoder);
         encoder.write_u64(self.proof_height);
@@ -643,6 +645,7 @@ pub struct V2FileContractElement {
 impl Encodable for V2FileContractElement {
     fn encode(&self, encoder: &mut Encoder) {
         self.state_element.encode(encoder);
+        self.id.encode(encoder);
         self.v2_file_contract.encode(encoder);
     }
 }
