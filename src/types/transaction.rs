@@ -607,8 +607,8 @@ pub struct V2FileContract {
 impl V2FileContract {
     pub fn with_nil_sigs(&self) -> V2FileContract {
         V2FileContract {
-            renter_signature: Signature::from_bytes(&[0u8; 64]).expect("Err unreachable"),
-            host_signature: Signature::from_bytes(&[0u8; 64]).expect("Err unreachable"),
+            renter_signature: Signature::default(),
+            host_signature: Signature::default(),
             ..self.clone()
         }
     }
@@ -895,15 +895,11 @@ pub struct V2FileContractRenewal {
 
 impl V2FileContractRenewal {
     pub fn with_nil_sigs(&self) -> V2FileContractRenewal {
-        debug_assert!(
-            Signature::from_bytes(&[0u8; 64]).is_ok(),
-            "nil signature is valid and cannot return Err"
-        );
         V2FileContractRenewal {
             final_revision: self.final_revision.with_nil_sigs(),
             new_contract: self.new_contract.with_nil_sigs(),
-            renter_signature: Signature::from_bytes(&[0u8; 64]).expect("Err unreachable"),
-            host_signature: Signature::from_bytes(&[0u8; 64]).expect("Err unreachable"),
+            renter_signature: Signature::default(),
+            host_signature: Signature::default(),
             ..self.clone()
         }
     }
