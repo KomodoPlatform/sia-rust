@@ -276,117 +276,119 @@ mod test {
     }
 
     fn test_serde_event_v2_contract_resolution_renewal() {
-        let j = json!(
+        let json_str = r#"
             {
-                "id": "debd3b8461d1aaa9011ba62d79c7ed7991eb0c60f9576880faadf2a8051aad54",
+                "id": "5d565129957e1493902123f6d58775593a53ccbff1e30342defaf563853c30b4",
                 "index": {
-                    "height": 203,
-                    "id": "bid:bd04c08bb96203c7f24adf2d405cb1069c7da8573573011379a986be62fc2a29"
+                  "height": 203,
+                  "id": "f5674e39f155f1d5afe6cd2315a8b6c89843c1fbc19b13d8c6b3636b20cb537c"
                 },
-                "timestamp": "2024-07-18T19:04:16Z",
-                "maturityHeight": 347,
+                "confirmations": 4,
                 "type": "v2ContractResolution",
                 "data": {
+                  "resolution": {
+                    "parent": {
+                      "id": "d219a1300698e798338df61f6f816f593672f71bce274d5130e1ba95e1d63814",
+                      "stateElement": {
+                        "leafIndex": 423
+                      },
+                      "v2FileContract": {
+                        "capacity": 0,
+                        "filesize": 0,
+                        "fileMerkleRoot": "0000000000000000000000000000000000000000000000000000000000000000",
+                        "proofHeight": 211,
+                        "expirationHeight": 221,
+                        "renterOutput": {
+                          "value": "10000000000000000000000000000",
+                          "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
+                        },
+                        "hostOutput": {
+                          "value": "0",
+                          "address": "000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
+                        },
+                        "missedHostValue": "0",
+                        "totalCollateral": "0",
+                        "renterPublicKey": "ed25519:cecc1507dc1ddd7295951c290888f095adb9044d1b73d696e6df065d683bd4fc",
+                        "hostPublicKey": "ed25519:cecc1507dc1ddd7295951c290888f095adb9044d1b73d696e6df065d683bd4fc",
+                        "revisionNumber": 0,
+                        "renterSignature": "3aaf47eb60d992bced4818291eb1b7773e20a731df48857474715602db31a12fddf29170337803f6dd1ce95e1e2043714c2b3bcb99925ea37ad2cf4880922c02",
+                        "hostSignature": "3aaf47eb60d992bced4818291eb1b7773e20a731df48857474715602db31a12fddf29170337803f6dd1ce95e1e2043714c2b3bcb99925ea37ad2cf4880922c02"
+                      }
+                    },
+                    "type": "renewal",
                     "resolution": {
-                        "parent": {
-                            "id": "06b6349f4e76819aa36b7f1190d276b9ca97f0d5fc4564f153d6a36ed3c38033",
-                            "leafIndex": 423,
-                            "merkleProof": [
-                            "ba1427aad85e9985b61f262a2ea768a74f24af02d7e6c17f0cdb92559e7951ea",
-                            "147817a1d32c3f068be5456d935bc6cddd6306fe5633b576d91260d43a82e6d8",
-                            "f447a5360e1a7c4cab3062dd1699f56ea642b4f6cc6464fdfca0d1aa15fa436c",
-                            "1cdf40c0a759931ff590496b953938fbe7315394ce3726b4e4c4b81fed3d5498"
-                            ],
-                            "v2FileContract": {
-                                "filesize": 0,
-                                "fileMerkleRoot": "0000000000000000000000000000000000000000000000000000000000000000",
-                                "proofHeight": 211,
-                                "expirationHeight": 221,
-                                "renterOutput": {
-                                    "value": "10000000000000000000000000000",
-                                    "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
-                                },
-                                "hostOutput": {
-                                    "value": "0",
-                                    "address": "000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
-                                },
-                                "missedHostValue": "0",
-                                "totalCollateral": "0",
-                                "renterPublicKey": "ed25519:cecc1507dc1ddd7295951c290888f095adb9044d1b73d696e6df065d683bd4fc",
-                                "hostPublicKey": "ed25519:cecc1507dc1ddd7295951c290888f095adb9044d1b73d696e6df065d683bd4fc",
-                                "revisionNumber": 0,
-                                "renterSignature": "sig:7d6f0e5b799c689dca7b55b1ff8ad028c7285b777d6df0e68235bde5778802adfb87e80afaf5d6c9b9fa63cd0e433aaa7189e3fdf2c7bf374c0ca20858071f03",
-                                "hostSignature": "sig:7d6f0e5b799c689dca7b55b1ff8ad028c7285b777d6df0e68235bde5778802adfb87e80afaf5d6c9b9fa63cd0e433aaa7189e3fdf2c7bf374c0ca20858071f03"
-                            }
+                      "finalRevision": {
+                        "capacity": 0,
+                        "filesize": 0,
+                        "fileMerkleRoot": "0000000000000000000000000000000000000000000000000000000000000000",
+                        "proofHeight": 211,
+                        "expirationHeight": 221,
+                        "renterOutput": {
+                          "value": "10000000000000000000000000000",
+                          "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
                         },
-                        "type": "renewal",
-                        "resolution": {
-                            "finalRevision": {
-                                "filesize": 0,
-                                "fileMerkleRoot": "0000000000000000000000000000000000000000000000000000000000000000",
-                                "proofHeight": 211,
-                                "expirationHeight": 221,
-                                "renterOutput": {
-                                    "value": "10000000000000000000000000000",
-                                    "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
-                                },
-                                "hostOutput": {
-                                    "value": "0",
-                                    "address": "000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
-                                },
-                                "missedHostValue": "0",
-                                "totalCollateral": "0",
-                                "renterPublicKey": "ed25519:cecc1507dc1ddd7295951c290888f095adb9044d1b73d696e6df065d683bd4fc",
-                                "hostPublicKey": "ed25519:cecc1507dc1ddd7295951c290888f095adb9044d1b73d696e6df065d683bd4fc",
-                                "revisionNumber": 18446744073709551615u64,
-                                "renterSignature": "sig:00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-                                "hostSignature": "sig:00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-                            },
-                            "newContract": {
-                                "filesize": 0,
-                                "fileMerkleRoot": "0000000000000000000000000000000000000000000000000000000000000000",
-                                "proofHeight": 221,
-                                "expirationHeight": 231,
-                                "renterOutput": {
-                                    "value": "10000000000000000000000000000",
-                                    "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
-                                },
-                                "hostOutput": {
-                                    "value": "0",
-                                    "address": "000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
-                                },
-                                "missedHostValue": "0",
-                                "totalCollateral": "0",
-                                "renterPublicKey": "ed25519:cecc1507dc1ddd7295951c290888f095adb9044d1b73d696e6df065d683bd4fc",
-                                "hostPublicKey": "ed25519:cecc1507dc1ddd7295951c290888f095adb9044d1b73d696e6df065d683bd4fc",
-                                "revisionNumber": 0,
-                                "renterSignature": "sig:00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-                                "hostSignature": "sig:00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-                            },
-                            "renterRollover": "0",
-                            "hostRollover": "0",
-                            "renterSignature": "sig:54a4bb0247518f62b20bf141686e2c05858e91acd23ae5e42436d173e331aca92af344e8cb9b5da98f0bdef01c7b7d840cbe7e781b8f7acc7c33b0fa44c7ef08",
-                            "hostSignature": "sig:54a4bb0247518f62b20bf141686e2c05858e91acd23ae5e42436d173e331aca92af344e8cb9b5da98f0bdef01c7b7d840cbe7e781b8f7acc7c33b0fa44c7ef08"
-                        }
-                    },
-                    "siacoinElement": {
-                        "id": "debd3b8461d1aaa9011ba62d79c7ed7991eb0c60f9576880faadf2a8051aad54",
-                        "leafIndex": 427,
-                        "merkleProof": null,
-                        "siacoinOutput": {
-                            "value": "10000000000000000000000000000",
-                            "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
+                        "hostOutput": {
+                          "value": "0",
+                          "address": "000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
                         },
-                        "maturityHeight": 347
+                        "missedHostValue": "0",
+                        "totalCollateral": "0",
+                        "renterPublicKey": "ed25519:cecc1507dc1ddd7295951c290888f095adb9044d1b73d696e6df065d683bd4fc",
+                        "hostPublicKey": "ed25519:cecc1507dc1ddd7295951c290888f095adb9044d1b73d696e6df065d683bd4fc",
+                        "revisionNumber": 18446744073709551615,
+                        "renterSignature": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "hostSignature": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+                      },
+                      "newContract": {
+                        "capacity": 0,
+                        "filesize": 0,
+                        "fileMerkleRoot": "0000000000000000000000000000000000000000000000000000000000000000",
+                        "proofHeight": 221,
+                        "expirationHeight": 231,
+                        "renterOutput": {
+                          "value": "10000000000000000000000000000",
+                          "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
+                        },
+                        "hostOutput": {
+                          "value": "0",
+                          "address": "000000000000000000000000000000000000000000000000000000000000000089eb0d6a8a69"
+                        },
+                        "missedHostValue": "0",
+                        "totalCollateral": "0",
+                        "renterPublicKey": "ed25519:cecc1507dc1ddd7295951c290888f095adb9044d1b73d696e6df065d683bd4fc",
+                        "hostPublicKey": "ed25519:cecc1507dc1ddd7295951c290888f095adb9044d1b73d696e6df065d683bd4fc",
+                        "revisionNumber": 0,
+                        "renterSignature": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "hostSignature": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+                      },
+                      "renterRollover": "0",
+                      "hostRollover": "0",
+                      "renterSignature": "f43d4b5d859931669f7db479af2e3064ed40cfa333b625120521f20f9cf9867b2c38d95cc2ee6f2d75e438ad6c25ce9f7b436e6ccbe70237f0b66e2d1dae720f",
+                      "hostSignature": "f43d4b5d859931669f7db479af2e3064ed40cfa333b625120521f20f9cf9867b2c38d95cc2ee6f2d75e438ad6c25ce9f7b436e6ccbe70237f0b66e2d1dae720f"
+                    }
+                  },
+                  "siacoinElement": {
+                    "id": "5d565129957e1493902123f6d58775593a53ccbff1e30342defaf563853c30b4",
+                    "stateElement": {
+                      "leafIndex": 427
                     },
-                    "missed": false
-                }
-            }
-        );
+                    "siacoinOutput": {
+                      "value": "10000000000000000000000000000",
+                      "address": "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
+                    },
+                    "maturityHeight": 347
+                  },
+                  "missed": false
+                },
+                "maturityHeight": 347,
+                "timestamp": "2024-11-15T19:41:06Z",
+                "relevant": [
+                  "f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
+                ]
+              }
+        "#;
 
-        let _event = serde_json::from_value::<Event>(j).unwrap();
-
-        // FIXME this should deserialize from a JSON object generated from walletd and recalcuate the txid to check encoding/serde
+        let _event = serde_json::from_str::<Event>(json_str).unwrap();
     }
 
     #[ignore] // FIXME Error("expected an empty map for expiration", line: 0, column: 0)
