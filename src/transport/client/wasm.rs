@@ -128,7 +128,8 @@ mod wasm_tests {
         headers: HashMap::new(),
     });
 
-    #[wasm_bindgen_test]
+    // #[ignore] -- FIXME Alright must use docker container or mock server
+    // #[wasm_bindgen_test]
     async fn test_sia_wasm_client_client_error() {
         use crate::transport::endpoints::TxpoolBroadcastRequest;
         use crate::types::V2Transaction;

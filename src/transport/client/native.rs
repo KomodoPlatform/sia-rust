@@ -140,15 +140,18 @@ mod tests {
         api_client.dispatcher(request).await.unwrap()
     }
 
+    #[ignore = "FIXME Alright must utilize docker container or mock server"]
     #[tokio::test]
     async fn test_new_client() { let _api_client = init_client().await; }
 
+    #[ignore = "FIXME Alright must utilize docker container or mock server"]
     #[tokio::test]
     async fn test_api_consensus_tip() {
         // paranoid unit test - NativeClient::new already pings the server with ConsensusTipRequest
         let _response = test_dispatch(ConsensusTipRequest).await;
     }
 
+    #[ignore = "FIXME Alright must utilize docker container or mock server"]
     #[tokio::test]
     async fn test_api_address_balance() {
         let request = AddressBalanceRequest {
@@ -158,6 +161,7 @@ mod tests {
         let _response = test_dispatch(request).await;
     }
 
+    #[ignore = "FIXME Alright must utilize docker container or mock server"]
     #[tokio::test]
     async fn test_api_events() {
         use crate::types::Hash256;
