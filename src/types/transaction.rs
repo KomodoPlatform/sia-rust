@@ -460,6 +460,14 @@ impl Encodable for SiafundOutputId {
     fn encode(&self, encoder: &mut Encoder) { self.0.encode(encoder) }
 }
 
+#[derive(Clone, Debug, PartialEq, From, Into, Deserialize, Serialize, Display)]
+#[serde(transparent)]
+pub struct FileContractID(pub Hash256);
+
+impl Encodable for FileContractID {
+    fn encode(&self, encoder: &mut Encoder) { self.0.encode(encoder) }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct SiacoinOutput {
     pub value: Currency,
@@ -714,8 +722,6 @@ impl Encodable for StorageProof {
         }
     }
 }
-
-type FileContractID = Hash256;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct FileContractRevision {
