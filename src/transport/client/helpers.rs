@@ -301,9 +301,7 @@ pub trait ApiClientHelpers: ApiClient {
             v2transactions: vec![tx.clone()],
         };
 
-        self.dispatcher(request)
-            .await
-            .map_err(|e| HelperError::BroadcastTx(e))?;
+        self.dispatcher(request).await.map_err(HelperError::BroadcastTx)?;
         Ok(())
     }
 

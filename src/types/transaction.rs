@@ -139,7 +139,7 @@ impl Serialize for Preimage {
         S: Serializer,
     {
         // Use hex::encode to convert the byte array to a lowercase hex string
-        let hex_string = hex::encode(&self.0);
+        let hex_string = hex::encode(self.0);
         serializer.serialize_str(&hex_string)
     }
 }

@@ -53,7 +53,7 @@ impl FromStr for Hash256 {
 }
 
 impl Display for Hash256 {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{}", hex::encode(&self.0)) }
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{}", hex::encode(self.0)) }
 }
 
 impl TryFrom<&[u8]> for Hash256 {
