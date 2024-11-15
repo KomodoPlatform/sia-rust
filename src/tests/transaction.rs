@@ -119,7 +119,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&state_element);
-            let expected = Hash256::from_str("h:bf6d7b74fb1e15ec4e86332b628a450e387c45b54ea98e57a6da8c9af317e468").unwrap();
+            let expected = Hash256::from_str("h:70f868873fcb6196cd54bbb1e9e480188043426d3f7c9dc8fc5a7a536981cef1").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -212,8 +212,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            // FIXME update this in go equivalent. Preimage was changed from Vec<u8> to [u8; 32]
-            let expected = Hash256::from_str("h:af7df9041212334ae04b007035e862449ddcb3c1a007da2bd609f65f0392f99a").unwrap();
+            let expected = Hash256::from_str("h:80f3caa4507615945bc839c8505546decd91e9642120f26938b2fc370fa61992").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -229,8 +228,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            // FIXME update this in go equivalent. Preimage was changed from Vec<u8> to [u8; 32]
-            let expected = Hash256::from_str("h:af7df9041212334ae04b007035e862449ddcb3c1a007da2bd609f65f0392f99a").unwrap();
+            let expected = Hash256::from_str("h:80f3caa4507615945bc839c8505546decd91e9642120f26938b2fc370fa61992").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -310,7 +308,7 @@ mod test {
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
             // FIXME update this in go equivalent. Preimage was changed from Vec<u8> to [u8; 32]
-            let expected = Hash256::from_str("h:d7270a87868f9127bf99cc33a3548b669afb308c49760c840d7a15e8066f8c47").unwrap();
+            let expected = Hash256::from_str("h:2200a1464864cfaea8d312c1f16b5e00b816110896bea32ef7e1ccd43042d312").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -340,7 +338,7 @@ mod test {
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
             // FIXME update this in go equivalent. Preimage was changed from Vec<u8> to [u8; 32]
-            let expected = Hash256::from_str("h:4da166c66b22c6cc825253d4e9b4f5319549b82ade6f9c8a037d8e7a4acfcdfa").unwrap();
+            let expected = Hash256::from_str("h:08852e4ad99f726120028ecd82925b5f55fa441952cfc034a5cf4f09159b9372").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -406,7 +404,7 @@ mod test {
 
             let hash = Encoder::encode_and_hash(&vin);
             // FIXME update this in go equivalent. Preimage was changed from Vec<u8> to [u8; 32]
-            let expected = Hash256::from_str("h:10497f5864991eb72c2bc49ad61a5afdd068bb48dca9db825b5adb94b49b9cbe").unwrap();
+            let expected = Hash256::from_str("h:d31a05b155113a5244f14ae833887fd8b30f555129be126ca4b90592290db24a").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -458,6 +456,7 @@ mod test {
             };
 
             let file_contract_v2 = V2FileContract {
+                capacity: 0,
                 filesize: 1,
                 file_merkle_root: Hash256::default(),
                 proof_height: 1,
@@ -474,7 +473,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&file_contract_v2);
-            let expected = Hash256::from_str("h:6171a8d8ec31e06f80d46efbd1aecf2c5a7c344b5f2a2d4f660654b0cb84113c").unwrap();
+            let expected = Hash256::from_str("h:e851362bab643dc066b9d3c22c0fa0d67bc7b0cb520c689765e2292f4e7f435e").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -506,6 +505,7 @@ mod test {
             };
 
             let file_contract_v2 = V2FileContract {
+                capacity: 0,
                 filesize: 1,
                 file_merkle_root: Hash256::default(),
                 proof_height: 1,
@@ -530,13 +530,13 @@ mod test {
             };
 
             let file_contract_element_v2 = V2FileContractElement {
-                id: Hash256::from_str("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap().into(),
+                id: Hash256::from_str("h:0707070000000000000000000000000000000000000000000000000000000000").unwrap().into(),
                 state_element,
                 v2_file_contract: file_contract_v2,
             };
 
             let hash = Encoder::encode_and_hash(&file_contract_element_v2);
-            let expected = Hash256::from_str("h:4cde411635118b2b7e1b019c659a2327ada53b303da0e46524e604d228fcd039").unwrap();
+            let expected = Hash256::from_str("h:3005594b14c1615aadaef2d8558713ebeabfa7d54f1dec671ba67ea8264816e6").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -568,6 +568,7 @@ mod test {
             };
 
             let file_contract_v2 = V2FileContract {
+                capacity: 0,
                 filesize: 1,
                 file_merkle_root: Hash256::default(),
                 proof_height: 1,
@@ -603,7 +604,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&file_contract_revision_v2);
-            let expected = Hash256::from_str("h:22d5d1fd8c2762758f6b6ecf7058d73524ef209ac5a64f160b71ce91677db9a6").unwrap();
+            let expected = Hash256::from_str("h:4f23582ec40570345f72adab8cd6249c0167669b78aec9ac7209befefc281f4f").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -614,15 +615,17 @@ mod test {
                         {
                             "parent": {
                                 "id": "h:b49cba94064a92a75bf8c6f9d32ab18f38bfb14a2252e3e117d04da89d536f29",
-                                "leafIndex": 302,
-                                "merkleProof": [
-                                    "h:6f41d366712e9dfa423160b5388f3faf673addf43566d7b3562106d15b833f46",
-                                    "h:eb7df5e13eccd812a47f29a233bbf3212b7379ca6dd20ba9981524bfd5eadce6",
-                                    "h:04104cbada51333f8f37a6eb71f1e8cb287da2d62469568a8a36dc8c76602c80",
-                                    "h:16aac5c671d49d8cfc5493cb4c6f34889e30a0d283745c6473406bd60ab5e754",
-                                    "h:1b9ccf2b6f555687b1384091faa9ed1c154f41aaff81dcf393295383ca99f518",
-                                    "h:31337c9db5cdd181f5ff142bd490f779eedb1485e5dd905743280aeac3cd7ac9"
-                                ],
+                                "stateElement": {
+                                    "leafIndex": 302,
+                                    "merkleProof": [
+                                        "h:6f41d366712e9dfa423160b5388f3faf673addf43566d7b3562106d15b833f46",
+                                        "h:eb7df5e13eccd812a47f29a233bbf3212b7379ca6dd20ba9981524bfd5eadce6",
+                                        "h:04104cbada51333f8f37a6eb71f1e8cb287da2d62469568a8a36dc8c76602c80",
+                                        "h:16aac5c671d49d8cfc5493cb4c6f34889e30a0d283745c6473406bd60ab5e754",
+                                        "h:1b9ccf2b6f555687b1384091faa9ed1c154f41aaff81dcf393295383ca99f518",
+                                        "h:31337c9db5cdd181f5ff142bd490f779eedb1485e5dd905743280aeac3cd7ac9"
+                                    ],
+                                },
                                 "siacoinOutput": {
                                     "value": "288594172736732570239334030000",
                                     "address": "addr:2757c80b7ec2e493a138fed45b906f9f5735a992b68dcbd2069fbdf418c8b25158f3ac7a816b"
@@ -673,17 +676,19 @@ mod test {
                         {
                             "parent": {
                                 "id": "h:f59e395dc5cbe3217ee80eff60585ffc9802e7ca580d55297782d4a9b4e08589",
-                                "leafIndex": 3,
-                                "merkleProof": [
-                                    "h:ab0e1726444c50e2c0f7325eb65e5bd262a97aad2647d2816c39d97958d9588a",
-                                    "h:467e2be4d8482eca1f99440b6efd531ab556d10a8371a98a05b00cb284620cf0",
-                                    "h:64d5766fce1ff78a13a4a4744795ad49a8f8d187c01f9f46544810049643a74a",
-                                    "h:31d5151875152bc25d1df18ca6bbda1bef5b351e8d53c277791ecf416fcbb8a8",
-                                    "h:12a92a1ba87c7b38f3c4e264c399abfa28fb46274cfa429605a6409bd6d0a779",
-                                    "h:eda1d58a9282dbf6c3f1beb4d6c7bdc036d14a1cfee8ab1e94fabefa9bd63865",
-                                    "h:e03dee6e27220386c906f19fec711647353a5f6d76633a191cbc2f6dce239e89",
-                                    "h:e70fcf0129c500f7afb49f4f2bb82950462e952b7cdebb2ad0aa1561dc6ea8eb"
-                                ],
+                                "stateElement": {
+                                    "leafIndex": 3,
+                                    "merkleProof": [
+                                        "h:ab0e1726444c50e2c0f7325eb65e5bd262a97aad2647d2816c39d97958d9588a",
+                                        "h:467e2be4d8482eca1f99440b6efd531ab556d10a8371a98a05b00cb284620cf0",
+                                        "h:64d5766fce1ff78a13a4a4744795ad49a8f8d187c01f9f46544810049643a74a",
+                                        "h:31d5151875152bc25d1df18ca6bbda1bef5b351e8d53c277791ecf416fcbb8a8",
+                                        "h:12a92a1ba87c7b38f3c4e264c399abfa28fb46274cfa429605a6409bd6d0a779",
+                                        "h:eda1d58a9282dbf6c3f1beb4d6c7bdc036d14a1cfee8ab1e94fabefa9bd63865",
+                                        "h:e03dee6e27220386c906f19fec711647353a5f6d76633a191cbc2f6dce239e89",
+                                        "h:e70fcf0129c500f7afb49f4f2bb82950462e952b7cdebb2ad0aa1561dc6ea8eb"
+                                    ]
+                                },
                                 "siacoinOutput": {
                                     "value": "300000000000000000000000000000",
                                     "address": "addr:f7843ac265b037658b304468013da4fd0f304a1b73df0dc68c4273c867bfa38d01a7661a187f"
