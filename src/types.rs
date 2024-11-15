@@ -6,7 +6,6 @@ use derive_more::{From, Into};
 use hex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
-use std::convert::From;
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::str::FromStr;
