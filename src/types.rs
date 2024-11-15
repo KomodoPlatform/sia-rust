@@ -2,7 +2,7 @@ use crate::blake2b_internal::standard_unlock_hash;
 use crate::encoding::{Encodable, Encoder};
 use blake2b_simd::Params;
 use chrono::{DateTime, Utc};
-use derive_more::{From, Into};
+use derive_more::{Display, From, Into};
 use hex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
@@ -139,53 +139,9 @@ fn blake2b_checksum(preimage: &[u8]) -> [u8; 6] {
     hash.as_bytes()[0..6].try_into().expect("array is 64 bytes long")
 }
 
-#[derive(Clone, Debug, PartialEq, From, Into)]
+#[derive(Clone, Debug, Display, PartialEq, From, Into, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct BlockId(pub Hash256);
-
-impl<'de> Deserialize<'de> for BlockId {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct BlockIDVisitor;
-
-        impl<'de> serde::de::Visitor<'de> for BlockIDVisitor {
-            type Value = BlockId;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a string prefixed with 'bid:' and followed by a 64-character hex string")
-            }
-
-            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                if let Some(hex_str) = value.strip_prefix("bid:") {
-                    Hash256::from_str(hex_str)
-                        .map(BlockId)
-                        .map_err(|_| E::invalid_value(serde::de::Unexpected::Str(value), &self))
-                } else {
-                    Err(E::invalid_value(serde::de::Unexpected::Str(value), &self))
-                }
-            }
-        }
-
-        deserializer.deserialize_str(BlockIDVisitor)
-    }
-}
-
-impl Serialize for BlockId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&self.to_string())
-    }
-}
-
-impl fmt::Display for BlockId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.0) }
-}
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct ChainIndex {
