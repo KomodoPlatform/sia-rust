@@ -5,6 +5,7 @@ mod test {
                        Preimage, PublicKey, SatisfiedPolicy, SiacoinElement, SiacoinInputV1, SiacoinInputV2,
                        SiacoinOutput, SiacoinOutputId, SiacoinOutputVersion, Signature, SpendPolicy, StateElement,
                        UnlockCondition, V2FileContract, V2FileContractElement, V2Transaction};
+    use std::convert::TryFrom;
     use std::str::FromStr;
 
     cross_target_tests! {
@@ -153,8 +154,8 @@ mod test {
         }
 
         fn test_signature_encode() {
-            let signature = Signature::from_bytes(
-                &hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
+            let signature = Signature::try_from(
+                hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap().as_ref()).unwrap();
 
             let hash = Encoder::encode_and_hash(&signature);
             let expected = Hash256::from_str("1e6952fe04eb626ae759a0090af2e701ba35ee6ad15233a2e947cb0f7ae9f7c7").unwrap();
@@ -169,8 +170,8 @@ mod test {
 
             let policy = SpendPolicy::PublicKey(public_key);
 
-            let signature = Signature::from_bytes(
-                &hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
+            let signature = Signature::try_from(
+                hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
 
             let satisfied_policy = SatisfiedPolicy {
                 policy,
@@ -206,8 +207,8 @@ mod test {
 
             let satisfied_policy = SatisfiedPolicy {
                 policy,
-                signatures: vec!(Signature::from_bytes(
-                    &hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap()),
+                signatures: vec!(Signature::try_from(
+                    hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap()),
                 preimages: vec!(preimage.into()),
             };
 
@@ -242,8 +243,8 @@ mod test {
 
             let policy = SpendPolicy::UnlockConditions(unlock_condition);
 
-            let signature = Signature::from_bytes(
-                &hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
+            let signature = Signature::try_from(
+                hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
 
             let satisfied_policy = SatisfiedPolicy {
                 policy,
@@ -274,12 +275,12 @@ mod test {
 
             let policy = SpendPolicy::UnlockConditions(unlock_condition);
 
-            let sig0 = Signature::from_bytes(
-                &hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
-            let sig1 = Signature::from_bytes(
-                &hex::decode("0734761D562958F6A82819474171F05A40163901513E5858BFF9E4BD9CAFB04DEF0D6D345BACE7D14E50C5C523433B411C7D7E1618BE010A63C55C34A2DEE70A").unwrap()).unwrap();
-            let sig2 = Signature::from_bytes(
-                &hex::decode("482A2A905D7A6FC730387E06B45EA0CF259FCB219C9A057E539E705F60AC36D7079E26DAFB66ED4DBA9B9694B50BCA64F1D4CC4EBE937CE08A34BF642FAC1F0C").unwrap()).unwrap();
+            let sig0 = Signature::try_from(
+                hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
+            let sig1 = Signature::try_from(
+                hex::decode("0734761D562958F6A82819474171F05A40163901513E5858BFF9E4BD9CAFB04DEF0D6D345BACE7D14E50C5C523433B411C7D7E1618BE010A63C55C34A2DEE70A").unwrap()).unwrap();
+            let sig2 = Signature::try_from(
+                hex::decode("482A2A905D7A6FC730387E06B45EA0CF259FCB219C9A057E539E705F60AC36D7079E26DAFB66ED4DBA9B9694B50BCA64F1D4CC4EBE937CE08A34BF642FAC1F0C").unwrap()).unwrap();
 
             let satisfied_policy = SatisfiedPolicy {
                 policy,
@@ -325,8 +326,8 @@ mod test {
             let secret_hash = Hash256::from_str("0100000000000000000000000000000000000000000000000000000000000000").unwrap();
 
             let policy = SpendPolicy::atomic_swap_success(&alice_pubkey, &bob_pubkey, 77777777, &secret_hash);
-            let signature = Signature::from_bytes(
-                &hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
+            let signature = Signature::try_from(
+                hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
 
             let mut preimage = [0u8; 32];
             preimage[..4].copy_from_slice(&[1, 2, 3, 4]);
@@ -355,8 +356,8 @@ mod test {
             let secret_hash = Hash256::from_str("0100000000000000000000000000000000000000000000000000000000000000").unwrap();
 
             let policy = SpendPolicy::atomic_swap_refund(&alice_pubkey, &bob_pubkey, 77777777, &secret_hash);
-            let signature = Signature::from_bytes(
-                &hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
+            let signature = Signature::try_from(
+                hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
 
             let mut preimage = [0u8; 32];
             preimage[..4].copy_from_slice(&[1, 2, 3, 4]);
@@ -413,8 +414,8 @@ mod test {
                 &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
             )
             .unwrap();
-            let signature = Signature::from_bytes(
-                &hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
+            let signature = Signature::try_from(
+                hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
 
             let attestation = Attestation {
                 public_key,
@@ -438,10 +439,10 @@ mod test {
             )
             .unwrap();
 
-            let sig0 = Signature::from_bytes(
-                &hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
-            let sig1 = Signature::from_bytes(
-                &hex::decode("0734761D562958F6A82819474171F05A40163901513E5858BFF9E4BD9CAFB04DEF0D6D345BACE7D14E50C5C523433B411C7D7E1618BE010A63C55C34A2DEE70A").unwrap()).unwrap();
+            let sig0 = Signature::try_from(
+                hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
+            let sig1 = Signature::try_from(
+                hex::decode("0734761D562958F6A82819474171F05A40163901513E5858BFF9E4BD9CAFB04DEF0D6D345BACE7D14E50C5C523433B411C7D7E1618BE010A63C55C34A2DEE70A").unwrap()).unwrap();
 
             let address0 = Address::standard_address_v1(&pubkey0);
             let address1 = Address::standard_address_v1(&pubkey1);
@@ -487,10 +488,10 @@ mod test {
             )
             .unwrap();
 
-            let sig0 = Signature::from_bytes(
-                &hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
-            let sig1 = Signature::from_bytes(
-                &hex::decode("0734761D562958F6A82819474171F05A40163901513E5858BFF9E4BD9CAFB04DEF0D6D345BACE7D14E50C5C523433B411C7D7E1618BE010A63C55C34A2DEE70A").unwrap()).unwrap();
+            let sig0 = Signature::try_from(
+                hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
+            let sig1 = Signature::try_from(
+                hex::decode("0734761D562958F6A82819474171F05A40163901513E5858BFF9E4BD9CAFB04DEF0D6D345BACE7D14E50C5C523433B411C7D7E1618BE010A63C55C34A2DEE70A").unwrap()).unwrap();
 
             let address0 = Address::standard_address_v1(&pubkey0);
             let address1 = Address::standard_address_v1(&pubkey1);
@@ -550,10 +551,10 @@ mod test {
             )
             .unwrap();
 
-            let sig0 = Signature::from_bytes(
-                &hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
-            let sig1 = Signature::from_bytes(
-                &hex::decode("0734761D562958F6A82819474171F05A40163901513E5858BFF9E4BD9CAFB04DEF0D6D345BACE7D14E50C5C523433B411C7D7E1618BE010A63C55C34A2DEE70A").unwrap()).unwrap();
+            let sig0 = Signature::try_from(
+                hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap();
+            let sig1 = Signature::try_from(
+                hex::decode("0734761D562958F6A82819474171F05A40163901513E5858BFF9E4BD9CAFB04DEF0D6D345BACE7D14E50C5C523433B411C7D7E1618BE010A63C55C34A2DEE70A").unwrap()).unwrap();
 
             let address0 = Address::standard_address_v1(&pubkey0);
             let address1 = Address::standard_address_v1(&pubkey1);
