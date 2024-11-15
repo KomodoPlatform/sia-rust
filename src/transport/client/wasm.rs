@@ -139,16 +139,16 @@ mod wasm_tests {
             "siacoinInputs": [
                 {
                 "parent": {
-                    "id": "h:27248ab562cbbee260e07ccae87c74aae71c9358d7f91eee25837e2011ce36d3",
+                    "id": "27248ab562cbbee260e07ccae87c74aae71c9358d7f91eee25837e2011ce36d3",
                     "leafIndex": 21867,
                     "merkleProof": [
-                    "h:ac2fdcbed40f103e54b0b1a37c20a865f6f1f765950bc6ac358ff3a0e769da50",
-                    "h:b25570eb5c106619d4eef5ad62482023df7a1c7461e9559248cb82659ebab069",
-                    "h:baa78ec23a169d4e9d7f801e5cf25926bf8c29e939e0e94ba065b43941eb0af8",
-                    "h:239857343f2997462bed6c253806cf578d252dbbfd5b662c203e5f75d897886d",
-                    "h:ad727ef2112dc738a72644703177f730c634a0a00e0b405bd240b0da6cdfbc1c",
-                    "h:4cfe0579eabafa25e98d83c3b5d07ae3835ce3ea176072064ea2b3be689e99aa",
-                    "h:736af73aa1338f3bc28d1d8d3cf4f4d0393f15c3b005670f762709b6231951fc"
+                    "ac2fdcbed40f103e54b0b1a37c20a865f6f1f765950bc6ac358ff3a0e769da50",
+                    "b25570eb5c106619d4eef5ad62482023df7a1c7461e9559248cb82659ebab069",
+                    "baa78ec23a169d4e9d7f801e5cf25926bf8c29e939e0e94ba065b43941eb0af8",
+                    "239857343f2997462bed6c253806cf578d252dbbfd5b662c203e5f75d897886d",
+                    "ad727ef2112dc738a72644703177f730c634a0a00e0b405bd240b0da6cdfbc1c",
+                    "4cfe0579eabafa25e98d83c3b5d07ae3835ce3ea176072064ea2b3be689e99aa",
+                    "736af73aa1338f3bc28d1d8d3cf4f4d0393f15c3b005670f762709b6231951fc"
                     ],
                     "siacoinOutput": {
                     "value": "772999980000000000000000000",

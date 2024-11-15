@@ -18,7 +18,7 @@ fn test_serde_event_v2_contract_resolution_finalization() {
     use crate::types::Event;
     let j = json!(
       {
-        "id": "h:4057e021e1d6dec8d4e4ef9d6e9fa2e4491c559144848b9af5765e03b39bb69d",
+        "id": "4057e021e1d6dec8d4e4ef9d6e9fa2e4491c559144848b9af5765e03b39bb69d",
         "index": {
           "height": 0,
           "id": "bid:0000000000000000000000000000000000000000000000000000000000000000"
@@ -28,18 +28,18 @@ fn test_serde_event_v2_contract_resolution_finalization() {
         "type": "v2ContractResolution",
         "data": {
           "parent": {
-            "id": "h:ee87ab83f9d16c9377d6154c477ac40d2ee70619de2ba146fcfe36fd0de86bf5",
+            "id": "ee87ab83f9d16c9377d6154c477ac40d2ee70619de2ba146fcfe36fd0de86bf5",
             "leafIndex": 6680213938505633000u64,
             "merkleProof": [
-              "h:0000000000000000000000000000000000000000000000000000000000000000",
-              "h:0000000000000000000000000000000000000000000000000000000000000000",
-              "h:0000000000000000000000000000000000000000000000000000000000000000",
-              "h:0000000000000000000000000000000000000000000000000000000000000000",
-              "h:0000000000000000000000000000000000000000000000000000000000000000"
+              "0000000000000000000000000000000000000000000000000000000000000000",
+              "0000000000000000000000000000000000000000000000000000000000000000",
+              "0000000000000000000000000000000000000000000000000000000000000000",
+              "0000000000000000000000000000000000000000000000000000000000000000",
+              "0000000000000000000000000000000000000000000000000000000000000000"
             ],
             "v2FileContract": {
               "filesize": 0,
-              "fileMerkleRoot": "h:0000000000000000000000000000000000000000000000000000000000000000",
+              "fileMerkleRoot": "0000000000000000000000000000000000000000000000000000000000000000",
               "proofHeight": 10,
               "expirationHeight": 20,
               "renterOutput": {
@@ -62,7 +62,7 @@ fn test_serde_event_v2_contract_resolution_finalization() {
           "type": "finalization",
           "resolution": {
             "filesize": 0,
-            "fileMerkleRoot": "h:0000000000000000000000000000000000000000000000000000000000000000",
+            "fileMerkleRoot": "0000000000000000000000000000000000000000000000000000000000000000",
             "proofHeight": 10,
             "expirationHeight": 20,
             "renterOutput": {
@@ -122,7 +122,7 @@ mod test {
             fn test_serde_sia_hash() {
                 test_serde!(
                     Hash256,
-                    json!("h:dc07e5bf84fbda867a7ed7ca80c6d1d81db05cef16ff38f6ba80b6bf01e1ddb1")
+                    json!("dc07e5bf84fbda867a7ed7ca80c6d1d81db05cef16ff38f6ba80b6bf01e1ddb1")
                 );
             }
 
@@ -136,7 +136,7 @@ mod test {
 
             fn test_serde_state_element() {
                 let j = json!({
-                    "id": "h:dc07e5bf84fbda867a7ed7ca80c6d1d81db05cef16ff38f6ba80b6bf01e1ddb1",
+                    "id": "dc07e5bf84fbda867a7ed7ca80c6d1d81db05cef16ff38f6ba80b6bf01e1ddb1",
                     "leafIndex": 21,
                     "merkleProof": null
                 });
@@ -145,9 +145,9 @@ mod test {
 
             fn test_serde_siacoin_element() {
                 let j = json!(  {
-                    "id": "h:dc07e5bf84fbda867a7ed7ca80c6d1d81db05cef16ff38f6ba80b6bf01e1ddb1",
+                    "id": "dc07e5bf84fbda867a7ed7ca80c6d1d81db05cef16ff38f6ba80b6bf01e1ddb1",
                     "leafIndex": 21,
-                    "merkleProof": ["h:8dfc4731c4ef4bf35f789893e72402a39c7ea63ba9e75565cb11000d0159959e"],
+                    "merkleProof": ["8dfc4731c4ef4bf35f789893e72402a39c7ea63ba9e75565cb11000d0159959e"],
                     "siacoinOutput": {
                         "value": "300000000000000000000000000000",
                         "address": "addr:591fcf237f8854b5653d1ac84ae4c107b37f148c3c7b413f292d48db0c25a8840be0653e411f"
@@ -160,7 +160,7 @@ mod test {
 
         fn test_serde_siacoin_element_null_merkle_proof() {
             let j = json!(  {
-                "id": "h:dc07e5bf84fbda867a7ed7ca80c6d1d81db05cef16ff38f6ba80b6bf01e1ddb1",
+                "id": "dc07e5bf84fbda867a7ed7ca80c6d1d81db05cef16ff38f6ba80b6bf01e1ddb1",
                 "leafIndex": 21,
                 "merkleProof": null,
                 "siacoinOutput": {
@@ -176,7 +176,7 @@ mod test {
     fn test_serde_event_v2_contract_resolution_storage_proof() {
         let j = json!(
             {
-                "id": "h:a863dbc4f02efdfbf9f8d03e1aada090ede0a5752b71503787617d5f395c1335",
+                "id": "a863dbc4f02efdfbf9f8d03e1aada090ede0a5752b71503787617d5f395c1335",
                 "index": {
                     "height": 201,
                     "id": "bid:e6e5282f107f2957844a93612e71003ec67238f32504b151e9e21fbb9224e8cf"
@@ -187,18 +187,18 @@ mod test {
                 "data": {
                     "resolution": {
                         "parent": {
-                            "id": "h:b30e0d25d4e414763378236b00a98cfbf9cd6a5e81540d1dcd40338ab6a5c636",
+                            "id": "b30e0d25d4e414763378236b00a98cfbf9cd6a5e81540d1dcd40338ab6a5c636",
                             "leafIndex": 397,
                             "merkleProof": [
-                            "h:4d2a433de745231ff1eb0736ba68ffc3f8b1a976dbc3eca9649b5cf2dd5c2c44",
-                            "h:e23fdf53d7c3c2bc7dc58660cb16e5b66dbf2e71c0a46c778af1c4d59a83cf63",
-                            "h:0e63636af15d58fd9a87e21719899c2d518a948305e325929cbc4652d0fc3b38",
-                            "h:37e5cee3bb2607e537209807b07dafef9658253080751b11858a9ae844364c0b",
-                            "h:077252892fc0b8e687f14baf2ad3d2812539d05a293bfcabe8f0b884d8c91b01"
+                            "4d2a433de745231ff1eb0736ba68ffc3f8b1a976dbc3eca9649b5cf2dd5c2c44",
+                            "e23fdf53d7c3c2bc7dc58660cb16e5b66dbf2e71c0a46c778af1c4d59a83cf63",
+                            "0e63636af15d58fd9a87e21719899c2d518a948305e325929cbc4652d0fc3b38",
+                            "37e5cee3bb2607e537209807b07dafef9658253080751b11858a9ae844364c0b",
+                            "077252892fc0b8e687f14baf2ad3d2812539d05a293bfcabe8f0b884d8c91b01"
                             ],
                             "v2FileContract": {
                                 "filesize": 0,
-                                "fileMerkleRoot": "h:0000000000000000000000000000000000000000000000000000000000000000",
+                                "fileMerkleRoot": "0000000000000000000000000000000000000000000000000000000000000000",
                                 "proofHeight": 200,
                                 "expirationHeight": 210,
                                 "renterOutput": {
@@ -221,7 +221,7 @@ mod test {
                         "type": "storageProof",
                         "resolution": {
                             "proofIndex": {
-                                "id": "h:ee154b9b26af5a130d189c2467bd0157f24f4357478bfe5184243ab918c20290",
+                                "id": "ee154b9b26af5a130d189c2467bd0157f24f4357478bfe5184243ab918c20290",
                                 "leafIndex": 416,
                                 "merkleProof": [],
                                 "chainIndex": {
@@ -234,7 +234,7 @@ mod test {
                         }
                     },
                     "siacoinElement": {
-                        "id": "h:a863dbc4f02efdfbf9f8d03e1aada090ede0a5752b71503787617d5f395c1335",
+                        "id": "a863dbc4f02efdfbf9f8d03e1aada090ede0a5752b71503787617d5f395c1335",
                         "leafIndex": 418,
                         "merkleProof": null,
                         "siacoinOutput": {
@@ -256,7 +256,7 @@ mod test {
     fn test_serde_event_v2_contract_resolution_renewal() {
         let j = json!(
             {
-                "id": "h:debd3b8461d1aaa9011ba62d79c7ed7991eb0c60f9576880faadf2a8051aad54",
+                "id": "debd3b8461d1aaa9011ba62d79c7ed7991eb0c60f9576880faadf2a8051aad54",
                 "index": {
                     "height": 203,
                     "id": "bid:bd04c08bb96203c7f24adf2d405cb1069c7da8573573011379a986be62fc2a29"
@@ -267,17 +267,17 @@ mod test {
                 "data": {
                     "resolution": {
                         "parent": {
-                            "id": "h:06b6349f4e76819aa36b7f1190d276b9ca97f0d5fc4564f153d6a36ed3c38033",
+                            "id": "06b6349f4e76819aa36b7f1190d276b9ca97f0d5fc4564f153d6a36ed3c38033",
                             "leafIndex": 423,
                             "merkleProof": [
-                            "h:ba1427aad85e9985b61f262a2ea768a74f24af02d7e6c17f0cdb92559e7951ea",
-                            "h:147817a1d32c3f068be5456d935bc6cddd6306fe5633b576d91260d43a82e6d8",
-                            "h:f447a5360e1a7c4cab3062dd1699f56ea642b4f6cc6464fdfca0d1aa15fa436c",
-                            "h:1cdf40c0a759931ff590496b953938fbe7315394ce3726b4e4c4b81fed3d5498"
+                            "ba1427aad85e9985b61f262a2ea768a74f24af02d7e6c17f0cdb92559e7951ea",
+                            "147817a1d32c3f068be5456d935bc6cddd6306fe5633b576d91260d43a82e6d8",
+                            "f447a5360e1a7c4cab3062dd1699f56ea642b4f6cc6464fdfca0d1aa15fa436c",
+                            "1cdf40c0a759931ff590496b953938fbe7315394ce3726b4e4c4b81fed3d5498"
                             ],
                             "v2FileContract": {
                                 "filesize": 0,
-                                "fileMerkleRoot": "h:0000000000000000000000000000000000000000000000000000000000000000",
+                                "fileMerkleRoot": "0000000000000000000000000000000000000000000000000000000000000000",
                                 "proofHeight": 211,
                                 "expirationHeight": 221,
                                 "renterOutput": {
@@ -301,7 +301,7 @@ mod test {
                         "resolution": {
                             "finalRevision": {
                                 "filesize": 0,
-                                "fileMerkleRoot": "h:0000000000000000000000000000000000000000000000000000000000000000",
+                                "fileMerkleRoot": "0000000000000000000000000000000000000000000000000000000000000000",
                                 "proofHeight": 211,
                                 "expirationHeight": 221,
                                 "renterOutput": {
@@ -322,7 +322,7 @@ mod test {
                             },
                             "newContract": {
                                 "filesize": 0,
-                                "fileMerkleRoot": "h:0000000000000000000000000000000000000000000000000000000000000000",
+                                "fileMerkleRoot": "0000000000000000000000000000000000000000000000000000000000000000",
                                 "proofHeight": 221,
                                 "expirationHeight": 231,
                                 "renterOutput": {
@@ -348,7 +348,7 @@ mod test {
                         }
                     },
                     "siacoinElement": {
-                        "id": "h:debd3b8461d1aaa9011ba62d79c7ed7991eb0c60f9576880faadf2a8051aad54",
+                        "id": "debd3b8461d1aaa9011ba62d79c7ed7991eb0c60f9576880faadf2a8051aad54",
                         "leafIndex": 427,
                         "merkleProof": null,
                         "siacoinOutput": {
@@ -371,7 +371,7 @@ mod test {
     fn test_serde_event_v2_contract_resolution_expiration() {
         let j = json!(
             {
-                "id": "h:4c0170b9e82eacc2d14a13b974ce0c03560358276f135403bd060b53ce53be1c",
+                "id": "4c0170b9e82eacc2d14a13b974ce0c03560358276f135403bd060b53ce53be1c",
                 "index": {
                     "height": 190,
                     "id": "bid:730f554f8cd5e6bd855b21b8c53f59808f3aa7351093f44da7761181283e3c6b"
@@ -382,20 +382,20 @@ mod test {
                 "data": {
                     "resolution": {
                         "parent": {
-                            "id": "h:34f6bb9b9ed58dedebce2f39d29a526ea3012e9ae005cfca6a5257761c5412f6",
+                            "id": "34f6bb9b9ed58dedebce2f39d29a526ea3012e9ae005cfca6a5257761c5412f6",
                             "leafIndex": 351,
                             "merkleProof": [
-                            "h:e805430ecdd47bcaca574f78721c3b6a24f0a877110fc9fa7ab347fd231a9885",
-                            "h:70782818a59e512d4995efd4ee94299e601496011b9c42b47eb0a3cd65aa89c9",
-                            "h:42ab48d2ef2b54352d44ab2ef33c1a6d76589360c0dd556d703a452b7d3e4a2c",
-                            "h:4af61bcae0a46d70f9b826b9bace336647389c38e6cb4c54356b9dd7fd6060aa",
-                            "h:59d21dd10aa3def083106844e23ad7f6b93e309c80b24a03e2c9b6eba8acef33",
-                            "h:f95c3f0fc4d632e5da8adcaa9249ea6b0c5fe66466a951871f5dc30a0c96b76d",
-                            "h:3374baebf913a23e0b9811ae22e72f6cdf6999d332ccda4b4dbab87f58b2a574"
+                            "e805430ecdd47bcaca574f78721c3b6a24f0a877110fc9fa7ab347fd231a9885",
+                            "70782818a59e512d4995efd4ee94299e601496011b9c42b47eb0a3cd65aa89c9",
+                            "42ab48d2ef2b54352d44ab2ef33c1a6d76589360c0dd556d703a452b7d3e4a2c",
+                            "4af61bcae0a46d70f9b826b9bace336647389c38e6cb4c54356b9dd7fd6060aa",
+                            "59d21dd10aa3def083106844e23ad7f6b93e309c80b24a03e2c9b6eba8acef33",
+                            "f95c3f0fc4d632e5da8adcaa9249ea6b0c5fe66466a951871f5dc30a0c96b76d",
+                            "3374baebf913a23e0b9811ae22e72f6cdf6999d332ccda4b4dbab87f58b2a574"
                             ],
                             "v2FileContract": {
                                 "filesize": 0,
-                                "fileMerkleRoot": "h:0000000000000000000000000000000000000000000000000000000000000000",
+                                "fileMerkleRoot": "0000000000000000000000000000000000000000000000000000000000000000",
                                 "proofHeight": 179,
                                 "expirationHeight": 189,
                                 "renterOutput": {
@@ -419,7 +419,7 @@ mod test {
                         "resolution": {}
                     },
                     "siacoinElement": {
-                        "id": "h:4c0170b9e82eacc2d14a13b974ce0c03560358276f135403bd060b53ce53be1c",
+                        "id": "4c0170b9e82eacc2d14a13b974ce0c03560358276f135403bd060b53ce53be1c",
                         "leafIndex": 391,
                         "merkleProof": null,
                         "siacoinOutput": {
@@ -439,7 +439,7 @@ mod test {
     fn test_serde_event_v2_transaction() {
         let j = json!(
             {
-                "id": "h:5900e475aace932c94bcc94cf296596ccff1d77d9aba52a079e9f429605671cd",
+                "id": "5900e475aace932c94bcc94cf296596ccff1d77d9aba52a079e9f429605671cd",
                 "index": {
                     "height": 203,
                     "id": "bid:bd04c08bb96203c7f24adf2d405cb1069c7da8573573011379a986be62fc2a29"
@@ -451,12 +451,12 @@ mod test {
                     "siacoinInputs": [
                     {
                         "parent": {
-                            "id": "h:78d58090bcdeaccf22abf99b6e0de25273e9eb82210359a16cefbd743a85fd50",
+                            "id": "78d58090bcdeaccf22abf99b6e0de25273e9eb82210359a16cefbd743a85fd50",
                             "leafIndex": 421,
                             "merkleProof": [
-                            "h:f26accb7c256e867a9ed62671ebe6c3eb34d085e5266f67073af2daa549f980d",
-                            "h:d39e139147168c70da11c3f6db4fa54d35914ef67ba5654a75107da9c099ddda",
-                            "h:f447a5360e1a7c4cab3062dd1699f56ea642b4f6cc6464fdfca0d1aa15fa436c"
+                            "f26accb7c256e867a9ed62671ebe6c3eb34d085e5266f67073af2daa549f980d",
+                            "d39e139147168c70da11c3f6db4fa54d35914ef67ba5654a75107da9c099ddda",
+                            "f447a5360e1a7c4cab3062dd1699f56ea642b4f6cc6464fdfca0d1aa15fa436c"
                             ],
                             "siacoinOutput": {
                                 "value": "256394172736732570239334030000",
@@ -504,17 +504,17 @@ mod test {
                 "siacoinInputs": [
                 {
                     "parent": {
-                        "id": "h:f59e395dc5cbe3217ee80eff60585ffc9802e7ca580d55297782d4a9b4e08589",
+                        "id": "f59e395dc5cbe3217ee80eff60585ffc9802e7ca580d55297782d4a9b4e08589",
                         "leafIndex": 3,
                         "merkleProof": [
-                        "h:ab0e1726444c50e2c0f7325eb65e5bd262a97aad2647d2816c39d97958d9588a",
-                        "h:467e2be4d8482eca1f99440b6efd531ab556d10a8371a98a05b00cb284620cf0",
-                        "h:64d5766fce1ff78a13a4a4744795ad49a8f8d187c01f9f46544810049643a74a",
-                        "h:31d5151875152bc25d1df18ca6bbda1bef5b351e8d53c277791ecf416fcbb8a8",
-                        "h:12a92a1ba87c7b38f3c4e264c399abfa28fb46274cfa429605a6409bd6d0a779",
-                        "h:eda1d58a9282dbf6c3f1beb4d6c7bdc036d14a1cfee8ab1e94fabefa9bd63865",
-                        "h:e03dee6e27220386c906f19fec711647353a5f6d76633a191cbc2f6dce239e89",
-                        "h:e70fcf0129c500f7afb49f4f2bb82950462e952b7cdebb2ad0aa1561dc6ea8eb"
+                        "ab0e1726444c50e2c0f7325eb65e5bd262a97aad2647d2816c39d97958d9588a",
+                        "467e2be4d8482eca1f99440b6efd531ab556d10a8371a98a05b00cb284620cf0",
+                        "64d5766fce1ff78a13a4a4744795ad49a8f8d187c01f9f46544810049643a74a",
+                        "31d5151875152bc25d1df18ca6bbda1bef5b351e8d53c277791ecf416fcbb8a8",
+                        "12a92a1ba87c7b38f3c4e264c399abfa28fb46274cfa429605a6409bd6d0a779",
+                        "eda1d58a9282dbf6c3f1beb4d6c7bdc036d14a1cfee8ab1e94fabefa9bd63865",
+                        "e03dee6e27220386c906f19fec711647353a5f6d76633a191cbc2f6dce239e89",
+                        "e70fcf0129c500f7afb49f4f2bb82950462e952b7cdebb2ad0aa1561dc6ea8eb"
                         ],
                         "siacoinOutput": {
                             "value": "300000000000000000000000000000",

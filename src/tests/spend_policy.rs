@@ -53,10 +53,10 @@ mod test {
             let j = json!(
             {
                 "type": "h",
-                "policy": "h:0102030000000000000000000000000000000000000000000000000000000000"
+                "policy": "0102030000000000000000000000000000000000000000000000000000000000"
             }
             );
-            let hash = Hash256::from_str("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap();
+            let hash = Hash256::from_str("0102030000000000000000000000000000000000000000000000000000000000").unwrap();
             let spend_policy_deser: SpendPolicy = serde_json::from_value::<SpendPolicy>(j).unwrap().into();
             let spend_policy = SpendPolicy::Hash(hash);
 
@@ -88,7 +88,7 @@ mod test {
             )
             .unwrap();
 
-            let secret_hash = Hash256::from_str("h:0100000000000000000000000000000000000000000000000000000000000000").unwrap();
+            let secret_hash = Hash256::from_str("0100000000000000000000000000000000000000000000000000000000000000").unwrap();
             let spend_policy = SpendPolicy::atomic_swap_success(&alice_pubkey, &bob_pubkey, 77777777, &secret_hash);
 
             let j = json!(
@@ -108,7 +108,7 @@ mod test {
                                         },
                                         {
                                             "type": "h",
-                                            "policy": "h:0100000000000000000000000000000000000000000000000000000000000000"
+                                            "policy": "0100000000000000000000000000000000000000000000000000000000000000"
                                         }
                                     ]
                                 }
