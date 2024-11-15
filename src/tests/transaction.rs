@@ -85,14 +85,14 @@ mod test {
 
         fn test_siacoin_element_encode() {
             let state_element = StateElement {
-                id: Hash256::from_str("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
                 leaf_index: 1,
-                merkle_proof: Some(vec![
+                merkle_proof: vec![
                     Hash256::from_str("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
                     Hash256::from_str("h:0708090000000000000000000000000000000000000000000000000000000000").unwrap(),
-                ]),
+                ],
             };
             let siacoin_element = SiacoinElement {
+                id: Hash256::from_str("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap().into(),
                 state_element,
                 siacoin_output: SiacoinOutput {
                     value: 1u64.into(),
@@ -105,18 +105,17 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&siacoin_element);
-            let expected = Hash256::from_str("h:3c867a54b7b3de349c56585f25a4365f31d632c3e42561b615055c77464d889e").unwrap();
+            let expected = Hash256::from_str("h:4c46cbe535099409d2ea4255debda3fb62993595e305c78688ec4306f8464d7d").unwrap();
             assert_eq!(hash, expected);
         }
 
         fn test_state_element_encode() {
             let state_element = StateElement {
-                id: Hash256::from_str("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
                 leaf_index: 1,
-                merkle_proof: Some(vec![
+                merkle_proof: vec![
                     Hash256::from_str("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
                     Hash256::from_str("h:0708090000000000000000000000000000000000000000000000000000000000").unwrap(),
-                ]),
+                ],
             };
 
             let hash = Encoder::encode_and_hash(&state_element);
@@ -125,14 +124,20 @@ mod test {
         }
 
         fn test_state_element_encode_null_merkle_proof() {
-            let state_element = StateElement {
-                id: Hash256::from_str("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
-                leaf_index: 1,
-                merkle_proof: None,
-            };
+            let j = r#"{"leafIndex":1}"#;
+            let state_element = serde_json::from_str::<StateElement>(j).unwrap();
 
             let hash = Encoder::encode_and_hash(&state_element);
-            let expected = Hash256::from_str("h:d69bc48bc797aff93050447aff0a3f7c4d489705378c122cd123841fe7778a3e").unwrap();
+            let expected = Hash256::from_str("h:a3865e5e284e12e0ea418e73127db5d1092bfb98ed372ca9a664504816375e1d").unwrap();
+            assert_eq!(hash, expected);
+        }
+
+        fn test_state_element_encode_empty_merkle_proof() {
+            let j = r#"{"leafIndex":1,"merkleProof":[]}"#;
+            let state_element = serde_json::from_str::<StateElement>(j).unwrap();
+
+            let hash = Encoder::encode_and_hash(&state_element);
+            let expected = Hash256::from_str("h:a3865e5e284e12e0ea418e73127db5d1092bfb98ed372ca9a664504816375e1d").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -385,10 +390,10 @@ mod test {
 
             let vin = SiacoinInputV2 {
                 parent: SiacoinElement {
+                    id: SiacoinOutputId::default(),
                     state_element: StateElement {
-                        id: Hash256::default(),
                         leaf_index: 0,
-                        merkle_proof: Some(vec![Hash256::default()]),
+                        merkle_proof: vec![Hash256::default()],
                     },
                     siacoin_output: SiacoinOutput {
                         value: 1u64.into(),
@@ -517,15 +522,15 @@ mod test {
             };
 
             let state_element = StateElement {
-                id: Hash256::from_str("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
                 leaf_index: 1,
-                merkle_proof: Some(vec![
+                merkle_proof: vec![
                     Hash256::from_str("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
                     Hash256::from_str("h:0708090000000000000000000000000000000000000000000000000000000000").unwrap(),
-                ]),
+                ],
             };
 
             let file_contract_element_v2 = V2FileContractElement {
+                id: Hash256::from_str("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap().into(),
                 state_element,
                 v2_file_contract: file_contract_v2,
             };
@@ -579,15 +584,15 @@ mod test {
             };
 
             let state_element = StateElement {
-                id: Hash256::from_str("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
                 leaf_index: 1,
-                merkle_proof: Some(vec![
+                merkle_proof: vec![
                     Hash256::from_str("h:0405060000000000000000000000000000000000000000000000000000000000").unwrap(),
                     Hash256::from_str("h:0708090000000000000000000000000000000000000000000000000000000000").unwrap(),
-                ]),
+                ],
             };
 
             let file_contract_element_v2 = V2FileContractElement {
+                id: Hash256::from_str("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap().into(),
                 state_element,
                 v2_file_contract: file_contract_v2.clone(),
             };
