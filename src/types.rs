@@ -2,13 +2,14 @@ use crate::blake2b_internal::standard_unlock_hash;
 use crate::encoding::{Encodable, Encoder};
 use blake2b_simd::Params;
 use chrono::{DateTime, Utc};
-use hex::FromHexError;
+use hex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use std::convert::From;
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::str::FromStr;
+use thiserror::Error;
 
 mod hash;
 pub use hash::{Hash256, Hash256Error};
@@ -60,7 +61,7 @@ impl<'de> Deserialize<'de> for Address {
             type Value = Address;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a string prefixed with 'addr:' and followed by a 76-character hex string")
+                formatter.write_str("a 76-character hex string representing a Sia address")
             }
 
             fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
@@ -76,12 +77,6 @@ impl<'de> Deserialize<'de> for Address {
 }
 
 impl Address {
-    pub fn str_without_prefix(&self) -> String {
-        let bytes = self.0 .0.as_ref();
-        let checksum = blake2b_checksum(bytes);
-        format!("{}{}", hex::encode(bytes), hex::encode(checksum))
-    }
-
     pub fn standard_address_v1(pubkey: &PublicKey) -> Self {
         let hash = standard_unlock_hash(pubkey);
         Address(hash)
@@ -95,60 +90,50 @@ impl Encodable for Address {
 }
 
 impl fmt::Display for Address {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "addr:{}", self.str_without_prefix()) }
-}
-
-impl fmt::Display for ParseAddressError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "Failed to parse Address: {:?}", self) }
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub enum ParseAddressError {
-    #[serde(rename = "Address must begin with addr: prefix")]
-    MissingPrefix,
-    InvalidHexEncoding(String),
-    InvalidChecksum,
-    InvalidLength,
-}
-
-impl From<FromHexError> for ParseAddressError {
-    fn from(e: FromHexError) -> Self { ParseAddressError::InvalidHexEncoding(e.to_string()) }
-}
-
-impl FromStr for Address {
-    type Err = ParseAddressError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if !s.starts_with("addr:") {
-            return Err(ParseAddressError::MissingPrefix);
-        }
-
-        let without_prefix = &s[ADDRESS_CHECKSUM_LENGTH - 1..];
-        if without_prefix.len() != (ADDRESS_HASH_LENGTH + ADDRESS_CHECKSUM_LENGTH) * 2 {
-            return Err(ParseAddressError::InvalidLength);
-        }
-
-        let (address_hex, checksum_hex) = without_prefix.split_at(ADDRESS_HASH_LENGTH * 2);
-
-        let address_bytes: [u8; ADDRESS_HASH_LENGTH] = hex::decode(address_hex)
-            .map_err(ParseAddressError::from)?
-            .try_into()
-            .map_err(|_| ParseAddressError::InvalidLength)?;
-
-        let checksum = hex::decode(checksum_hex).map_err(ParseAddressError::from)?;
-        let checksum_bytes: [u8; ADDRESS_CHECKSUM_LENGTH] =
-            checksum.try_into().map_err(|_| ParseAddressError::InvalidLength)?;
-
-        if checksum_bytes != blake2b_checksum(&address_bytes) {
-            return Err(ParseAddressError::InvalidChecksum);
-        }
-
-        Ok(Address(Hash256(address_bytes)))
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let bytes = self.0 .0.as_ref();
+        let checksum = blake2b_checksum(bytes);
+        write!(f, "{}{}", hex::encode(bytes), hex::encode(checksum))
     }
 }
 
-// Sia uses the first 6 bytes of blake2b(preimage) appended
-// to address as checksum
+#[derive(Debug, Error)]
+pub enum AddressError {
+    #[error("Address::from_str Failed to decode hex: {0}")]
+    InvalidHex(#[from] hex::FromHexError),
+    #[error("Address::from_str: Invalid length, expected 38 byte hex string, found: {0}")]
+    InvalidLength(String),
+    #[error("Address::from_str: invalid checksum, expected:{expected}, found:{found}")]
+    InvalidChecksum { expected: String, found: String },
+}
+
+impl FromStr for Address {
+    type Err = AddressError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // An address consists of a 32 byte blake2h hash followed by a 6 byte checksum
+        let address_bytes = hex::decode(s)?;
+        if address_bytes.len() != ADDRESS_HASH_LENGTH + ADDRESS_CHECKSUM_LENGTH {
+            return Err(AddressError::InvalidLength(s.to_owned()));
+        }
+
+        let hash_bytes = &address_bytes[0..ADDRESS_HASH_LENGTH];
+        let checksum_bytes = &address_bytes[ADDRESS_HASH_LENGTH..];
+
+        let checksum = blake2b_checksum(hash_bytes);
+        if checksum_bytes != checksum {
+            return Err(AddressError::InvalidChecksum {
+                expected: hex::encode(checksum),
+                found: hex::encode(checksum_bytes),
+            });
+        }
+        let inner_hash = Hash256::try_from(hash_bytes).expect("hash_bytes is 32 bytes long");
+        Ok(Address(inner_hash))
+    }
+}
+
+/// Return the first 6 bytes of the blake2b(preimage) hash
+/// Used in generating the checksum for a Sia address
 fn blake2b_checksum(preimage: &[u8]) -> [u8; 6] {
     let hash = Params::new().hash_length(32).to_state().update(preimage).finalize();
     hash.as_bytes()[0..6].try_into().expect("array is 64 bytes long")
