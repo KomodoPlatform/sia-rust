@@ -1,17 +1,3 @@
-// // FIXME reminder to populate the following tests
-// #[test]
-// #[ignore]
-// fn test_serde_block_id() {
-//     test_serde!(
-//         BlockID,
-//         json!("bid:c67c3b2e57490617a25a9fcb9fd54ab6acbe72fc1e4f1f432cb9334177917667")
-//     );
-//     test_serde!(BlockID, json!("bid:badc0de"));
-//     test_serde!(BlockID, json!("bid:1badc0de"));
-//     test_serde!(BlockID, json!("1badc0de"));
-//     test_serde!(BlockID, json!(1));
-// }
-
 #[test]
 #[ignore] // FIXME I don't have a good test case for this yet because wallet_test.go TestEventTypes doesn't output this type
 fn test_serde_event_v2_contract_resolution_finalization() {
@@ -21,7 +7,7 @@ fn test_serde_event_v2_contract_resolution_finalization() {
         "id": "4057e021e1d6dec8d4e4ef9d6e9fa2e4491c559144848b9af5765e03b39bb69d",
         "index": {
           "height": 0,
-          "id": "bid:0000000000000000000000000000000000000000000000000000000000000000"
+          "id": "0000000000000000000000000000000000000000000000000000000000000000"
         },
         "timestamp": "2024-07-12T10:04:18.564506-07:00",
         "maturityHeight": 0,
@@ -55,8 +41,8 @@ fn test_serde_event_v2_contract_resolution_finalization() {
               "renterPublicKey": "ed25519:65ea9701c409d4457a830b6fe7a2513d6f466ab4e424b3941de9f34a4a2d6170",
               "hostPublicKey": "ed25519:65ea9701c409d4457a830b6fe7a2513d6f466ab4e424b3941de9f34a4a2d6170",
               "revisionNumber": 0,
-              "renterSignature": "sig:bd1794b9266fa0de94aea0f0ffb6550efd7e8874133963022413c8ccfe1a0e31c14690d3a5bbd343b160ed59219bd67f79103c45aee07f519d72b5ab4319440f",
-              "hostSignature": "sig:bd1794b9266fa0de94aea0f0ffb6550efd7e8874133963022413c8ccfe1a0e31c14690d3a5bbd343b160ed59219bd67f79103c45aee07f519d72b5ab4319440f"
+              "renterSignature": "bd1794b9266fa0de94aea0f0ffb6550efd7e8874133963022413c8ccfe1a0e31c14690d3a5bbd343b160ed59219bd67f79103c45aee07f519d72b5ab4319440f",
+              "hostSignature": "bd1794b9266fa0de94aea0f0ffb6550efd7e8874133963022413c8ccfe1a0e31c14690d3a5bbd343b160ed59219bd67f79103c45aee07f519d72b5ab4319440f"
             }
           },
           "type": "finalization",
@@ -78,8 +64,8 @@ fn test_serde_event_v2_contract_resolution_finalization() {
             "renterPublicKey": "ed25519:65ea9701c409d4457a830b6fe7a2513d6f466ab4e424b3941de9f34a4a2d6170",
             "hostPublicKey": "ed25519:65ea9701c409d4457a830b6fe7a2513d6f466ab4e424b3941de9f34a4a2d6170",
             "revisionNumber": 18446744073709551615u64,
-            "renterSignature": "sig:bd1794b9266fa0de94aea0f0ffb6550efd7e8874133963022413c8ccfe1a0e31c14690d3a5bbd343b160ed59219bd67f79103c45aee07f519d72b5ab4319440f",
-            "hostSignature": "sig:bd1794b9266fa0de94aea0f0ffb6550efd7e8874133963022413c8ccfe1a0e31c14690d3a5bbd343b160ed59219bd67f79103c45aee07f519d72b5ab4319440f"
+            "renterSignature": "bd1794b9266fa0de94aea0f0ffb6550efd7e8874133963022413c8ccfe1a0e31c14690d3a5bbd343b160ed59219bd67f79103c45aee07f519d72b5ab4319440f",
+            "hostSignature": "bd1794b9266fa0de94aea0f0ffb6550efd7e8874133963022413c8ccfe1a0e31c14690d3a5bbd343b160ed59219bd67f79103c45aee07f519d72b5ab4319440f"
           }
         }
       }
@@ -386,7 +372,7 @@ mod test {
                 "id": "4c0170b9e82eacc2d14a13b974ce0c03560358276f135403bd060b53ce53be1c",
                 "index": {
                     "height": 190,
-                    "id": "bid:730f554f8cd5e6bd855b21b8c53f59808f3aa7351093f44da7761181283e3c6b"
+                    "id": "730f554f8cd5e6bd855b21b8c53f59808f3aa7351093f44da7761181283e3c6b"
                 },
                 "timestamp": "2024-07-18T19:04:16Z",
                 "maturityHeight": 334,
@@ -423,8 +409,8 @@ mod test {
                                 "renterPublicKey": "ed25519:cecc1507dc1ddd7295951c290888f095adb9044d1b73d696e6df065d683bd4fc",
                                 "hostPublicKey": "ed25519:cecc1507dc1ddd7295951c290888f095adb9044d1b73d696e6df065d683bd4fc",
                                 "revisionNumber": 0,
-                                "renterSignature": "sig:c293b22c9feee5a081699ddbf83486704df855129c2bbe27c2dc56afcb7e68cd355785fa36954471c1e48691864b240969168422b1fd6396e18f720ebec50e00",
-                                "hostSignature": "sig:c293b22c9feee5a081699ddbf83486704df855129c2bbe27c2dc56afcb7e68cd355785fa36954471c1e48691864b240969168422b1fd6396e18f720ebec50e00"
+                                "renterSignature": "c293b22c9feee5a081699ddbf83486704df855129c2bbe27c2dc56afcb7e68cd355785fa36954471c1e48691864b240969168422b1fd6396e18f720ebec50e00",
+                                "hostSignature": "c293b22c9feee5a081699ddbf83486704df855129c2bbe27c2dc56afcb7e68cd355785fa36954471c1e48691864b240969168422b1fd6396e18f720ebec50e00"
                             }
                         },
                         "type": "expiration",
@@ -454,7 +440,7 @@ mod test {
                 "id": "5900e475aace932c94bcc94cf296596ccff1d77d9aba52a079e9f429605671cd",
                 "index": {
                     "height": 203,
-                    "id": "bid:bd04c08bb96203c7f24adf2d405cb1069c7da8573573011379a986be62fc2a29"
+                    "id": "bd04c08bb96203c7f24adf2d405cb1069c7da8573573011379a986be62fc2a29"
                 },
                 "timestamp": "2024-07-18T19:04:16Z",
                 "maturityHeight": 203,
@@ -488,7 +474,7 @@ mod test {
                                 }
                             },
                             "signatures": [
-                            "sig:c432fea5f147205e49235ddbd75c232fd8e9c7526b2b1575f70653ae2b3c0d0338c7fe710be338482060cf6ef2dea5e2319252fc28deaf70c77a2be60a533400"
+                                "c432fea5f147205e49235ddbd75c232fd8e9c7526b2b1575f70653ae2b3c0d0338c7fe710be338482060cf6ef2dea5e2319252fc28deaf70c77a2be60a533400"
                             ]
                         }
                     }
@@ -546,7 +532,7 @@ mod test {
                             }
                         },
                         "signatures": [
-                        "sig:f0a29ba576eb0dbc3438877ac1d3a6da4f3c4cbafd9030709c8a83c2fffa64f4dd080d37444261f023af3bd7a10a9597c33616267d5371bf2c0ade5e25e61903"
+                        "f0a29ba576eb0dbc3438877ac1d3a6da4f3c4cbafd9030709c8a83c2fffa64f4dd080d37444261f023af3bd7a10a9597c33616267d5371bf2c0ade5e25e61903"
                         ]
                     }
                 }
