@@ -2,6 +2,7 @@ use crate::blake2b_internal::standard_unlock_hash;
 use crate::encoding::{Encodable, Encoder};
 use blake2b_simd::Params;
 use chrono::{DateTime, Utc};
+use derive_more::{From, Into};
 use hex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
@@ -139,16 +140,8 @@ fn blake2b_checksum(preimage: &[u8]) -> [u8; 6] {
     hash.as_bytes()[0..6].try_into().expect("array is 64 bytes long")
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, From, Into)]
 pub struct BlockId(pub Hash256);
-
-impl From<BlockId> for Hash256 {
-    fn from(sia_hash: BlockId) -> Self { sia_hash.0 }
-}
-
-impl From<Hash256> for BlockId {
-    fn from(h256: Hash256) -> Self { BlockId(h256) }
-}
 
 impl<'de> Deserialize<'de> for BlockId {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
