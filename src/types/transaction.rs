@@ -428,10 +428,8 @@ impl<'a> Encodable for SiacoinOutputVersion<'a> {
 }
 
 /// A Sia transaction id aka "txid"
-/// This could be a newtype like SiacoinOutputId with custom serde, but we have no use for this beyond
-/// making SiacoinOutputId::new more explicit.
-/// Sia Go uses "txid:" prefix for this type, but walletd API generally represents this with the
-/// more generic "h:" prefix. related: <https://github.com/SiaFoundation/core/pull/199>
+// This could be a newtype like SiacoinOutputId with custom serde, but we have no use for this beyond
+// making SiacoinOutputId::new more explicit.
 pub type TransactionId = Hash256;
 
 #[derive(Clone, Debug, PartialEq, From, Into, Deserialize, Serialize, Display, Default)]
