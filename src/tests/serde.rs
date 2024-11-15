@@ -134,13 +134,30 @@ mod test {
                 test_serde!(SiacoinOutput, j);
             }
 
+            // check that merkleProof field serde is the same when it is null, missing or empty
             fn test_serde_state_element() {
                 let j = json!({
                     "id": "dc07e5bf84fbda867a7ed7ca80c6d1d81db05cef16ff38f6ba80b6bf01e1ddb1",
                     "leafIndex": 21,
                     "merkleProof": null
                 });
-                serde_json::from_value::<StateElement>(j).unwrap();
+                let null_proof = serde_json::from_value::<StateElement>(j).unwrap();
+
+                let j = json!({
+                    "id": "dc07e5bf84fbda867a7ed7ca80c6d1d81db05cef16ff38f6ba80b6bf01e1ddb1",
+                    "leafIndex": 21,
+                    "merkleProof": []
+                });
+                let empty_proof = serde_json::from_value::<StateElement>(j).unwrap();
+
+                let j = json!({
+                    "id": "dc07e5bf84fbda867a7ed7ca80c6d1d81db05cef16ff38f6ba80b6bf01e1ddb1",
+                    "leafIndex": 21
+                });
+                let missing_proof = serde_json::from_value::<StateElement>(j).unwrap();
+
+                assert_eq!(null_proof, empty_proof);
+                assert_eq!(null_proof, missing_proof);
             }
 
             fn test_serde_siacoin_element() {
