@@ -1,6 +1,7 @@
 use crate::encoding::{Encodable, Encoder};
 use crate::types::{Address, ChainIndex, Hash256, Keypair, PublicKey, Signature, SpendPolicy, UnlockCondition,
                    UnlockKey};
+use crate::utils::deserialize_null_as_empty_vec;
 use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
 use derive_more::{Add, AddAssign, Deref, Display, Div, DivAssign, From, Into, Mul, MulAssign, Sub, SubAssign, Sum};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -271,7 +272,7 @@ impl Encodable for SatisfiedPolicy {
 #[serde(rename_all = "camelCase")]
 pub struct StateElement {
     pub leaf_index: u64,
-    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_null_as_empty_vec", default)]
     pub merkle_proof: Vec<Hash256>,
 }
 
