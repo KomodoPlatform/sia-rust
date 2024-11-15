@@ -1,5 +1,5 @@
 use hex;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::fmt::{self, Display};
 use std::str::FromStr;
@@ -14,9 +14,27 @@ pub enum Hash256Error {
     #[error("Hash256::TryFrom<&[u8]> invalid slice length: expected 32 byte slice, found {0:?}")]
     InvalidSliceLength(Vec<u8>),
 }
-#[derive(Clone, Debug, Default, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(transparent)]
-pub struct Hash256(#[serde(with = "hex::serde")] pub [u8; 32]);
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct Hash256(pub [u8; 32]);
+
+impl Serialize for Hash256 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+impl<'de> Deserialize<'de> for Hash256 {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Hash256::from_str(&s).map_err(serde::de::Error::custom)
+    }
+}
 
 impl FromStr for Hash256 {
     type Err = Hash256Error;
