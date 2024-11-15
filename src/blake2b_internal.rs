@@ -24,7 +24,7 @@ const STANDARD_SIGS_REQUIRED_BLAKE2B_HASH: [u8; 32] = [
 // FIXME remove direct indexing of arrays or add sanity checks to prevent out of bound access
 
 /// Directly ported from Sia core
-/// https://github.com/SiaFoundation/core/blob/0f61e58ab7ea932da7e9f710c592d595406356c6/internal/blake2b/blake2b.go#L66
+/// <https://github.com/SiaFoundation/core/blob/0f61e58ab7ea932da7e9f710c592d595406356c6/internal/blake2b/blake2b.go#L66>
 #[derive(Debug, PartialEq)]
 pub struct Accumulator {
     trees: [Hash256; 64],

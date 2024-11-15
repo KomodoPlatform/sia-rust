@@ -316,7 +316,7 @@ impl Encodable for SiafundElement {
 /// This type is effectively a "UTXO" in Bitcoin terms.
 /// A SiacoinElement can be combined with a SatisfiedPolicy to create a SiacoinInputV2.
 /// Ported from Sia Core:
-/// https://github.com/SiaFoundation/core/blob/b7ccbe54cccba5642c2bb9d721967214a4ba4e97/types/types.go#L619
+/// <https://github.com/SiaFoundation/core/blob/b7ccbe54cccba5642c2bb9d721967214a4ba4e97/types/types.go#L619>
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct SiacoinElement {
@@ -434,7 +434,7 @@ impl<'a> Encodable for SiacoinOutputVersion<'a> {
 /// This could be a newtype like SiacoinOutputId with custom serde, but we have no use for this beyond
 /// making SiacoinOutputId::new more explicit.
 /// Sia Go uses "txid:" prefix for this type, but walletd API generally represents this with the
-/// more generic "h:" prefix. related: https://github.com/SiaFoundation/core/pull/199
+/// more generic "h:" prefix. related: <https://github.com/SiaFoundation/core/pull/199>
 pub type TransactionId = Hash256;
 
 #[derive(Clone, Debug, PartialEq, From, Into)]

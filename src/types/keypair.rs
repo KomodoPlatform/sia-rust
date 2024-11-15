@@ -29,7 +29,7 @@ pub enum PrivateKeyError {
 /// The purpose of this wrapper type is to limit the functionality of underlying ed25519 types.
 /// The inner fields are not public by design.
 /// We must not allow the consumer to create an invalid ed25519 Keypair or edit the PublicKey after creation.
-/// see https://github.com/advisories/GHSA-w5vr-6qhr-36cc
+/// see <https://github.com/advisories/GHSA-w5vr-6qhr-36cc>
 pub struct Keypair {
     public: PublicKey,
     private: PrivateKey,
