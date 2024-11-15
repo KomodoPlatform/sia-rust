@@ -326,6 +326,7 @@ pub struct SiacoinElement {
 impl Encodable for SiacoinElement {
     fn encode(&self, encoder: &mut Encoder) {
         self.state_element.encode(encoder);
+        self.id.encode(encoder);
         SiacoinOutputVersion::V2(&self.siacoin_output).encode(encoder);
         encoder.write_u64(self.maturity_height);
     }
