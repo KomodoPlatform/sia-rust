@@ -435,7 +435,7 @@ impl<'a> Encodable for SiacoinOutputVersion<'a> {
 /// more generic "h:" prefix. related: <https://github.com/SiaFoundation/core/pull/199>
 pub type TransactionId = Hash256;
 
-#[derive(Clone, Debug, PartialEq, From, Into, Deserialize, Serialize, Display)]
+#[derive(Clone, Debug, PartialEq, From, Into, Deserialize, Serialize, Display, Default)]
 #[serde(transparent)]
 pub struct SiacoinOutputId(pub Hash256);
 
@@ -461,7 +461,7 @@ impl Encodable for SiafundOutputId {
     fn encode(&self, encoder: &mut Encoder) { self.0.encode(encoder) }
 }
 
-#[derive(Clone, Debug, PartialEq, From, Into, Deserialize, Serialize, Display)]
+#[derive(Clone, Debug, Default, PartialEq, From, Into, Deserialize, Serialize, Display)]
 #[serde(transparent)]
 pub struct FileContractID(pub Hash256);
 
