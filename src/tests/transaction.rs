@@ -188,8 +188,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            // FIXME update this in go equivalent. Preimage was changed from Vec<u8> to [u8; 32]
-            let expected = Hash256::from_str("h:51eb259ed69313a81d72ea5ee1eb7c7111469e66720f2faef0a19054f959d375").unwrap();
+            let expected = Hash256::from_str("h:1e612d1ee36338b93a36bac0c52007a2d678cde0bd9b95c36a1f61166cf02b87").unwrap();
             assert_eq!(hash, expected);
         }
 
