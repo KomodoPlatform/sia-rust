@@ -1086,8 +1086,8 @@ pub struct V2Transaction {
     pub file_contract_resolutions: Vec<V2FileContractResolution>, // TODO needs Encodable trait
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub attestations: Vec<Attestation>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub arbitrary_data: Vec<u8>,
+    #[serde(skip_serializing_if = "ArbitraryData::is_empty")]
+    pub arbitrary_data: ArbitraryData,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub new_foundation_address: Option<Address>,
     pub miner_fee: Currency,
@@ -1165,7 +1165,7 @@ impl Encodable for V2Transaction {
             att.encode(encoder);
         }
 
-        encoder.write_len_prefixed_bytes(&self.arbitrary_data);
+        self.arbitrary_data.encode(encoder);
 
         encoder.write_bool(self.new_foundation_address.is_some());
         match &self.new_foundation_address {
@@ -1190,6 +1190,50 @@ pub enum FeePolicy {
     HastingsFixed(Currency),
 }
 
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ArbitraryData(pub Vec<u8>);
+
+impl ArbitraryData {
+    pub fn is_empty(&self) -> bool { self.0.is_empty() }
+}
+
+impl Encodable for ArbitraryData {
+    fn encode(&self, encoder: &mut Encoder) { encoder.write_len_prefixed_bytes(&self.0); }
+}
+
+impl Serialize for ArbitraryData {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(&base64.encode(&self.0))
+    }
+}
+
+impl<'de> Deserialize<'de> for ArbitraryData {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct ArbitraryDataVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for ArbitraryDataVisitor {
+            type Value = ArbitraryData;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a base64 encoded string")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                let decoded = base64.decode(value).map_err(serde::de::Error::custom)?;
+                Ok(ArbitraryData(decoded))
+            }
+        }
+
+        deserializer.deserialize_str(ArbitraryDataVisitor)
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct V2TransactionBuilder {
     pub siacoin_inputs: Vec<SiacoinInputV2>,
@@ -1200,7 +1244,7 @@ pub struct V2TransactionBuilder {
     pub file_contract_revisions: Vec<FileContractRevisionV2>,
     pub file_contract_resolutions: Vec<V2FileContractResolution>,
     pub attestations: Vec<Attestation>,
-    pub arbitrary_data: Vec<u8>,
+    pub arbitrary_data: ArbitraryData,
     pub new_foundation_address: Option<Address>,
     pub miner_fee: Currency,
     // fee_policy is not part Sia consensus and it not encoded into any resulting transaction.
@@ -1253,7 +1297,7 @@ impl Encodable for V2TransactionBuilder {
             att.encode(encoder);
         }
 
-        encoder.write_len_prefixed_bytes(&self.arbitrary_data);
+        self.arbitrary_data.encode(encoder);
 
         encoder.write_bool(self.new_foundation_address.is_some());
         match &self.new_foundation_address {
@@ -1283,7 +1327,7 @@ impl V2TransactionBuilder {
             file_contract_revisions: Vec::new(),
             file_contract_resolutions: Vec::new(),
             attestations: Vec::new(),
-            arbitrary_data: Vec::new(),
+            arbitrary_data: ArbitraryData::default(),
             new_foundation_address: None,
             miner_fee: Currency::ZERO,
             fee_policy: None,
@@ -1330,7 +1374,7 @@ impl V2TransactionBuilder {
         self
     }
 
-    pub fn arbitrary_data(&mut self, data: Vec<u8>) -> &mut Self {
+    pub fn arbitrary_data(&mut self, data: ArbitraryData) -> &mut Self {
         self.arbitrary_data = data;
         self
     }
