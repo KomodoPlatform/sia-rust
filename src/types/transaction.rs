@@ -1190,7 +1190,7 @@ pub enum FeePolicy {
     HastingsFixed(Currency),
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, From, Into)]
 pub struct ArbitraryData(pub Vec<u8>);
 
 impl ArbitraryData {
