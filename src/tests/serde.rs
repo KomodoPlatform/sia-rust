@@ -565,5 +565,64 @@ mod test {
         let tx2 = serde_json::from_str::<V2Transaction>(&j2).unwrap();
         assert_eq!(tx, tx2);
     }
+
+    fn test_v2_transaction_serde_with_arbitrary_data() {
+        let j = r#"
+        {
+            "siacoinInputs": [
+                {
+                    "parent": {
+                        "id": "3d91fd82c8b197f7c63a803a5b6b15feeeb55f03a861036832137a2cd43175c5",
+                        "stateElement": {
+                            "leafIndex": 445,
+                            "merkleProof": [
+                                "550179f319d4702c067891cc412ac3adfdbaab268285ad9e94ec8d523bda769a",
+                                "7b0a8ab5a6fe6466ef509fc645583d128a6a20b5cff710dc7092647c9833240e",
+                                "02f359ce3b8c053e336afbc53c1b5e11bee75b73c40d809802ab0c454b8bf556",
+                                "d3ec699dff3207f0dc458b715b01e60a51561820ad3260a0f5857fb24d238137",
+                                "16a007608da1f582c2901eb9b49e3a00456ce4f1c3290ad0125e59be83de19bd",
+                                "94cdee3fd437d058d14fa43faedb8a2c6d260c8da968cee5f4293e0296f9ddfc",
+                                "549e313b749f317300a7bb7b92545c9fb929ba5b9466f56c3151f0c180a9d7f6",
+                                "cd0b57da0c99b37bba96270250c0c2e883655b41443d88e0e6780b420e8c5616",
+                                "d709b55266c068cac2ca645c39a1ecce14fc30677d5855074a290e9e435b39a5"
+                            ]
+                        },
+                        "siacoinOutput": {
+                            "value": "300000000000000000000000000000",
+                            "address": "8b7201e203c8b4a58e2f68d29e6cb8973706f1578a074f5b29b1ae1f4136da85ae7f7667a714"
+                        },
+                        "maturityHeight": 229
+                    },
+                    "satisfiedPolicy": {
+                        "policy": {
+                            "type": "pk",
+                            "policy": "ed25519:32f8eb30eab7b9c8ec8be44f37ac0a2b0f7fa1f7c9540abb6e21267b1995024f"
+                        },
+                        "signatures": [
+                            "4639d5738969c4870307d6bae35e16a1e38417a66e041aea639cdfb97ae250c5c583967e6367c5eb976c3e036792a6e0a2bcb053bfef86789a35b468bfc01b0c"
+                        ]
+                    }
+                }
+            ],
+            "siacoinOutputs": [
+                {
+                    "value": "12870012870012870012",
+                    "address": "0125788b383a1dd122cd511386dd2668c62e54610cc743307d7a8ba17161a175f4b03c40b656"
+                },
+                {
+                    "value": "299999999977129987129987129988",
+                    "address": "8b7201e203c8b4a58e2f68d29e6cb8973706f1578a074f5b29b1ae1f4136da85ae7f7667a714"
+                }
+            ],
+            "arbitraryData": "hss62dS2RraC7PbMFY6ETQ==",
+            "minerFee": "10000000000000000000"
+        }"#;
+
+        let tx = serde_json::from_str::<V2Transaction>(j).unwrap();
+        let j2 = serde_json::to_value(&tx).unwrap().to_string();
+        let tx2 = serde_json::from_str::<V2Transaction>(&j2).unwrap();
+        assert_eq!(tx, tx2);
+    }
+
     }
 }
