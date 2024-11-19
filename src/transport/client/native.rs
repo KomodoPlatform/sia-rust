@@ -40,7 +40,7 @@ impl ApiClient for NativeClient {
                 HeaderValue::from_str(&auth_value).map_err(|e| ApiClientError::BuildError(e.to_string()))?,
             );
         }
-        let timeout = conf.timeout.unwrap_or(10);
+        let timeout = conf.timeout.unwrap_or(30);
         let client = ReqwestClient::builder()
             .default_headers(headers)
             .timeout(Duration::from_secs(timeout))
