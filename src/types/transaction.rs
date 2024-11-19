@@ -1068,7 +1068,7 @@ impl Encodable for V1TransactionSansSigs {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
-#[serde(default, deny_unknown_fields, rename_all = "camelCase")]
+#[serde(default, rename_all = "camelCase")]
 pub struct V2Transaction {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub siacoin_inputs: Vec<SiacoinInputV2>,
