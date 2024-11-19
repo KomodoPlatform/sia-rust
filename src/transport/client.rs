@@ -69,6 +69,7 @@ pub enum ApiClientError {
 
 // Not all client implementations will have an exact equivalent of HTTP methods
 // However, the client implementation should be able to map the HTTP methods to its own methods
+#[derive(Clone, Debug)]
 pub enum SchemaMethod {
     Get,
     Post,
@@ -87,6 +88,7 @@ impl From<SchemaMethod> for http::Method {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct EndpointSchema {
     pub path_schema: String, // The endpoint path template (e.g., /api/transactions/{id})
     pub path_params: Option<HashMap<String, String>>, // Optional parameters to replace in the path (e.g., /{key} becomes /value)
@@ -119,8 +121,8 @@ impl EndpointSchemaBuilder {
         self
     }
 
-    pub fn query_params(mut self, query_params: HashMap<String, String>) -> Self {
-        self.query_params = Some(query_params);
+    pub fn query_params(mut self, query_params: Option<HashMap<String, String>>) -> Self {
+        self.query_params = query_params;
         self
     }
 
@@ -140,6 +142,7 @@ impl EndpointSchemaBuilder {
     }
 }
 
+#[derive(Clone, Debug)]
 pub enum Body {
     Utf8(String),
     Json(JsonValue),

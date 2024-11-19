@@ -173,10 +173,12 @@ impl SiaApiRequest for ConsensusUpdatesRequest {
             query_params.insert("limit".to_owned(), limit.to_string());
         }
 
+        let query_params_option = (!query_params.is_empty()).then_some(query_params);
+
         Ok(
             EndpointSchemaBuilder::new(ENDPOINT_CONSENSUS_UPDATES.to_owned(), SchemaMethod::Get)
                 .path_params(path_params) // Set the path params containing the height and hash
-                .query_params(query_params) // Set the query params for ?limit=
+                .query_params(query_params_option) // Set the query params for ?limit=
                 .build(),
         )
     }
@@ -323,10 +325,12 @@ impl SiaApiRequest for AddressesEventsRequest {
             query_params.insert("offset".to_owned(), offset.to_string());
         }
 
+        let query_params_option = (!query_params.is_empty()).then_some(query_params);
+
         Ok(
             EndpointSchemaBuilder::new(ENDPOINT_ADDRESSES_EVENTS.to_owned(), SchemaMethod::Get)
                 .path_params(path_params) // Set the path params containing the address
-                .query_params(query_params) // Set the query params for limit and offset
+                .query_params(query_params_option) // Set the query params for limit and offset
                 .build(),
         )
     }
@@ -371,6 +375,7 @@ impl SiaApiRequest for GetAddressUtxosRequest {
         path_params.insert("address".to_owned(), self.address.to_string());
 
         let mut query_params = HashMap::new();
+
         if let Some(limit) = self.limit {
             query_params.insert("limit".to_owned(), limit.to_string());
         }
@@ -378,10 +383,12 @@ impl SiaApiRequest for GetAddressUtxosRequest {
             query_params.insert("offset".to_owned(), offset.to_string());
         }
 
+        let query_params_option = (!query_params.is_empty()).then_some(query_params);
+
         Ok(
             EndpointSchemaBuilder::new(ENDPOINT_ADDRESSES_UTXOS_SIACOIN.to_owned(), SchemaMethod::Get)
                 .path_params(path_params) // Set the path params containing the address
-                .query_params(query_params) // Set the query params for limit and offset
+                .query_params(query_params_option) // Set the query params for limit and offset
                 .build(),
         )
     }
