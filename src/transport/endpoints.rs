@@ -128,6 +128,7 @@ impl SiaApiRequest for ConsensusTipstateRequest {
 }
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct ConsensusTipstateResponse {
     pub index: ChainIndex,
     pub prev_timestamps: Vec<DateTime<Utc>>,
