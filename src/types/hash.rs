@@ -17,6 +17,10 @@ pub enum Hash256Error {
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Hash256(pub [u8; 32]);
 
+impl Encodable for Hash256 {
+    fn encode(&self, encoder: &mut Encoder) { encoder.write_slice(&self.0); }
+}
+
 impl Serialize for Hash256 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
