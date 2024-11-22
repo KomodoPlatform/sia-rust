@@ -1,3 +1,4 @@
+use crate::encoding::{Encodable, Encoder};
 use hex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
