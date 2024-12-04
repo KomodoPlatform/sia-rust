@@ -102,10 +102,6 @@ impl ApiClient for NativeClient {
         Ok(req)
     }
 
-    fn to_data_request<R: SiaApiRequest>(&self, request: R) -> Result<Self::Request, Self::Error> {
-        self.process_schema(request.to_endpoint_schema()?)
-    }
-
     async fn execute_request(&self, request: Self::Request) -> Result<Self::Response, Self::Error> {
         self.client
             .execute(request)
@@ -115,7 +111,7 @@ impl ApiClient for NativeClient {
 
     async fn dispatcher<R: SiaApiRequest>(&self, request: R) -> Result<R::Response, Self::Error> {
         let request = self
-            .to_data_request(request)
+            .process_schema(request.to_endpoint_schema()?)
             .map_err(|e| NativeClientError::DispatcherBuildRequest(Box::new(e)))?;
 
         // Execute the request using reqwest client
