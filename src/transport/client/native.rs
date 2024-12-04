@@ -23,7 +23,7 @@ pub enum NativeClientError {
     BuildClient(reqwest::Error),
     #[error("NativeClient::new: Failed to ping server with ConsensusTipRequest: {0}")]
     PingServer(Box<NativeClientError>),
-    #[error("NativeClient::to_data_request: failed to convert request into schema: {0}")]
+    #[error("NativeClient::dispatcher: failed to convert request into schema: {0}")]
     RequestToSchema(#[from] SiaApiRequestError),
     #[error("NativeClient::process_schema: failed to build url: {0}")]
     SchemaBuildUrl(#[from] EndpointSchemaError),
