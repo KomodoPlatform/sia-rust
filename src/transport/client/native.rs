@@ -1,14 +1,38 @@
-use crate::transport::endpoints::{ConsensusTipRequest, SiaApiRequest};
+use crate::transport::endpoints::{ConsensusTipRequest, SiaApiRequest, SiaApiRequestError};
 use async_trait::async_trait;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
 use http::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use reqwest::Client as ReqwestClient;
 use serde::Deserialize;
+use thiserror::Error;
 use url::Url;
 
-use crate::transport::client::{ApiClient, ApiClientError, ApiClientHelpers, Body as ClientBody, EndpointSchema};
+use crate::transport::client::{ApiClient, ApiClientHelpers, Body as ClientBody, EndpointSchema, EndpointSchemaError};
 use core::time::Duration;
+
+// TODO standardize error messages here, each type should be unique to a specific logical path
+#[derive(Debug, Error)]
+pub enum NativeClientError {
+    #[error("NativeClient::process_schema: failed to build url: {0}")]
+    BuildUrl(#[from] EndpointSchemaError),
+    #[error("NativeClient::to_data_request: failed to convert request into schema: {0}")]
+    RequestToSchema(#[from] SiaApiRequestError),
+    #[error("BuildError error: {0}")]
+    BuildError(String),
+    #[error("FixmePlaceholder error: {0}")]
+    FixmePlaceholder(String), // FIXME this entire enum needs refactoring to not use client-specific error types
+    #[error("UrlParse error: {0}")]
+    UrlParse(#[from] url::ParseError),
+    #[error("UnexpectedHttpStatus error: status:{status} body:{body}")]
+    UnexpectedHttpStatus { status: http::StatusCode, body: String },
+    #[error("Serde error: {0}")]
+    Serde(#[from] serde_json::Error),
+    #[error("UnexpectedEmptyResponse error: {expected_type}")]
+    UnexpectedEmptyResponse { expected_type: String },
+    #[error("ReqwestError error: {0}")]
+    ReqwestError(#[from] reqwest::Error),
+}
 
 #[derive(Clone)]
 pub struct NativeClient {
@@ -31,21 +55,22 @@ impl ApiClient for NativeClient {
     type Response = reqwest::Response;
     type Conf = Conf;
 
-    async fn new(conf: Self::Conf) -> Result<Self, ApiClientError> {
+    type Error = NativeClientError;
+
+    async fn new(conf: Self::Conf) -> Result<Self, Self::Error> {
         let mut headers = HeaderMap::new();
         if let Some(password) = &conf.password {
             let auth_value = format!("Basic {}", BASE64.encode(format!(":{}", password)));
             headers.insert(
                 AUTHORIZATION,
-                HeaderValue::from_str(&auth_value).map_err(|e| ApiClientError::BuildError(e.to_string()))?,
+                HeaderValue::from_str(&auth_value).map_err(|e| NativeClientError::BuildError(e.to_string()))?,
             );
         }
         let timeout = conf.timeout.unwrap_or(30);
         let client = ReqwestClient::builder()
             .default_headers(headers)
             .timeout(Duration::from_secs(timeout))
-            .build()
-            .map_err(ApiClientError::ReqwestError)?;
+            .build()?;
 
         let ret = NativeClient {
             client,
@@ -56,7 +81,7 @@ impl ApiClient for NativeClient {
         Ok(ret)
     }
 
-    fn process_schema(&self, schema: EndpointSchema) -> Result<Self::Request, ApiClientError> {
+    fn process_schema(&self, schema: EndpointSchema) -> Result<Self::Request, Self::Error> {
         let url = schema.build_url(&self.base_url)?;
         let req = match schema.body {
             ClientBody::None => self.client.request(schema.method.into(), url).build(),
@@ -64,15 +89,22 @@ impl ApiClient for NativeClient {
             ClientBody::Json(body) => self.client.request(schema.method.into(), url).json(&body).build(),
             ClientBody::Bytes(body) => self.client.request(schema.method.into(), url).body(body).build(),
         }
-        .map_err(ApiClientError::ReqwestError)?;
+        .map_err(NativeClientError::ReqwestError)?;
         Ok(req)
     }
 
-    async fn execute_request(&self, request: Self::Request) -> Result<Self::Response, ApiClientError> {
-        self.client.execute(request).await.map_err(ApiClientError::ReqwestError)
+    fn to_data_request<R: SiaApiRequest>(&self, request: R) -> Result<Self::Request, Self::Error> {
+        self.process_schema(request.to_endpoint_schema()?)
     }
 
-    async fn dispatcher<R: SiaApiRequest>(&self, request: R) -> Result<R::Response, ApiClientError> {
+    async fn execute_request(&self, request: Self::Request) -> Result<Self::Response, Self::Error> {
+        self.client
+            .execute(request)
+            .await
+            .map_err(NativeClientError::ReqwestError)
+    }
+
+    async fn dispatcher<R: SiaApiRequest>(&self, request: R) -> Result<R::Response, Self::Error> {
         let request = self.to_data_request(request)?;
 
         // Execute the request using reqwest client
@@ -80,19 +112,19 @@ impl ApiClient for NativeClient {
             .client
             .execute(request)
             .await
-            .map_err(ApiClientError::ReqwestError)?;
+            .map_err(NativeClientError::ReqwestError)?;
 
         // Check the response status and return the appropriate result
         match response.status() {
             reqwest::StatusCode::OK => Ok(response
                 .json::<R::Response>()
                 .await
-                .map_err(ApiClientError::ReqwestError)?),
+                .map_err(NativeClientError::ReqwestError)?),
             reqwest::StatusCode::NO_CONTENT => {
                 if let Some(resp_type) = R::is_empty_response() {
                     Ok(resp_type)
                 } else {
-                    Err(ApiClientError::UnexpectedEmptyResponse {
+                    Err(NativeClientError::UnexpectedEmptyResponse {
                         expected_type: std::any::type_name::<R::Response>().to_string(),
                     })
                 }
@@ -106,7 +138,7 @@ impl ApiClient for NativeClient {
                     .map_err(|e| format!("Failed to retrieve body: {}", e))
                     .unwrap_or_else(|e| e);
 
-                Err(ApiClientError::UnexpectedHttpStatus { status, body })
+                Err(NativeClientError::UnexpectedHttpStatus { status, body })
             },
         }
     }

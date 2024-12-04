@@ -10,7 +10,7 @@ use url::Url;
 #[cfg(target_arch = "wasm32")] pub mod wasm;
 
 mod helpers;
-pub use helpers::{ApiClientHelpers, HelperError};
+pub use helpers::ApiClientHelpers;
 
 // FIXME remove these client specific error types
 #[cfg(not(target_arch = "wasm32"))]
@@ -26,45 +26,30 @@ pub trait ApiClient: Clone {
     type Request;
     type Response;
     type Conf;
+    type Error;
 
-    async fn new(conf: Self::Conf) -> Result<Self, ApiClientError>
+    async fn new(conf: Self::Conf) -> Result<Self, Self::Error>
     where
         Self: Sized;
 
-    fn process_schema(&self, schema: EndpointSchema) -> Result<Self::Request, ApiClientError>;
+    fn process_schema(&self, schema: EndpointSchema) -> Result<Self::Request, Self::Error>;
 
-    fn to_data_request<R: SiaApiRequest>(&self, request: R) -> Result<Self::Request, ApiClientError> {
-        self.process_schema(request.to_endpoint_schema()?)
-    }
+    fn to_data_request<R: SiaApiRequest>(&self, request: R) -> Result<Self::Request, Self::Error>;
 
     // TODO this can have a default implementation if an associated type can provide .execute()
     // eg self.client().execute(request).await.map_err(Self::ClientError)
-    async fn execute_request(&self, request: Self::Request) -> Result<Self::Response, ApiClientError>;
+    async fn execute_request(&self, request: Self::Request) -> Result<Self::Response, Self::Error>;
 
     // TODO default implementation should be possible if Execute::Response is a serde deserializable type
-    async fn dispatcher<R: SiaApiRequest>(&self, request: R) -> Result<R::Response, ApiClientError>;
+    async fn dispatcher<R: SiaApiRequest>(&self, request: R) -> Result<R::Response, Self::Error>;
 }
 
 #[derive(Debug, Error)]
-pub enum ApiClientError {
-    #[error("BuildError error: {0}")]
-    BuildError(String),
-    #[error("FixmePlaceholder error: {0}")]
-    FixmePlaceholder(String), // FIXME this entire enum needs refactoring to not use client-specific error types
-    #[error("UrlParse error: {0}")]
-    UrlParse(#[from] url::ParseError),
-    #[error("UnexpectedHttpStatus error: status:{status} body:{body}")]
-    UnexpectedHttpStatus { status: http::StatusCode, body: String },
-    #[error("Serde error: {0}")]
-    Serde(#[from] serde_json::Error),
-    #[error("UnexpectedEmptyResponse error: {expected_type}")]
-    UnexpectedEmptyResponse { expected_type: String },
-    #[error("WasmFetchError error: {0}")]
-    #[cfg(target_arch = "wasm32")]
-    WasmFetchError(#[from] FetchError),
-    #[error("ReqwestError error: {0}")]
-    #[cfg(not(target_arch = "wasm32"))]
-    ReqwestError(#[from] ReqwestError), // FIXME remove this; it should be generalized enough to not need arch-specific error types
+pub enum DynamicTransportError {
+    #[error("DynamicTransportError::NoResponse: {0}")]
+    NoResponse(Box<dyn std::error::Error + Send + Sync>),
+    #[error("DynamicTransportError::UnexpectedResponse: {0}")]
+    UnexpectedResponse(Box<dyn std::error::Error + Send + Sync>),
 }
 
 // Not all client implementations will have an exact equivalent of HTTP methods
@@ -150,9 +135,15 @@ pub enum Body {
     None,
 }
 
+#[derive(Debug, Error)]
+pub enum EndpointSchemaError {
+    #[error("EndpointSchema::build_url: failed to parse Url from constructed path: {0}")]
+    ParseUrl(#[from] url::ParseError),
+}
+
 impl EndpointSchema {
     // Safely build the URL using percent-encoding for path params
-    pub fn build_url(&self, base_url: &Url) -> Result<Url, ApiClientError> {
+    pub fn build_url(&self, base_url: &Url) -> Result<Url, EndpointSchemaError> {
         let mut path = self.path_schema.to_string();
 
         // Replace placeholders in the path with encoded values if path_params are provided
@@ -164,7 +155,7 @@ impl EndpointSchema {
         }
 
         // Combine base_url with the constructed path
-        let mut url = base_url.join(&path).map_err(ApiClientError::UrlParse)?;
+        let mut url = base_url.join(&path)?;
 
         // Add query parameters if any
         if let Some(query_params) = &self.query_params {
