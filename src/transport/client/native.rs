@@ -35,8 +35,8 @@ pub enum NativeClientError {
     DispatcherExecuteRequest(reqwest::Error),
     #[error("NativeClient::dispatcher: Failed to deserialize response body: {0}")]
     DispatcherDeserializeBody(reqwest::Error),
-    #[error("UnexpectedEmptyResponse error: {expected_type}")]
-    UnexpectedEmptyResponse { expected_type: String },
+    #[error("NativeClient::dispatcher: Expected:{expected_type} found 204 No Content")]
+    DispatcherUnexpectedEmptyResponse { expected_type: String },
     #[error("NativeClient::dispatcher: unexpected HTTP status:{status} body:{body}")]
     DispatcherUnexpectedStatus { status: http::StatusCode, body: String },
 }
@@ -124,7 +124,7 @@ impl ApiClient for NativeClient {
                 if let Some(resp_type) = R::is_empty_response() {
                     Ok(resp_type)
                 } else {
-                    Err(NativeClientError::UnexpectedEmptyResponse {
+                    Err(NativeClientError::DispatcherUnexpectedEmptyResponse {
                         expected_type: std::any::type_name::<R::Response>().to_string(),
                     })
                 }
