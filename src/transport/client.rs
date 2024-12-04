@@ -12,10 +12,6 @@ use url::Url;
 mod helpers;
 pub use helpers::ApiClientHelpers;
 
-// FIXME remove these client specific error types
-#[cfg(not(target_arch = "wasm32"))]
-use reqwest::Error as ReqwestError;
-
 #[cfg(target_arch = "wasm32")] use wasm::wasm_fetch::FetchError;
 
 // Client implementation is generalized
