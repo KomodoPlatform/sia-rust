@@ -28,10 +28,6 @@ pub trait ApiClient: Clone {
 
     fn process_schema(&self, schema: EndpointSchema) -> Result<Self::Request, Self::Error>;
 
-    // TODO this can have a default implementation if an associated type can provide .execute()
-    // eg self.client().execute(request).await.map_err(Self::ClientError)
-    async fn execute_request(&self, request: Self::Request) -> Result<Self::Response, Self::Error>;
-
     // TODO default implementation should be possible if Execute::Response is a serde deserializable type
     async fn dispatcher<R: SiaApiRequest>(&self, request: R) -> Result<R::Response, Self::Error>;
 }

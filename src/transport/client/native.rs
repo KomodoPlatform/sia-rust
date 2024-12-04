@@ -29,8 +29,6 @@ pub enum NativeClientError {
     SchemaBuildUrl(#[from] EndpointSchemaError),
     #[error("NativeClient::process_schema: Failed to build request: {0}")]
     SchemaBuildRequest(reqwest::Error),
-    #[error("NativeClient::execute_request: Failed: {0}")]
-    ExecuteRequest(reqwest::Error),
     #[error("NativeClient::dispatcher: Failed to convert SiaApiRequest to reqwest::Request: {0}")]
     DispatcherBuildRequest(Box<NativeClientError>),
     #[error("NativeClient::dispatcher: Failed to execute reqwest::Request: {0}")]
@@ -100,13 +98,6 @@ impl ApiClient for NativeClient {
         }
         .map_err(NativeClientError::SchemaBuildRequest)?;
         Ok(req)
-    }
-
-    async fn execute_request(&self, request: Self::Request) -> Result<Self::Response, Self::Error> {
-        self.client
-            .execute(request)
-            .await
-            .map_err(NativeClientError::ExecuteRequest)
     }
 
     async fn dispatcher<R: SiaApiRequest>(&self, request: R) -> Result<R::Response, Self::Error> {
