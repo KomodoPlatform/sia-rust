@@ -145,7 +145,6 @@ impl ApiClient for WasmClient {
     }
 }
 
-// Implement the optional helper methods for ExampleClient
 // Just this is needed to implement the `ApiClientHelpers` trait
 // unless custom implementations for the traits methods are needed
 #[async_trait]
