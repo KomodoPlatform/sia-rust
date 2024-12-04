@@ -24,26 +24,37 @@ pub struct Conf {
     pub headers: HashMap<String, String>,
 }
 
+/// An error that may occur when using the `WasmClient`.
+/// Each variant is used exactly once and represents a unique logical path in the code.
 #[derive(Debug, Error)]
 pub enum WasmClientError {
-    #[error("NativeClient::process_schema: failed to build url: {0}")]
-    BuildUrl(#[from] EndpointSchemaError),
-    #[error("NativeClient::to_data_request: failed to convert request into schema: {0}")]
-    RequestToSchema(#[from] SiaApiRequestError),
-    #[error("BuildError error: {0}")]
-    BuildError(String),
-    #[error("FixmePlaceholder error: {0}")]
-    FixmePlaceholder(String), // FIXME this entire enum needs refactoring to not use client-specific error types
-    #[error("UrlParse error: {0}")]
-    UrlParse(#[from] url::ParseError),
-    #[error("UnexpectedHttpStatus error: status:{status} body:{body}")]
-    UnexpectedHttpStatus { status: http::StatusCode, body: String },
-    #[error("Serde error: {0}")]
-    Serde(#[from] serde_json::Error),
-    #[error("UnexpectedEmptyResponse error: {expected_type}")]
-    UnexpectedEmptyResponse { expected_type: String },
-    #[error("Fetch error: {expected_type}")]
-    WasmFetch(#[from] FetchError),
+    #[error("WasmClient::new: Failed to ping server with ConsensusTipRequest: {0}")]
+    PingServer(Box<WasmClientError>),
+    #[error("WasmClient::process_schema: failed to build url: {0}")]
+    SchemaBuildUrl(#[from] EndpointSchemaError),
+    #[error("WasmClient::process_schema: unsupported EndpointSchema.method: {0:?}")]
+    SchemaUnsupportedMethod(EndpointSchema),
+    #[error("WasmClient::dispatcher: Failed to generate EndpointSchema from SiaApiRequest: {0}")]
+    DispatcherGenerateSchema(#[from] SiaApiRequestError),
+    #[error("WasmClient::dispatcher: process_schema failed: {0}")]
+    DispatcherProcessSchema(Box<WasmClientError>),
+    #[error("WasmClient::dispatcher: Failed to execute request: {0}")]
+    DispatcherExecuteRequest(#[from] FetchError),
+    #[error("WasmClient::dispatcher: expected utf-8 or JSON in response body, found octet-stream: {0:?}")]
+    DispatcherUnexpectedBodyBytes(Vec<u8>),
+    #[error("WasmClient::dispatcher: expected utf-8 or JSON in response body, found empty body")]
+    DispatcherUnexpectedBodyEmpty,
+    #[error("WasmClient::dispatcher: failed to deserialize response body from JSON: {0}")]
+    DispatcherDeserializeBodyJson(serde_json::Error),
+    #[error("WasmClient::dispatcher: failed to deserialize response body from string: {0}")]
+    DispatcherDeserializeBodyUtf8(serde_json::Error),
+    #[error("WasmClient::dispatcher: unexpected HTTP status:{status} body:{body:?}")]
+    DispatcherUnexpectedHttpStatus {
+        status: StatusCode,
+        body: Option<FetchBody>,
+    },
+    #[error("WasmClient::dispatcher: Expected:{expected_type} found 204 No Content")]
+    DispatcherUnexpectedEmptyResponse { expected_type: String },
 }
 
 #[async_trait]
@@ -59,7 +70,10 @@ impl ApiClient for WasmClient {
             headers: conf.headers,
         };
         // Ping the server with ConsensusTipRequest to check if the client is working
-        client.dispatcher(ConsensusTipRequest).await?;
+        client
+            .dispatcher(ConsensusTipRequest)
+            .await
+            .map_err(|e| WasmClientError::PingServer(Box::new(e)))?;
         Ok(client)
     }
 
@@ -68,7 +82,7 @@ impl ApiClient for WasmClient {
         let method = match schema.method {
             SchemaMethod::Get => FetchMethod::Get,
             SchemaMethod::Post => FetchMethod::Post,
-            _ => return Err(WasmClientError::FixmePlaceholder("Unsupported method".to_string())),
+            _ => return Err(WasmClientError::SchemaUnsupportedMethod(schema.clone())),
         };
         let body = match schema.body {
             Body::Utf8(body) => Some(FetchBody::Utf8(body)),
@@ -84,55 +98,49 @@ impl ApiClient for WasmClient {
         })
     }
 
-    fn to_data_request<R: SiaApiRequest>(&self, request: R) -> Result<Self::Request, Self::Error> {
-        self.process_schema(request.to_endpoint_schema()?)
-    }
-
-    async fn execute_request(&self, request: Self::Request) -> Result<Self::Response, Self::Error> {
-        request
-            .execute()
-            .await
-            .map_err(|e| WasmClientError::FixmePlaceholder(format!("FIXME {}", e)))
-    }
-
     // Dispatcher function that converts the request and handles execution
     async fn dispatcher<R: SiaApiRequest>(&self, request: R) -> Result<R::Response, Self::Error> {
-        let request = self.to_data_request(request)?; // Convert request to data request
+        // Generate EndpointSchema from the SiaApiRequest
+        let schema = request.to_endpoint_schema()?;
 
-        // Execute the request
-        let response = self.execute_request(request).await?;
+        // Convert the SiaApiRequest to FetchRequest
+        let request = self
+            .process_schema(schema)
+            .map_err(|e| WasmClientError::DispatcherProcessSchema(Box::new(e)))?;
+
+        // Execute the FetchRequest
+        let response = request.execute().await?;
 
         match response.status {
+            // Deserialize the response body if 200 OK
             StatusCode::OK => {
                 let response_body = match response.body {
-                    Some(FetchBody::Json(body)) => serde_json::from_value(body).map_err(WasmClientError::Serde)?,
-                    Some(FetchBody::Utf8(body)) => serde_json::from_str(&body).map_err(WasmClientError::Serde)?,
-                    _ => {
-                        return Err(WasmClientError::FixmePlaceholder(
-                            "Unsupported body type in response".to_string(),
-                        ))
+                    Some(FetchBody::Json(body)) => {
+                        serde_json::from_value(body).map_err(WasmClientError::DispatcherDeserializeBodyJson)?
                     },
+                    Some(FetchBody::Utf8(body)) => {
+                        serde_json::from_str(&body).map_err(WasmClientError::DispatcherDeserializeBodyUtf8)?
+                    },
+                    Some(FetchBody::Bytes(bytes)) => return Err(WasmClientError::DispatcherUnexpectedBodyBytes(bytes)),
+                    None => return Err(WasmClientError::DispatcherUnexpectedBodyEmpty),
                 };
                 Ok(response_body)
             },
+            // Return an EmptyResponse if 204 NO CONTENT
             StatusCode::NO_CONTENT => {
                 if let Some(resp_type) = R::is_empty_response() {
                     Ok(resp_type)
                 } else {
-                    Err(WasmClientError::UnexpectedEmptyResponse {
+                    Err(WasmClientError::DispatcherUnexpectedEmptyResponse {
                         expected_type: std::any::type_name::<R::Response>().to_string(),
                     })
                 }
             },
-            status => {
-                // Extract the body, using the Display implementation of Body or an empty string
-                let body = response
-                    .body
-                    .map(|b| format!("{}", b)) // Use Display trait to format Body
-                    .unwrap_or_else(|| "".to_string()); // If body is None, use an empty string
-
-                Err(WasmClientError::UnexpectedHttpStatus { status, body })
-            },
+            // Handle unexpected HTTP statuses eg, 400, 404, 500
+            status => Err(WasmClientError::DispatcherUnexpectedHttpStatus {
+                status,
+                body: response.body,
+            }),
         }
     }
 }
@@ -215,7 +223,7 @@ mod wasm_tests {
             v2transactions: vec![tx],
         };
         match client.dispatcher(req).await.expect_err("Expected HTTP 400 error") {
-            WasmClientError::UnexpectedHttpStatus {
+            WasmClientError::DispatcherUnexpectedHttpStatus {
                 status: StatusCode::BAD_REQUEST,
                 body: _,
             } => (),

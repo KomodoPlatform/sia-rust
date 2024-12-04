@@ -60,7 +60,7 @@ impl FetchMethod {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Body {
     Utf8(String),
     Json(JsonValue),
