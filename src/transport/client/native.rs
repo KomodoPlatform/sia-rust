@@ -2,7 +2,7 @@ use crate::transport::endpoints::{ConsensusTipRequest, SiaApiRequest, SiaApiRequ
 use async_trait::async_trait;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
-use http::header::{HeaderMap, HeaderValue, AUTHORIZATION};
+use http::header::{HeaderMap, HeaderValue, InvalidHeaderValue, AUTHORIZATION};
 use reqwest::Client as ReqwestClient;
 use serde::Deserialize;
 use thiserror::Error;
@@ -11,27 +11,36 @@ use url::Url;
 use crate::transport::client::{ApiClient, ApiClientHelpers, Body as ClientBody, EndpointSchema, EndpointSchemaError};
 use core::time::Duration;
 
-// TODO standardize error messages here, each type should be unique to a specific logical path
+/// An error that may occur when using the `NativeClient`.
+/// Each variant is used exactly once and represents a unique logical path in the code.
+// TODO this can be broken into enum per method; Reqwest error handling also has significant updates
+// in newer versions that provide unique error types instead of a single "reqwest::Error"
 #[derive(Debug, Error)]
 pub enum NativeClientError {
-    #[error("NativeClient::process_schema: failed to build url: {0}")]
-    BuildUrl(#[from] EndpointSchemaError),
+    #[error("NativeClient::new: Failed to construct HTTP auth header: {0}")]
+    InvalidHeader(#[from] InvalidHeaderValue),
+    #[error("NativeClient::new: Failed to build reqwest::Client: {0}")]
+    BuildClient(reqwest::Error),
+    #[error("NativeClient::new: Failed to ping server with ConsensusTipRequest: {0}")]
+    PingServer(Box<NativeClientError>),
     #[error("NativeClient::to_data_request: failed to convert request into schema: {0}")]
     RequestToSchema(#[from] SiaApiRequestError),
-    #[error("BuildError error: {0}")]
-    BuildError(String),
-    #[error("FixmePlaceholder error: {0}")]
-    FixmePlaceholder(String), // FIXME this entire enum needs refactoring to not use client-specific error types
-    #[error("UrlParse error: {0}")]
-    UrlParse(#[from] url::ParseError),
-    #[error("UnexpectedHttpStatus error: status:{status} body:{body}")]
-    UnexpectedHttpStatus { status: http::StatusCode, body: String },
-    #[error("Serde error: {0}")]
-    Serde(#[from] serde_json::Error),
+    #[error("NativeClient::process_schema: failed to build url: {0}")]
+    SchemaBuildUrl(#[from] EndpointSchemaError),
+    #[error("NativeClient::process_schema: Failed to build request: {0}")]
+    SchemaBuildRequest(reqwest::Error),
+    #[error("NativeClient::execute_request: Failed: {0}")]
+    ExecuteRequest(reqwest::Error),
+    #[error("NativeClient::dispatcher: Failed to convert SiaApiRequest to reqwest::Request: {0}")]
+    DispatcherBuildRequest(Box<NativeClientError>),
+    #[error("NativeClient::dispatcher: Failed to execute reqwest::Request: {0}")]
+    DispatcherExecuteRequest(reqwest::Error),
+    #[error("NativeClient::dispatcher: Failed to deserialize response body: {0}")]
+    DispatcherDeserializeBody(reqwest::Error),
     #[error("UnexpectedEmptyResponse error: {expected_type}")]
     UnexpectedEmptyResponse { expected_type: String },
-    #[error("ReqwestError error: {0}")]
-    ReqwestError(#[from] reqwest::Error),
+    #[error("NativeClient::dispatcher: unexpected HTTP status:{status} body:{body}")]
+    DispatcherUnexpectedStatus { status: http::StatusCode, body: String },
 }
 
 #[derive(Clone)]
@@ -61,23 +70,23 @@ impl ApiClient for NativeClient {
         let mut headers = HeaderMap::new();
         if let Some(password) = &conf.password {
             let auth_value = format!("Basic {}", BASE64.encode(format!(":{}", password)));
-            headers.insert(
-                AUTHORIZATION,
-                HeaderValue::from_str(&auth_value).map_err(|e| NativeClientError::BuildError(e.to_string()))?,
-            );
+            headers.insert(AUTHORIZATION, HeaderValue::from_str(&auth_value)?);
         }
         let timeout = conf.timeout.unwrap_or(30);
         let client = ReqwestClient::builder()
             .default_headers(headers)
             .timeout(Duration::from_secs(timeout))
-            .build()?;
+            .build()
+            .map_err(NativeClientError::BuildClient)?;
 
         let ret = NativeClient {
             client,
             base_url: conf.server_url,
         };
         // Ping the server with ConsensusTipRequest to check if the client is working
-        ret.dispatcher(ConsensusTipRequest).await?;
+        ret.dispatcher(ConsensusTipRequest)
+            .await
+            .map_err(|e| NativeClientError::PingServer(Box::new(e)))?;
         Ok(ret)
     }
 
@@ -89,7 +98,7 @@ impl ApiClient for NativeClient {
             ClientBody::Json(body) => self.client.request(schema.method.into(), url).json(&body).build(),
             ClientBody::Bytes(body) => self.client.request(schema.method.into(), url).body(body).build(),
         }
-        .map_err(NativeClientError::ReqwestError)?;
+        .map_err(NativeClientError::SchemaBuildRequest)?;
         Ok(req)
     }
 
@@ -101,25 +110,29 @@ impl ApiClient for NativeClient {
         self.client
             .execute(request)
             .await
-            .map_err(NativeClientError::ReqwestError)
+            .map_err(NativeClientError::ExecuteRequest)
     }
 
     async fn dispatcher<R: SiaApiRequest>(&self, request: R) -> Result<R::Response, Self::Error> {
-        let request = self.to_data_request(request)?;
+        let request = self
+            .to_data_request(request)
+            .map_err(|e| NativeClientError::DispatcherBuildRequest(Box::new(e)))?;
 
         // Execute the request using reqwest client
         let response = self
             .client
             .execute(request)
             .await
-            .map_err(NativeClientError::ReqwestError)?;
+            .map_err(NativeClientError::DispatcherExecuteRequest)?;
 
         // Check the response status and return the appropriate result
         match response.status() {
+            // Attempt to deserialize the response body to the expected type if the status is OK
             reqwest::StatusCode::OK => Ok(response
                 .json::<R::Response>()
                 .await
-                .map_err(NativeClientError::ReqwestError)?),
+                .map_err(NativeClientError::DispatcherDeserializeBody)?),
+            // Handle empty responses; throw an error if the response is not expected to be empty
             reqwest::StatusCode::NO_CONTENT => {
                 if let Some(resp_type) = R::is_empty_response() {
                     Ok(resp_type)
@@ -138,7 +151,7 @@ impl ApiClient for NativeClient {
                     .map_err(|e| format!("Failed to retrieve body: {}", e))
                     .unwrap_or_else(|e| e);
 
-                Err(NativeClientError::UnexpectedHttpStatus { status, body })
+                Err(NativeClientError::DispatcherUnexpectedStatus { status, body })
             },
         }
     }
