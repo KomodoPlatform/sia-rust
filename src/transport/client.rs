@@ -12,8 +12,6 @@ use url::Url;
 mod helpers;
 pub use helpers::ApiClientHelpers;
 
-#[cfg(target_arch = "wasm32")] use wasm::wasm_fetch::FetchError;
-
 // Client implementation is generalized
 // This allows for different client implementations (e.g., WebSocket, libp2p, etc.)
 // Any client implementation must implement the ApiClient trait and optionally ApiClientHelpers

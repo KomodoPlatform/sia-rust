@@ -1,17 +1,18 @@
-use crate::transport::client::{ApiClient, ApiClientError, ApiClientHelpers, Body, EndpointSchema, SchemaMethod};
-use crate::transport::endpoints::{ConsensusTipRequest, SiaApiRequest};
+use crate::transport::client::{ApiClient, ApiClientHelpers, Body, EndpointSchema, EndpointSchemaError, SchemaMethod};
+use crate::transport::endpoints::{ConsensusTipRequest, SiaApiRequest, SiaApiRequestError};
 
 use async_trait::async_trait;
 use http::StatusCode;
 use serde::Deserialize;
 use std::collections::HashMap;
+use thiserror::Error;
 use url::Url;
 
 pub mod wasm_fetch;
-use wasm_fetch::{Body as FetchBody, FetchMethod, FetchRequest, FetchResponse};
+use wasm_fetch::{Body as FetchBody, FetchError, FetchMethod, FetchRequest, FetchResponse};
 
 #[derive(Clone)]
-pub struct Client {
+pub struct WasmClient {
     pub base_url: Url,
     pub headers: HashMap<String, String>,
 }
@@ -23,14 +24,37 @@ pub struct Conf {
     pub headers: HashMap<String, String>,
 }
 
+#[derive(Debug, Error)]
+pub enum WasmClientError {
+    #[error("NativeClient::process_schema: failed to build url: {0}")]
+    BuildUrl(#[from] EndpointSchemaError),
+    #[error("NativeClient::to_data_request: failed to convert request into schema: {0}")]
+    RequestToSchema(#[from] SiaApiRequestError),
+    #[error("BuildError error: {0}")]
+    BuildError(String),
+    #[error("FixmePlaceholder error: {0}")]
+    FixmePlaceholder(String), // FIXME this entire enum needs refactoring to not use client-specific error types
+    #[error("UrlParse error: {0}")]
+    UrlParse(#[from] url::ParseError),
+    #[error("UnexpectedHttpStatus error: status:{status} body:{body}")]
+    UnexpectedHttpStatus { status: http::StatusCode, body: String },
+    #[error("Serde error: {0}")]
+    Serde(#[from] serde_json::Error),
+    #[error("UnexpectedEmptyResponse error: {expected_type}")]
+    UnexpectedEmptyResponse { expected_type: String },
+    #[error("Fetch error: {expected_type}")]
+    WasmFetch(#[from] FetchError),
+}
+
 #[async_trait]
-impl ApiClient for Client {
+impl ApiClient for WasmClient {
     type Request = FetchRequest;
     type Response = FetchResponse;
     type Conf = Conf;
+    type Error = WasmClientError;
 
-    async fn new(conf: Self::Conf) -> Result<Self, ApiClientError> {
-        let client = Client {
+    async fn new(conf: Self::Conf) -> Result<Self, Self::Error> {
+        let client = WasmClient {
             base_url: conf.server_url,
             headers: conf.headers,
         };
@@ -39,12 +63,12 @@ impl ApiClient for Client {
         Ok(client)
     }
 
-    fn process_schema(&self, schema: EndpointSchema) -> Result<Self::Request, ApiClientError> {
+    fn process_schema(&self, schema: EndpointSchema) -> Result<Self::Request, Self::Error> {
         let url = schema.build_url(&self.base_url)?;
         let method = match schema.method {
             SchemaMethod::Get => FetchMethod::Get,
             SchemaMethod::Post => FetchMethod::Post,
-            _ => return Err(ApiClientError::FixmePlaceholder("Unsupported method".to_string())),
+            _ => return Err(WasmClientError::FixmePlaceholder("Unsupported method".to_string())),
         };
         let body = match schema.body {
             Body::Utf8(body) => Some(FetchBody::Utf8(body)),
@@ -60,15 +84,19 @@ impl ApiClient for Client {
         })
     }
 
-    async fn execute_request(&self, request: Self::Request) -> Result<Self::Response, ApiClientError> {
+    fn to_data_request<R: SiaApiRequest>(&self, request: R) -> Result<Self::Request, Self::Error> {
+        self.process_schema(request.to_endpoint_schema()?)
+    }
+
+    async fn execute_request(&self, request: Self::Request) -> Result<Self::Response, Self::Error> {
         request
             .execute()
             .await
-            .map_err(|e| ApiClientError::FixmePlaceholder(format!("FIXME {}", e)))
+            .map_err(|e| WasmClientError::FixmePlaceholder(format!("FIXME {}", e)))
     }
 
     // Dispatcher function that converts the request and handles execution
-    async fn dispatcher<R: SiaApiRequest>(&self, request: R) -> Result<R::Response, ApiClientError> {
+    async fn dispatcher<R: SiaApiRequest>(&self, request: R) -> Result<R::Response, Self::Error> {
         let request = self.to_data_request(request)?; // Convert request to data request
 
         // Execute the request
@@ -77,10 +105,10 @@ impl ApiClient for Client {
         match response.status {
             StatusCode::OK => {
                 let response_body = match response.body {
-                    Some(FetchBody::Json(body)) => serde_json::from_value(body).map_err(ApiClientError::Serde)?,
-                    Some(FetchBody::Utf8(body)) => serde_json::from_str(&body).map_err(ApiClientError::Serde)?,
+                    Some(FetchBody::Json(body)) => serde_json::from_value(body).map_err(WasmClientError::Serde)?,
+                    Some(FetchBody::Utf8(body)) => serde_json::from_str(&body).map_err(WasmClientError::Serde)?,
                     _ => {
-                        return Err(ApiClientError::FixmePlaceholder(
+                        return Err(WasmClientError::FixmePlaceholder(
                             "Unsupported body type in response".to_string(),
                         ))
                     },
@@ -91,7 +119,7 @@ impl ApiClient for Client {
                 if let Some(resp_type) = R::is_empty_response() {
                     Ok(resp_type)
                 } else {
-                    Err(ApiClientError::UnexpectedEmptyResponse {
+                    Err(WasmClientError::UnexpectedEmptyResponse {
                         expected_type: std::any::type_name::<R::Response>().to_string(),
                     })
                 }
@@ -103,7 +131,7 @@ impl ApiClient for Client {
                     .map(|b| format!("{}", b)) // Use Display trait to format Body
                     .unwrap_or_else(|| "".to_string()); // If body is None, use an empty string
 
-                Err(ApiClientError::UnexpectedHttpStatus { status, body })
+                Err(WasmClientError::UnexpectedHttpStatus { status, body })
             },
         }
     }
@@ -113,7 +141,7 @@ impl ApiClient for Client {
 // Just this is needed to implement the `ApiClientHelpers` trait
 // unless custom implementations for the traits methods are needed
 #[async_trait]
-impl ApiClientHelpers for Client {}
+impl ApiClientHelpers for WasmClient {}
 
 #[cfg(all(target_arch = "wasm32", test))]
 mod wasm_tests {
@@ -133,7 +161,7 @@ mod wasm_tests {
     async fn test_sia_wasm_client_client_error() {
         use crate::transport::endpoints::TxpoolBroadcastRequest;
         use crate::types::V2Transaction;
-        let client = Client::new(CONF.clone()).await.unwrap();
+        let client = WasmClient::new(CONF.clone()).await.unwrap();
 
         let tx_str = r#"
         {
@@ -187,7 +215,7 @@ mod wasm_tests {
             v2transactions: vec![tx],
         };
         match client.dispatcher(req).await.expect_err("Expected HTTP 400 error") {
-            ApiClientError::UnexpectedHttpStatus {
+            WasmClientError::UnexpectedHttpStatus {
                 status: StatusCode::BAD_REQUEST,
                 body: _,
             } => (),
