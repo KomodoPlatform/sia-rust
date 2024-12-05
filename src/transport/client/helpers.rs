@@ -2,7 +2,8 @@ use super::{ApiClient, ApiClientError};
 use crate::transport::endpoints::{AddressBalanceRequest, AddressBalanceResponse, AddressesEventsRequest,
                                   ConsensusIndexRequest, ConsensusTipRequest, ConsensusTipstateRequest,
                                   ConsensusTipstateResponse, ConsensusUpdatesRequest, ConsensusUpdatesResponse,
-                                  GetAddressUtxosRequest, GetEventRequest, TxpoolBroadcastRequest};
+                                  GetAddressUtxosRequest, GetEventRequest, TxpoolBroadcastRequest,
+                                  TxpoolTransactionsRequest};
 use crate::types::{Address, Currency, Event, EventDataWrapper, Hash256, PublicKey, SiacoinElement, SiacoinOutputId,
                    SpendPolicy, TransactionId, V2Transaction, V2TransactionBuilder};
 use async_trait::async_trait;
@@ -14,6 +15,8 @@ pub enum HelperError {
     UtxoFromTxid(#[from] UtxoFromTxidError),
     #[error("ApiClientHelpers::get_transaction failed: {0}")]
     GetTx(#[from] GetTransactionError),
+    #[error("ApiClientHelpers::get_unconfirmed_transaction: failed to fetch mempool {0}")]
+    GetUnconfirmedTx(#[from] ApiClientError),
     #[error("ApiClientHelpers::select_unspent_outputs failed: {0}")]
     SelectUtxos(#[from] SelectUtxosError),
     #[error("ApiClientHelpers::get_event failed to fetch event: {0}")]
@@ -266,6 +269,10 @@ pub trait ApiClientHelpers: ApiClient {
         self.dispatcher(request).await.map_err(HelperError::GetAddressEvents)
     }
 
+    /// Fetch a v2 transaction from the blockchain
+    // FIXME Alright - this should return a Result<Option<V2Transaction>, HelperError> to allow for
+    // logic to handle the case where the transaction is not found in the blockchain
+    // ApiClientError must be refactored to allow this
     async fn get_transaction(&self, txid: &TransactionId) -> Result<V2Transaction, HelperError> {
         let event = self
             .dispatcher(GetEventRequest { txid: txid.clone() })
@@ -275,6 +282,19 @@ pub trait ApiClientHelpers: ApiClient {
             EventDataWrapper::V2Transaction(tx) => Ok(tx),
             wrong_variant => Err(GetTransactionError::EventVariant(wrong_variant))?,
         }
+    }
+
+    /// Fetch a v2 transaction from the transaction pool / mempool
+    /// Returns Ok(None) if the transaction is not found in the mempool
+    async fn get_unconfirmed_transaction(&self, txid: &TransactionId) -> Result<Option<V2Transaction>, HelperError> {
+        let found_in_mempool = self
+            .dispatcher(TxpoolTransactionsRequest)
+            .await
+            .map_err(HelperError::GetUnconfirmedTx)?
+            .v2transactions
+            .into_iter()
+            .find(|tx| tx.txid() == *txid);
+        Ok(found_in_mempool)
     }
 
     /// Get the median timestamp of the chain's last 11 blocks
@@ -301,9 +321,7 @@ pub trait ApiClientHelpers: ApiClient {
             v2transactions: vec![tx.clone()],
         };
 
-        self.dispatcher(request)
-            .await
-            .map_err(|e| HelperError::BroadcastTx(e))?;
+        self.dispatcher(request).await.map_err(HelperError::BroadcastTx)?;
         Ok(())
     }
 

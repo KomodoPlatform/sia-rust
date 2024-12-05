@@ -6,24 +6,7 @@ use std::fmt;
 use std::str::FromStr;
 use thiserror::Error;
 
-use crate::types::{Address, Signature, SignatureError, SpendPolicy};
-
-#[derive(Debug, Error)]
-pub enum PublicKeyError {
-    #[error("invalid public key length: expected 32 byte hex string prefixed with 'ed25519:', found {0}")]
-    InvalidLength(String),
-    #[error("public key invalid hex: expected 32 byte hex string, found {0}")]
-    InvalidHex(String),
-    #[error("public key invalid: corrupt curve point {0}")]
-    CorruptPoint(String),
-    #[error("public key invalid: from_bytes failed {0}")]
-    ParseBytes(Ed25519SignatureError),
-}
-#[derive(Debug, Error)]
-pub enum PrivateKeyError {
-    #[error("invalid private key: from_bytes failed {0}")]
-    InvalidPrivateKey(Ed25519SignatureError),
-}
+use crate::types::{Address, Signature, SpendPolicy};
 
 /// A Sia Public-Private Keypair
 /// The purpose of this wrapper type is to limit the functionality of underlying ed25519 types.
@@ -35,17 +18,25 @@ pub struct Keypair {
     private: PrivateKey,
 }
 
+#[derive(Debug, Error)]
+pub enum KeypairError {
+    #[error("Keypair::verify: invalid signature {0}")]
+    VerifySignature(#[from] PublicKeyError),
+    #[error("Keypair::from_private_bytes: invalid private key {0}")]
+    InvalidPrivateKey(#[from] Ed25519SignatureError),
+}
+
 impl Signer<Signature> for Keypair {
     /// Sign a message with this keypair's secret key.
     fn try_sign(&self, message: &[u8]) -> Result<Signature, Ed25519SignatureError> {
         let expanded: ExpandedSecretKey = (&self.private.0).into();
-        Ok(Signature::new(expanded.sign(message, &self.public.0)))
+        Ok(Signature::from(expanded.sign(message, &self.public.0)))
     }
 }
 
 impl Keypair {
-    pub fn from_private_bytes(bytes: &[u8]) -> Result<Self, PrivateKeyError> {
-        let secret = SecretKey::from_bytes(bytes).map_err(PrivateKeyError::InvalidPrivateKey)?;
+    pub fn from_private_bytes(bytes: &[u8]) -> Result<Self, KeypairError> {
+        let secret = SecretKey::from_bytes(bytes)?;
         let public = PublicKey(Ed25519PublicKey::from(&secret));
         let private = PrivateKey(secret);
         Ok(Keypair { public, private })
@@ -54,8 +45,8 @@ impl Keypair {
     pub fn sign(&self, message: &[u8]) -> Signature { Signer::sign(self, message) }
 
     /// Verify a signature of a message with this keypair's public key.
-    pub fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), SignatureError> {
-        self.public.verify(message, signature)
+    pub fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), KeypairError> {
+        Ok(self.public.verify(message, signature)?)
     }
 
     pub fn public(&self) -> PublicKey { self.public.clone() }
@@ -67,6 +58,20 @@ struct PrivateKey(SecretKey);
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PublicKey(pub Ed25519PublicKey);
+
+#[derive(Debug, Error)]
+pub enum PublicKeyError {
+    #[error("invalid public key length: expected 32 byte hex string prefixed with 'ed25519:', found {0}")]
+    InvalidLength(String),
+    #[error("public key invalid hex: expected 32 byte hex string, found {0}")]
+    InvalidHex(String),
+    #[error("public key invalid: corrupt curve point {0}")]
+    CorruptPoint(String),
+    #[error("public key invalid: from_bytes failed {0}")]
+    ParseBytes(Ed25519SignatureError),
+    #[error("PublicKey::verify: invalid signature {0}")]
+    VerifySignature(#[from] Ed25519SignatureError),
+}
 
 impl Verifier<Signature> for PublicKey {
     /// Verify a signature of a message with this keypair's public key.
@@ -118,8 +123,9 @@ impl PublicKey {
     /// Generate the default v2 address from the public key
     pub fn address(&self) -> Address { SpendPolicy::PublicKey(self.clone()).address() }
 
-    pub fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), SignatureError> {
-        Verifier::verify(self, message, signature).map_err(SignatureError::VerifyFailed)
+    /// Verify a signature of a message with this keypair's public key.
+    pub fn verify(&self, message: &[u8], signature: &Signature) -> Result<(), PublicKeyError> {
+        Ok(Verifier::verify(self, message, signature)?)
     }
 }
 

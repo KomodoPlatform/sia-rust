@@ -1,5 +1,5 @@
 use crate::transport::client::{ApiClientError, Body, EndpointSchema, EndpointSchemaBuilder, SchemaMethod};
-use crate::types::{Address, ApiApplyUpdate, BlockID, ChainIndex, Currency, Event, Hash256, SiacoinElement,
+use crate::types::{Address, ApiApplyUpdate, BlockId, ChainIndex, Currency, Event, Hash256, SiacoinElement,
                    V1Transaction, V2Transaction};
 use crate::utils::deserialize_null_as_empty_vec;
 use chrono::{DateTime, Utc};
@@ -128,6 +128,7 @@ impl SiaApiRequest for ConsensusTipstateRequest {
 }
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct ConsensusTipstateResponse {
     pub index: ChainIndex,
     pub prev_timestamps: Vec<DateTime<Utc>>,
@@ -154,7 +155,7 @@ pub struct ConsensusTipstateResponse {
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct ConsensusUpdatesRequest {
     pub height: u64,
-    pub block_hash: BlockID,
+    pub block_hash: BlockId,
     pub limit: Option<i64>,
 }
 
@@ -165,17 +166,19 @@ impl SiaApiRequest for ConsensusUpdatesRequest {
         // Create the path_params HashMap to substitute {height} and {hash} in the path schema
         let mut path_params = HashMap::new();
         path_params.insert("height".to_owned(), self.height.to_string());
-        path_params.insert("hash".to_owned(), format!("{:02x}", self.block_hash.0));
+        path_params.insert("hash".to_owned(), format!("{}", self.block_hash.0));
 
         let mut query_params = HashMap::new();
         if let Some(limit) = self.limit {
             query_params.insert("limit".to_owned(), limit.to_string());
         }
 
+        let query_params_option = (!query_params.is_empty()).then_some(query_params);
+
         Ok(
             EndpointSchemaBuilder::new(ENDPOINT_CONSENSUS_UPDATES.to_owned(), SchemaMethod::Get)
                 .path_params(path_params) // Set the path params containing the height and hash
-                .query_params(query_params) // Set the query params for ?limit=
+                .query_params(query_params_option) // Set the query params for ?limit=
                 .build(),
         )
     }
@@ -322,10 +325,12 @@ impl SiaApiRequest for AddressesEventsRequest {
             query_params.insert("offset".to_owned(), offset.to_string());
         }
 
+        let query_params_option = (!query_params.is_empty()).then_some(query_params);
+
         Ok(
             EndpointSchemaBuilder::new(ENDPOINT_ADDRESSES_EVENTS.to_owned(), SchemaMethod::Get)
                 .path_params(path_params) // Set the path params containing the address
-                .query_params(query_params) // Set the query params for limit and offset
+                .query_params(query_params_option) // Set the query params for limit and offset
                 .build(),
         )
     }
@@ -370,6 +375,7 @@ impl SiaApiRequest for GetAddressUtxosRequest {
         path_params.insert("address".to_owned(), self.address.to_string());
 
         let mut query_params = HashMap::new();
+
         if let Some(limit) = self.limit {
             query_params.insert("limit".to_owned(), limit.to_string());
         }
@@ -377,10 +383,12 @@ impl SiaApiRequest for GetAddressUtxosRequest {
             query_params.insert("offset".to_owned(), offset.to_string());
         }
 
+        let query_params_option = (!query_params.is_empty()).then_some(query_params);
+
         Ok(
             EndpointSchemaBuilder::new(ENDPOINT_ADDRESSES_UTXOS_SIACOIN.to_owned(), SchemaMethod::Get)
                 .path_params(path_params) // Set the path params containing the address
-                .query_params(query_params) // Set the query params for limit and offset
+                .query_params(query_params_option) // Set the query params for limit and offset
                 .build(),
         )
     }

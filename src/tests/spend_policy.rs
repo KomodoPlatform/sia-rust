@@ -53,10 +53,10 @@ mod test {
             let j = json!(
             {
                 "type": "h",
-                "policy": "h:0102030000000000000000000000000000000000000000000000000000000000"
+                "policy": "0102030000000000000000000000000000000000000000000000000000000000"
             }
             );
-            let hash = Hash256::from_str("h:0102030000000000000000000000000000000000000000000000000000000000").unwrap();
+            let hash = Hash256::from_str("0102030000000000000000000000000000000000000000000000000000000000").unwrap();
             let spend_policy_deser: SpendPolicy = serde_json::from_value::<SpendPolicy>(j).unwrap().into();
             let spend_policy = SpendPolicy::Hash(hash);
 
@@ -67,11 +67,11 @@ mod test {
             let j = json!(
             {
                 "type": "opaque",
-                "policy": "addr:f72e84ee9e344e424a6764068ffd7fdce4b4e50609892c6801bc1ead79d3ae0d71791b277a3a"
+                "policy": "f72e84ee9e344e424a6764068ffd7fdce4b4e50609892c6801bc1ead79d3ae0d71791b277a3a"
             }
             );
             let address =
-                Address::from_str("addr:f72e84ee9e344e424a6764068ffd7fdce4b4e50609892c6801bc1ead79d3ae0d71791b277a3a").unwrap();
+                Address::from_str("f72e84ee9e344e424a6764068ffd7fdce4b4e50609892c6801bc1ead79d3ae0d71791b277a3a").unwrap();
             let spend_policy_deser: SpendPolicy = serde_json::from_value::<SpendPolicy>(j).unwrap().into();
             let spend_policy = SpendPolicy::Opaque(address);
 
@@ -88,7 +88,7 @@ mod test {
             )
             .unwrap();
 
-            let secret_hash = Hash256::from_str("h:0100000000000000000000000000000000000000000000000000000000000000").unwrap();
+            let secret_hash = Hash256::from_str("0100000000000000000000000000000000000000000000000000000000000000").unwrap();
             let spend_policy = SpendPolicy::atomic_swap_success(&alice_pubkey, &bob_pubkey, 77777777, &secret_hash);
 
             let j = json!(
@@ -108,14 +108,14 @@ mod test {
                                         },
                                         {
                                             "type": "h",
-                                            "policy": "h:0100000000000000000000000000000000000000000000000000000000000000"
+                                            "policy": "0100000000000000000000000000000000000000000000000000000000000000"
                                         }
                                     ]
                                 }
                             },
                             {
                                 "type": "opaque",
-                                "policy": "addr:f72e84ee9e344e424a6764068ffd7fdce4b4e50609892c6801bc1ead79d3ae0d71791b277a3a"
+                                "policy": "f72e84ee9e344e424a6764068ffd7fdce4b4e50609892c6801bc1ead79d3ae0d71791b277a3a"
                             }
                         ]
                     }

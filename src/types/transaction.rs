@@ -1,6 +1,7 @@
 use crate::encoding::{Encodable, Encoder};
 use crate::types::{Address, ChainIndex, Hash256, Keypair, PublicKey, Signature, SpendPolicy, UnlockCondition,
                    UnlockKey};
+use crate::utils::deserialize_null_as_empty_vec;
 use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
 use derive_more::{Add, AddAssign, Deref, Display, Div, DivAssign, From, Into, Mul, MulAssign, Sub, SubAssign, Sum};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -138,7 +139,7 @@ impl Serialize for Preimage {
         S: Serializer,
     {
         // Use hex::encode to convert the byte array to a lowercase hex string
-        let hex_string = hex::encode(&self.0);
+        let hex_string = hex::encode(self.0);
         serializer.serialize_str(&hex_string)
     }
 }
@@ -271,7 +272,7 @@ impl Encodable for SatisfiedPolicy {
 #[serde(rename_all = "camelCase")]
 pub struct StateElement {
     pub leaf_index: u64,
-    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_null_as_empty_vec", default)]
     pub merkle_proof: Vec<Hash256>,
 }
 
@@ -428,10 +429,8 @@ impl<'a> Encodable for SiacoinOutputVersion<'a> {
 }
 
 /// A Sia transaction id aka "txid"
-/// This could be a newtype like SiacoinOutputId with custom serde, but we have no use for this beyond
-/// making SiacoinOutputId::new more explicit.
-/// Sia Go uses "txid:" prefix for this type, but walletd API generally represents this with the
-/// more generic "h:" prefix. related: <https://github.com/SiaFoundation/core/pull/199>
+// This could be a newtype like SiacoinOutputId with custom serde, but we have no use for this beyond
+// making SiacoinOutputId::new more explicit.
 pub type TransactionId = Hash256;
 
 #[derive(Clone, Debug, PartialEq, From, Into, Deserialize, Serialize, Display, Default)]
@@ -608,8 +607,8 @@ pub struct V2FileContract {
 impl V2FileContract {
     pub fn with_nil_sigs(&self) -> V2FileContract {
         V2FileContract {
-            renter_signature: Signature::from_bytes(&[0u8; 64]).expect("Err unreachable"),
-            host_signature: Signature::from_bytes(&[0u8; 64]).expect("Err unreachable"),
+            renter_signature: Signature::default(),
+            host_signature: Signature::default(),
             ..self.clone()
         }
     }
@@ -636,7 +635,6 @@ impl Encodable for V2FileContract {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct V2FileContractElement {
-    #[serde(rename = "ID")]
     pub id: FileContractID,
     pub state_element: StateElement,
     pub v2_file_contract: V2FileContract,
@@ -896,15 +894,11 @@ pub struct V2FileContractRenewal {
 
 impl V2FileContractRenewal {
     pub fn with_nil_sigs(&self) -> V2FileContractRenewal {
-        debug_assert!(
-            Signature::from_bytes(&[0u8; 64]).is_ok(),
-            "nil signature is valid and cannot return Err"
-        );
         V2FileContractRenewal {
             final_revision: self.final_revision.with_nil_sigs(),
             new_contract: self.new_contract.with_nil_sigs(),
-            renter_signature: Signature::from_bytes(&[0u8; 64]).expect("Err unreachable"),
-            host_signature: Signature::from_bytes(&[0u8; 64]).expect("Err unreachable"),
+            renter_signature: Signature::default(),
+            host_signature: Signature::default(),
             ..self.clone()
         }
     }
@@ -1074,7 +1068,7 @@ impl Encodable for V1TransactionSansSigs {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
-#[serde(default, deny_unknown_fields, rename_all = "camelCase")]
+#[serde(default, rename_all = "camelCase")]
 pub struct V2Transaction {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub siacoin_inputs: Vec<SiacoinInputV2>,
@@ -1092,8 +1086,8 @@ pub struct V2Transaction {
     pub file_contract_resolutions: Vec<V2FileContractResolution>, // TODO needs Encodable trait
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub attestations: Vec<Attestation>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub arbitrary_data: Vec<u8>,
+    #[serde(skip_serializing_if = "ArbitraryData::is_empty")]
+    pub arbitrary_data: ArbitraryData,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub new_foundation_address: Option<Address>,
     pub miner_fee: Currency,
@@ -1171,7 +1165,7 @@ impl Encodable for V2Transaction {
             att.encode(encoder);
         }
 
-        encoder.write_len_prefixed_bytes(&self.arbitrary_data);
+        self.arbitrary_data.encode(encoder);
 
         encoder.write_bool(self.new_foundation_address.is_some());
         match &self.new_foundation_address {
@@ -1196,6 +1190,50 @@ pub enum FeePolicy {
     HastingsFixed(Currency),
 }
 
+#[derive(Clone, Debug, Default, PartialEq, From, Into)]
+pub struct ArbitraryData(pub Vec<u8>);
+
+impl ArbitraryData {
+    pub fn is_empty(&self) -> bool { self.0.is_empty() }
+}
+
+impl Encodable for ArbitraryData {
+    fn encode(&self, encoder: &mut Encoder) { encoder.write_len_prefixed_bytes(&self.0); }
+}
+
+impl Serialize for ArbitraryData {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(&base64.encode(&self.0))
+    }
+}
+
+impl<'de> Deserialize<'de> for ArbitraryData {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct ArbitraryDataVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for ArbitraryDataVisitor {
+            type Value = ArbitraryData;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a base64 encoded string")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                let decoded = base64.decode(value).map_err(serde::de::Error::custom)?;
+                Ok(ArbitraryData(decoded))
+            }
+        }
+
+        deserializer.deserialize_str(ArbitraryDataVisitor)
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct V2TransactionBuilder {
     pub siacoin_inputs: Vec<SiacoinInputV2>,
@@ -1206,7 +1244,7 @@ pub struct V2TransactionBuilder {
     pub file_contract_revisions: Vec<FileContractRevisionV2>,
     pub file_contract_resolutions: Vec<V2FileContractResolution>,
     pub attestations: Vec<Attestation>,
-    pub arbitrary_data: Vec<u8>,
+    pub arbitrary_data: ArbitraryData,
     pub new_foundation_address: Option<Address>,
     pub miner_fee: Currency,
     // fee_policy is not part Sia consensus and it not encoded into any resulting transaction.
@@ -1259,7 +1297,7 @@ impl Encodable for V2TransactionBuilder {
             att.encode(encoder);
         }
 
-        encoder.write_len_prefixed_bytes(&self.arbitrary_data);
+        self.arbitrary_data.encode(encoder);
 
         encoder.write_bool(self.new_foundation_address.is_some());
         match &self.new_foundation_address {
@@ -1289,7 +1327,7 @@ impl V2TransactionBuilder {
             file_contract_revisions: Vec::new(),
             file_contract_resolutions: Vec::new(),
             attestations: Vec::new(),
-            arbitrary_data: Vec::new(),
+            arbitrary_data: ArbitraryData::default(),
             new_foundation_address: None,
             miner_fee: Currency::ZERO,
             fee_policy: None,
@@ -1336,7 +1374,7 @@ impl V2TransactionBuilder {
         self
     }
 
-    pub fn arbitrary_data(&mut self, data: Vec<u8>) -> &mut Self {
+    pub fn arbitrary_data(&mut self, data: ArbitraryData) -> &mut Self {
         self.arbitrary_data = data;
         self
     }
