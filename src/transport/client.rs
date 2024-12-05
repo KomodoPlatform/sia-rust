@@ -32,14 +32,6 @@ pub trait ApiClient: Clone {
     async fn dispatcher<R: SiaApiRequest>(&self, request: R) -> Result<R::Response, Self::Error>;
 }
 
-#[derive(Debug, Error)]
-pub enum DynamicTransportError {
-    #[error("DynamicTransportError::NoResponse: {0}")]
-    NoResponse(Box<dyn std::error::Error + Send + Sync>),
-    #[error("DynamicTransportError::UnexpectedResponse: {0}")]
-    UnexpectedResponse(Box<dyn std::error::Error + Send + Sync>),
-}
-
 // Not all client implementations will have an exact equivalent of HTTP methods
 // However, the client implementation should be able to map the HTTP methods to its own methods
 #[derive(Clone, Debug)]
