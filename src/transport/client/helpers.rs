@@ -9,99 +9,126 @@ use crate::types::{Address, Currency, Event, EventDataWrapper, Hash256, PublicKe
 use async_trait::async_trait;
 use thiserror::Error;
 
-#[derive(Debug, Error)]
-pub enum UtxoFromTxidErrorGeneric<ClientError> {
-    #[error("ApiClientHelpers::utxo_from_txid: failed to fetch event {0}")]
-    FetchEvent(#[from] ClientError),
-    #[error("ApiClientHelpers::utxo_from_txid: invalid event variant {0:?}")]
-    EventVariant(Event),
-    #[error("ApiClientHelpers::utxo_from_txid: output index out of bounds txid: {txid} index: {index}")]
-    OutputIndexOutOfBounds { txid: TransactionId, index: u32 },
-    #[error("ApiClientHelpers::utxo_from_txid: get_unspent_outputs helper failed {0}")]
-    FetchUtxos(#[from] GetUnspentOutputsErrorGeneric<ClientError>),
-    #[error("ApiClientHelpers::utxo_from_txid: output not found txid: {txid} index: {index}")]
-    NotFound { txid: TransactionId, index: u32 },
-    #[error("ApiClientHelpers::utxo_from_txid: found duplicate utxo txid: {txid} index: {index}")]
-    DuplicateUtxoFound { txid: TransactionId, index: u32 },
-}
+/** Generic errors for the ApiClientHelpers trait
+These errors are agnostic towards the ClientError generic type allowing each client implementation
+to define its own error handling for transport errors.
+These types are not intended for consumer use unless a custom client implementation is required.
+Do not import these types directly. Use the corresponding type aliases defined in native.rs or wasm.rs. **/
+pub(crate) mod generic_errors {
+    use super::*;
 
-#[derive(Debug, Error)]
-pub enum GetTransactionErrorGeneric<ClientError> {
-    #[error("ApiClientHelpers::get_transaction: failed to fetch event {0}")]
-    FetchEvent(#[from] ClientError),
-    #[error("ApiClientHelpers::get_transaction: unexpected variant error {0:?}")]
-    EventVariant(EventDataWrapper),
-}
+    #[derive(Debug, Error)]
+    pub enum UtxoFromTxidErrorGeneric<ClientError> {
+        #[error("ApiClientHelpers::utxo_from_txid: failed to fetch event {0}")]
+        FetchEvent(#[from] ClientError),
+        #[error("ApiClientHelpers::utxo_from_txid: invalid event variant {0:?}")]
+        EventVariant(Event),
+        #[error("ApiClientHelpers::utxo_from_txid: output index out of bounds txid: {txid} index: {index}")]
+        OutputIndexOutOfBounds { txid: TransactionId, index: u32 },
+        #[error("ApiClientHelpers::utxo_from_txid: get_unspent_outputs helper failed {0}")]
+        FetchUtxos(#[from] GetUnspentOutputsErrorGeneric<ClientError>),
+        #[error("ApiClientHelpers::utxo_from_txid: output not found txid: {txid} index: {index}")]
+        NotFound { txid: TransactionId, index: u32 },
+        #[error("ApiClientHelpers::utxo_from_txid: found duplicate utxo txid: {txid} index: {index}")]
+        DuplicateUtxoFound { txid: TransactionId, index: u32 },
+    }
 
-#[derive(Debug, Error)]
-pub enum GetUnconfirmedTransactionErrorGeneric<ClientError> {
-    #[error("ApiClientHelpers::get_unconfirmed_transaction: failed to fetch mempool {0}")]
-    FetchMempool(#[from] ClientError),
-}
+    #[derive(Debug, Error)]
+    pub enum GetTransactionErrorGeneric<ClientError> {
+        #[error("ApiClientHelpers::get_transaction: failed to fetch event {0}")]
+        FetchEvent(#[from] ClientError),
+        #[error("ApiClientHelpers::get_transaction: unexpected variant error {0:?}")]
+        EventVariant(EventDataWrapper),
+    }
 
-#[derive(Debug, Error)]
-pub enum FundTxSingleSourceErrorGeneric<ClientError> {
-    #[error("ApiClientHelpers::fund_tx_single_source: failed to select Utxos: {0}")]
-    SelectUtxos(#[from] SelectUtxosErrorGeneric<ClientError>),
-}
+    #[derive(Debug, Error)]
+    pub enum GetUnconfirmedTransactionErrorGeneric<ClientError> {
+        #[error("ApiClientHelpers::get_unconfirmed_transaction: failed to fetch mempool {0}")]
+        FetchMempool(#[from] ClientError),
+    }
 
-#[derive(Debug, Error)]
-pub enum GetEventErrorGeneric<ClientError> {
-    #[error("ApiClientHelpers::get_event failed to fetch event: {0}")]
-    FetchEvent(#[from] ClientError),
-}
+    #[derive(Debug, Error)]
+    pub enum FundTxSingleSourceErrorGeneric<ClientError> {
+        #[error("ApiClientHelpers::fund_tx_single_source: failed to select Utxos: {0}")]
+        SelectUtxos(#[from] SelectUtxosErrorGeneric<ClientError>),
+    }
 
-#[derive(Debug, Error)]
-pub enum GetAddressEventsErrorGeneric<ClientError> {
-    #[error("ApiClientHelpers::get_address_events failed: {0}")]
-    FetchAddressEvents(#[from] ClientError),
-}
+    #[derive(Debug, Error)]
+    pub enum GetEventErrorGeneric<ClientError> {
+        #[error("ApiClientHelpers::get_event failed to fetch event: {0}")]
+        FetchEvent(#[from] ClientError),
+    }
 
-#[derive(Debug, Error)]
-pub enum BroadcastTransactionErrorGeneric<ClientError> {
-    #[error("ApiClientHelpers::broadcast_transaction: broadcast failed: {0}")]
-    BroadcastTx(#[from] ClientError),
-}
+    #[derive(Debug, Error)]
+    pub enum GetAddressEventsErrorGeneric<ClientError> {
+        #[error("ApiClientHelpers::get_address_events failed: {0}")]
+        FetchAddressEvents(#[from] ClientError),
+    }
 
-#[derive(Debug, Error)]
-pub enum SelectUtxosErrorGeneric<ClientError> {
-    #[error(
+    #[derive(Debug, Error)]
+    pub enum BroadcastTransactionErrorGeneric<ClientError> {
+        #[error("ApiClientHelpers::broadcast_transaction: broadcast failed: {0}")]
+        BroadcastTx(#[from] ClientError),
+    }
+
+    #[derive(Debug, Error)]
+    pub enum SelectUtxosErrorGeneric<ClientError> {
+        #[error(
         "ApiClientHelpers::select_unspent_outputs: insufficent funds, available: {available:?} required: {required:?}"
     )]
-    Funding { available: Currency, required: Currency },
-    #[error("ApiClientHelpers::select_unspent_outputs: failed to fetch UTXOs: {0}")]
-    GetUnspentOutputs(#[from] GetUnspentOutputsErrorGeneric<ClientError>),
-}
+        Funding { available: Currency, required: Currency },
+        #[error("ApiClientHelpers::select_unspent_outputs: failed to fetch UTXOs: {0}")]
+        GetUnspentOutputs(#[from] GetUnspentOutputsErrorGeneric<ClientError>),
+    }
 
-#[derive(Debug, Error)]
-pub enum GetMedianTimestampErrorGeneric<ClientError> {
-    #[error("ApiClientHelpers::get_median_timestamp: failed to fetch consensus tipstate: {0}")]
-    FetchTipstate(#[from] ClientError),
-    #[error(
-        r#"ApiClientHelpers::get_median_timestamp: expected 11 timestamps in response: {0:?}.
+    #[derive(Debug, Error)]
+    pub enum GetMedianTimestampErrorGeneric<ClientError> {
+        #[error("ApiClientHelpers::get_median_timestamp: failed to fetch consensus tipstate: {0}")]
+        FetchTipstate(#[from] ClientError),
+        #[error(
+            r#"ApiClientHelpers::get_median_timestamp: expected 11 timestamps in response: {0:?}.
            The walletd state is likely corrupt as it is evidently reporting a chain height of less
            than 11 blocks."#
-    )]
-    TimestampVecLen(ConsensusTipstateResponse),
+        )]
+        TimestampVecLen(ConsensusTipstateResponse),
+    }
+
+    #[derive(Debug, Error)]
+    pub enum GetUnspentOutputsErrorGeneric<ClientError> {
+        #[error("ApiClientHelpers::get_unspent_outputs: failed to fetch UTXOs: {0}")]
+        FetchUtxos(#[from] ClientError),
+    }
+
+    #[derive(Debug, Error)]
+    pub enum CurrentHeightErrorGeneric<ClientError> {
+        #[error("ApiClientHelpers::current_height: failed to fetch current height: {0}")]
+        FetchConsensusTip(#[from] ClientError),
+    }
+
+    #[derive(Debug, Error)]
+    pub enum AddressBalanceErrorGeneric<ClientError> {
+        #[error("ApiClientHelpers::address_balance: failed to fetch address balance: {0}")]
+        FetchAddressBalance(#[from] ClientError),
+    }
+
+    #[derive(Debug, Error)]
+    pub enum FindWhereUtxoSpentErrorGeneric<ClientError> {
+        #[error("ApiClientHelpers::find_where_utxo_spent: failed to fetch consensus updates {0}")]
+        FetchUpdates(#[from] GetConsensusUpdatesErrorGeneric<ClientError>),
+        #[error("ApiClientHelpers::find_where_utxo_spent: SiacoinOutputId:{id} was not spent in the expected block")]
+        SpendNotInBlock { id: SiacoinOutputId },
+    }
+
+    #[derive(Debug, Error)]
+    pub enum GetConsensusUpdatesErrorGeneric<ClientError> {
+        #[error("ApiClientHelpers::get_consensus_updates_since_height: failed to fetch ChainIndex {0}")]
+        FetchIndex(ClientError),
+        #[error("ApiClientHelpers::get_consensus_updates_since_height: failed to fetch updates {0}")]
+        FetchUpdates(ClientError),
+    }
 }
 
-#[derive(Debug, Error)]
-pub enum GetUnspentOutputsErrorGeneric<ClientError> {
-    #[error("ApiClientHelpers::get_unspent_outputs: failed to fetch UTXOs: {0}")]
-    FetchUtxos(#[from] ClientError),
-}
-
-#[derive(Debug, Error)]
-pub enum CurrentHeightErrorGeneric<ClientError> {
-    #[error("ApiClientHelpers::current_height: failed to fetch current height: {0}")]
-    FetchConsensusTip(#[from] ClientError),
-}
-
-#[derive(Debug, Error)]
-pub enum AddressBalanceErrorGeneric<ClientError> {
-    #[error("ApiClientHelpers::address_balance: failed to fetch address balance: {0}")]
-    FetchAddressBalance(#[from] ClientError),
-}
+use generic_errors::*;
 
 /// ApiClientHelpers implements client agnostic helper methods catering to the Komodo Defi Framework
 /// integration. These methods provide higher level functionality than the base ApiClient trait.
@@ -405,20 +432,4 @@ pub trait ApiClientHelpers: ApiClient {
 
         Ok(Some(tx))
     }
-}
-
-#[derive(Debug, Error)]
-pub enum FindWhereUtxoSpentErrorGeneric<ClientError> {
-    #[error("ApiClientHelpers::find_where_utxo_spent: failed to fetch consensus updates {0}")]
-    FetchUpdates(#[from] GetConsensusUpdatesErrorGeneric<ClientError>),
-    #[error("ApiClientHelpers::find_where_utxo_spent: SiacoinOutputId:{id} was not spent in the expected block")]
-    SpendNotInBlock { id: SiacoinOutputId },
-}
-
-#[derive(Debug, Error)]
-pub enum GetConsensusUpdatesErrorGeneric<ClientError> {
-    #[error("ApiClientHelpers::get_consensus_updates_since_height: failed to fetch ChainIndex {0}")]
-    FetchIndex(ClientError),
-    #[error("ApiClientHelpers::get_consensus_updates_since_height: failed to fetch updates {0}")]
-    FetchUpdates(ClientError),
 }

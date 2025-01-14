@@ -12,14 +12,8 @@ use crate::transport::client::{ApiClient, ApiClientHelpers, Body as ClientBody, 
 use core::time::Duration;
 
 pub mod error {
-    use crate::transport::client::helpers::{BroadcastTransactionErrorGeneric, CurrentHeightErrorGeneric,
-                                            FindWhereUtxoSpentErrorGeneric, FundTxSingleSourceErrorGeneric,
-                                            GetConsensusUpdatesErrorGeneric, GetMedianTimestampErrorGeneric,
-                                            GetTransactionErrorGeneric, GetUnconfirmedTransactionErrorGeneric,
-                                            GetUnspentOutputsErrorGeneric, SelectUtxosErrorGeneric,
-                                            UtxoFromTxidErrorGeneric};
-
     use super::*;
+    use crate::transport::client::helpers::generic_errors::*;
 
     pub type BroadcastTransactionError = BroadcastTransactionErrorGeneric<ClientError>;
     pub type UtxoFromTxidError = UtxoFromTxidErrorGeneric<ClientError>;
