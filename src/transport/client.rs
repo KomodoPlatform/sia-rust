@@ -20,7 +20,7 @@ pub trait ApiClient: Clone {
     type Request;
     type Response;
     type Conf;
-    type Error;
+    type Error: std::error::Error + std::fmt::Debug;
 
     async fn new(conf: Self::Conf) -> Result<Self, Self::Error>
     where
