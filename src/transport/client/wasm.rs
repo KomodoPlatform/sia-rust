@@ -11,8 +11,60 @@ use url::Url;
 pub mod wasm_fetch;
 use wasm_fetch::{Body as FetchBody, FetchError, FetchMethod, FetchRequest, FetchResponse};
 
+pub mod error {
+    use super::*;
+    use crate::transport::client::helpers::generic_errors::*;
+
+    pub type BroadcastTransactionError = BroadcastTransactionErrorGeneric<ClientError>;
+    pub type UtxoFromTxidError = UtxoFromTxidErrorGeneric<ClientError>;
+    pub type GetUnconfirmedTransactionError = GetUnconfirmedTransactionErrorGeneric<ClientError>;
+    pub type GetMedianTimestampError = GetMedianTimestampErrorGeneric<ClientError>;
+    pub type FindWhereUtxoSpentError = FindWhereUtxoSpentErrorGeneric<ClientError>;
+    pub type FundTxSingleSourceError = FundTxSingleSourceErrorGeneric<ClientError>;
+    pub type GetConsensusUpdatesError = GetConsensusUpdatesErrorGeneric<ClientError>;
+    pub type GetUnspentOutputsError = GetUnspentOutputsErrorGeneric<ClientError>;
+    pub type CurrentHeightError = CurrentHeightErrorGeneric<ClientError>;
+    pub type SelectUtxosError = SelectUtxosErrorGeneric<ClientError>;
+    pub type GetTransactionError = GetTransactionErrorGeneric<ClientError>;
+
+    /// An error that may occur when using the `WasmClient`.
+    /// Each variant is used exactly once and represents a unique logical path in the code.
+    #[derive(Debug, Error)]
+    pub enum ClientError {
+        #[error("WasmClient::new: Failed to ping server with ConsensusTipRequest: {0}")]
+        PingServer(Box<ClientError>),
+        #[error("WasmClient::process_schema: failed to build url: {0}")]
+        SchemaBuildUrl(#[from] EndpointSchemaError),
+        #[error("WasmClient::process_schema: unsupported EndpointSchema.method: {0:?}")]
+        SchemaUnsupportedMethod(EndpointSchema),
+        #[error("WasmClient::dispatcher: Failed to generate EndpointSchema from SiaApiRequest: {0}")]
+        DispatcherGenerateSchema(#[from] SiaApiRequestError),
+        #[error("WasmClient::dispatcher: process_schema failed: {0}")]
+        DispatcherProcessSchema(Box<ClientError>),
+        #[error("WasmClient::dispatcher: Failed to execute request: {0}")]
+        DispatcherExecuteRequest(#[from] FetchError),
+        #[error("WasmClient::dispatcher: expected utf-8 or JSON in response body, found octet-stream: {0:?}")]
+        DispatcherUnexpectedBodyBytes(Vec<u8>),
+        #[error("WasmClient::dispatcher: expected utf-8 or JSON in response body, found empty body")]
+        DispatcherUnexpectedBodyEmpty,
+        #[error("WasmClient::dispatcher: failed to deserialize response body from JSON: {0}")]
+        DispatcherDeserializeBodyJson(serde_json::Error),
+        #[error("WasmClient::dispatcher: failed to deserialize response body from string: {0}")]
+        DispatcherDeserializeBodyUtf8(serde_json::Error),
+        #[error("WasmClient::dispatcher: unexpected HTTP status:{status} body:{body:?}")]
+        DispatcherUnexpectedHttpStatus {
+            status: StatusCode,
+            body: Option<FetchBody>,
+        },
+        #[error("WasmClient::dispatcher: Expected:{expected_type} found 204 No Content")]
+        DispatcherUnexpectedEmptyResponse { expected_type: String },
+    }
+}
+
+use error::*;
+
 #[derive(Clone)]
-pub struct WasmClient {
+pub struct Client {
     pub base_url: Url,
     pub headers: HashMap<String, String>,
 }
@@ -24,48 +76,15 @@ pub struct Conf {
     pub headers: HashMap<String, String>,
 }
 
-/// An error that may occur when using the `WasmClient`.
-/// Each variant is used exactly once and represents a unique logical path in the code.
-#[derive(Debug, Error)]
-pub enum WasmClientError {
-    #[error("WasmClient::new: Failed to ping server with ConsensusTipRequest: {0}")]
-    PingServer(Box<WasmClientError>),
-    #[error("WasmClient::process_schema: failed to build url: {0}")]
-    SchemaBuildUrl(#[from] EndpointSchemaError),
-    #[error("WasmClient::process_schema: unsupported EndpointSchema.method: {0:?}")]
-    SchemaUnsupportedMethod(EndpointSchema),
-    #[error("WasmClient::dispatcher: Failed to generate EndpointSchema from SiaApiRequest: {0}")]
-    DispatcherGenerateSchema(#[from] SiaApiRequestError),
-    #[error("WasmClient::dispatcher: process_schema failed: {0}")]
-    DispatcherProcessSchema(Box<WasmClientError>),
-    #[error("WasmClient::dispatcher: Failed to execute request: {0}")]
-    DispatcherExecuteRequest(#[from] FetchError),
-    #[error("WasmClient::dispatcher: expected utf-8 or JSON in response body, found octet-stream: {0:?}")]
-    DispatcherUnexpectedBodyBytes(Vec<u8>),
-    #[error("WasmClient::dispatcher: expected utf-8 or JSON in response body, found empty body")]
-    DispatcherUnexpectedBodyEmpty,
-    #[error("WasmClient::dispatcher: failed to deserialize response body from JSON: {0}")]
-    DispatcherDeserializeBodyJson(serde_json::Error),
-    #[error("WasmClient::dispatcher: failed to deserialize response body from string: {0}")]
-    DispatcherDeserializeBodyUtf8(serde_json::Error),
-    #[error("WasmClient::dispatcher: unexpected HTTP status:{status} body:{body:?}")]
-    DispatcherUnexpectedHttpStatus {
-        status: StatusCode,
-        body: Option<FetchBody>,
-    },
-    #[error("WasmClient::dispatcher: Expected:{expected_type} found 204 No Content")]
-    DispatcherUnexpectedEmptyResponse { expected_type: String },
-}
-
 #[async_trait]
-impl ApiClient for WasmClient {
+impl ApiClient for Client {
     type Request = FetchRequest;
     type Response = FetchResponse;
     type Conf = Conf;
-    type Error = WasmClientError;
+    type Error = ClientError;
 
     async fn new(conf: Self::Conf) -> Result<Self, Self::Error> {
-        let client = WasmClient {
+        let client = Client {
             base_url: conf.server_url,
             headers: conf.headers,
         };
@@ -73,7 +92,7 @@ impl ApiClient for WasmClient {
         client
             .dispatcher(ConsensusTipRequest)
             .await
-            .map_err(|e| WasmClientError::PingServer(Box::new(e)))?;
+            .map_err(|e| ClientError::PingServer(Box::new(e)))?;
         Ok(client)
     }
 
@@ -82,7 +101,7 @@ impl ApiClient for WasmClient {
         let method = match schema.method {
             SchemaMethod::Get => FetchMethod::Get,
             SchemaMethod::Post => FetchMethod::Post,
-            _ => return Err(WasmClientError::SchemaUnsupportedMethod(schema.clone())),
+            _ => return Err(ClientError::SchemaUnsupportedMethod(schema.clone())),
         };
         let body = match schema.body {
             Body::Utf8(body) => Some(FetchBody::Utf8(body)),
@@ -106,7 +125,7 @@ impl ApiClient for WasmClient {
         // Convert the SiaApiRequest to FetchRequest
         let request = self
             .process_schema(schema)
-            .map_err(|e| WasmClientError::DispatcherProcessSchema(Box::new(e)))?;
+            .map_err(|e| ClientError::DispatcherProcessSchema(Box::new(e)))?;
 
         // Execute the FetchRequest
         let response = request.execute().await?;
@@ -116,13 +135,13 @@ impl ApiClient for WasmClient {
             StatusCode::OK => {
                 let response_body = match response.body {
                     Some(FetchBody::Json(body)) => {
-                        serde_json::from_value(body).map_err(WasmClientError::DispatcherDeserializeBodyJson)?
+                        serde_json::from_value(body).map_err(ClientError::DispatcherDeserializeBodyJson)?
                     },
                     Some(FetchBody::Utf8(body)) => {
-                        serde_json::from_str(&body).map_err(WasmClientError::DispatcherDeserializeBodyUtf8)?
+                        serde_json::from_str(&body).map_err(ClientError::DispatcherDeserializeBodyUtf8)?
                     },
-                    Some(FetchBody::Bytes(bytes)) => return Err(WasmClientError::DispatcherUnexpectedBodyBytes(bytes)),
-                    None => return Err(WasmClientError::DispatcherUnexpectedBodyEmpty),
+                    Some(FetchBody::Bytes(bytes)) => return Err(ClientError::DispatcherUnexpectedBodyBytes(bytes)),
+                    None => return Err(ClientError::DispatcherUnexpectedBodyEmpty),
                 };
                 Ok(response_body)
             },
@@ -131,13 +150,13 @@ impl ApiClient for WasmClient {
                 if let Some(resp_type) = R::is_empty_response() {
                     Ok(resp_type)
                 } else {
-                    Err(WasmClientError::DispatcherUnexpectedEmptyResponse {
+                    Err(ClientError::DispatcherUnexpectedEmptyResponse {
                         expected_type: std::any::type_name::<R::Response>().to_string(),
                     })
                 }
             },
             // Handle unexpected HTTP statuses eg, 400, 404, 500
-            status => Err(WasmClientError::DispatcherUnexpectedHttpStatus {
+            status => Err(ClientError::DispatcherUnexpectedHttpStatus {
                 status,
                 body: response.body,
             }),
@@ -148,7 +167,7 @@ impl ApiClient for WasmClient {
 // Just this is needed to implement the `ApiClientHelpers` trait
 // unless custom implementations for the traits methods are needed
 #[async_trait]
-impl ApiClientHelpers for WasmClient {}
+impl ApiClientHelpers for Client {}
 
 #[cfg(all(target_arch = "wasm32", test))]
 mod wasm_tests {
@@ -168,7 +187,7 @@ mod wasm_tests {
     async fn test_sia_wasm_client_client_error() {
         use crate::transport::endpoints::TxpoolBroadcastRequest;
         use crate::types::V2Transaction;
-        let client = WasmClient::new(CONF.clone()).await.unwrap();
+        let client = Client::new(CONF.clone()).await.unwrap();
 
         let tx_str = r#"
         {
@@ -222,7 +241,7 @@ mod wasm_tests {
             v2transactions: vec![tx],
         };
         match client.dispatcher(req).await.expect_err("Expected HTTP 400 error") {
-            WasmClientError::DispatcherUnexpectedHttpStatus {
+            ClientError::DispatcherUnexpectedHttpStatus {
                 status: StatusCode::BAD_REQUEST,
                 body: _,
             } => (),
