@@ -10,7 +10,7 @@ use async_trait::async_trait;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum UtxoFromTxidError<ClientError> {
+pub enum UtxoFromTxidErrorGeneric<ClientError> {
     #[error("ApiClientHelpers::utxo_from_txid: failed to fetch event {0}")]
     FetchEvent(#[from] ClientError),
     #[error("ApiClientHelpers::utxo_from_txid: invalid event variant {0:?}")]
@@ -18,7 +18,7 @@ pub enum UtxoFromTxidError<ClientError> {
     #[error("ApiClientHelpers::utxo_from_txid: output index out of bounds txid: {txid} index: {index}")]
     OutputIndexOutOfBounds { txid: TransactionId, index: u32 },
     #[error("ApiClientHelpers::utxo_from_txid: get_unspent_outputs helper failed {0}")]
-    FetchUtxos(#[from] GetUnspentOutputsError<ClientError>),
+    FetchUtxos(#[from] GetUnspentOutputsErrorGeneric<ClientError>),
     #[error("ApiClientHelpers::utxo_from_txid: output not found txid: {txid} index: {index}")]
     NotFound { txid: TransactionId, index: u32 },
     #[error("ApiClientHelpers::utxo_from_txid: found duplicate utxo txid: {txid} index: {index}")]
@@ -26,7 +26,7 @@ pub enum UtxoFromTxidError<ClientError> {
 }
 
 #[derive(Debug, Error)]
-pub enum GetTransactionError<ClientError> {
+pub enum GetTransactionErrorGeneric<ClientError> {
     #[error("ApiClientHelpers::get_transaction: failed to fetch event {0}")]
     FetchEvent(#[from] ClientError),
     #[error("ApiClientHelpers::get_transaction: unexpected variant error {0:?}")]
@@ -34,47 +34,47 @@ pub enum GetTransactionError<ClientError> {
 }
 
 #[derive(Debug, Error)]
-pub enum GetUnconfirmedTransactionError<ClientError> {
+pub enum GetUnconfirmedTransactionErrorGeneric<ClientError> {
     #[error("ApiClientHelpers::get_unconfirmed_transaction: failed to fetch mempool {0}")]
     FetchMempool(#[from] ClientError),
 }
 
 #[derive(Debug, Error)]
-pub enum FundTxSingleSourceError<ClientError> {
+pub enum FundTxSingleSourceErrorGeneric<ClientError> {
     #[error("ApiClientHelpers::fund_tx_single_source: failed to select Utxos: {0}")]
-    SelectUtxos(#[from] SelectUtxosError<ClientError>),
+    SelectUtxos(#[from] SelectUtxosErrorGeneric<ClientError>),
 }
 
 #[derive(Debug, Error)]
-pub enum GetEventError<ClientError> {
+pub enum GetEventErrorGeneric<ClientError> {
     #[error("ApiClientHelpers::get_event failed to fetch event: {0}")]
     FetchEvent(#[from] ClientError),
 }
 
 #[derive(Debug, Error)]
-pub enum GetAddressEventsError<ClientError> {
+pub enum GetAddressEventsErrorGeneric<ClientError> {
     #[error("ApiClientHelpers::get_address_events failed: {0}")]
     FetchAddressEvents(#[from] ClientError),
 }
 
 #[derive(Debug, Error)]
-pub enum BroadcastTransactionError<ClientError> {
+pub enum BroadcastTransactionErrorGeneric<ClientError> {
     #[error("ApiClientHelpers::broadcast_transaction: broadcast failed: {0}")]
     BroadcastTx(#[from] ClientError),
 }
 
 #[derive(Debug, Error)]
-pub enum SelectUtxosError<ClientError> {
+pub enum SelectUtxosErrorGeneric<ClientError> {
     #[error(
         "ApiClientHelpers::select_unspent_outputs: insufficent funds, available: {available:?} required: {required:?}"
     )]
     Funding { available: Currency, required: Currency },
     #[error("ApiClientHelpers::select_unspent_outputs: failed to fetch UTXOs: {0}")]
-    GetUnspentOutputs(#[from] GetUnspentOutputsError<ClientError>),
+    GetUnspentOutputs(#[from] GetUnspentOutputsErrorGeneric<ClientError>),
 }
 
 #[derive(Debug, Error)]
-pub enum GetMedianTimestampError<ClientError> {
+pub enum GetMedianTimestampErrorGeneric<ClientError> {
     #[error("ApiClientHelpers::get_median_timestamp: failed to fetch consensus tipstate: {0}")]
     FetchTipstate(#[from] ClientError),
     #[error(
@@ -86,9 +86,21 @@ pub enum GetMedianTimestampError<ClientError> {
 }
 
 #[derive(Debug, Error)]
-pub enum GetUnspentOutputsError<ClientError> {
-    #[error("ApiClientHelpers::get_unspent_outputs: failed to fetch UTXOs {0}")]
+pub enum GetUnspentOutputsErrorGeneric<ClientError> {
+    #[error("ApiClientHelpers::get_unspent_outputs: failed to fetch UTXOs: {0}")]
     FetchUtxos(#[from] ClientError),
+}
+
+#[derive(Debug, Error)]
+pub enum CurrentHeightErrorGeneric<ClientError> {
+    #[error("ApiClientHelpers::current_height: failed to fetch current height: {0}")]
+    FetchConsensusTip(#[from] ClientError),
+}
+
+#[derive(Debug, Error)]
+pub enum AddressBalanceErrorGeneric<ClientError> {
+    #[error("ApiClientHelpers::address_balance: failed to fetch address balance: {0}")]
+    FetchAddressBalance(#[from] ClientError),
 }
 
 /// ApiClientHelpers implements client agnostic helper methods catering to the Komodo Defi Framework
@@ -96,12 +108,15 @@ pub enum GetUnspentOutputsError<ClientError> {
 /// Clients can generally implement this as simply as `impl ApiClientHelpers for Client {}`.
 #[async_trait]
 pub trait ApiClientHelpers: ApiClient {
-    async fn current_height(&self) -> Result<u64, Self::Error> {
+    async fn current_height(&self) -> Result<u64, CurrentHeightErrorGeneric<Self::Error>> {
         Ok(self.dispatcher(ConsensusTipRequest).await?.height)
     }
 
-    async fn address_balance(&self, address: Address) -> Result<AddressBalanceResponse, Self::Error> {
-        self.dispatcher(AddressBalanceRequest { address }).await
+    async fn address_balance(
+        &self,
+        address: Address,
+    ) -> Result<AddressBalanceResponse, AddressBalanceErrorGeneric<Self::Error>> {
+        Ok(self.dispatcher(AddressBalanceRequest { address }).await?)
     }
 
     async fn get_unspent_outputs(
@@ -109,7 +124,7 @@ pub trait ApiClientHelpers: ApiClient {
         address: &Address,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<SiacoinElement>, GetUnspentOutputsError<Self::Error>> {
+    ) -> Result<Vec<SiacoinElement>, GetUnspentOutputsErrorGeneric<Self::Error>> {
         Ok(self
             .dispatcher(GetAddressUtxosRequest {
                 address: address.clone(),
@@ -137,7 +152,7 @@ pub trait ApiClientHelpers: ApiClient {
         &self,
         address: &Address,
         total_amount: Currency,
-    ) -> Result<(Vec<SiacoinElement>, Currency), SelectUtxosError<Self::Error>> {
+    ) -> Result<(Vec<SiacoinElement>, Currency), SelectUtxosErrorGeneric<Self::Error>> {
         let mut unspent_outputs = self.get_unspent_outputs(address, None, None).await?;
 
         // Sort outputs from largest to smallest
@@ -157,7 +172,7 @@ pub trait ApiClientHelpers: ApiClient {
         }
 
         if selected_amount < total_amount {
-            return Err(SelectUtxosError::Funding {
+            return Err(SelectUtxosErrorGeneric::Funding {
                 available: selected_amount,
                 required: total_amount,
             })?;
@@ -188,7 +203,7 @@ pub trait ApiClientHelpers: ApiClient {
         &self,
         tx_builder: &mut V2TransactionBuilder,
         public_key: &PublicKey,
-    ) -> Result<(), FundTxSingleSourceError<Self::Error>> {
+    ) -> Result<(), FundTxSingleSourceErrorGeneric<Self::Error>> {
         let address = public_key.address();
         let outputs_total: Currency = tx_builder.siacoin_outputs.iter().map(|output| output.value).sum();
 
@@ -216,7 +231,7 @@ pub trait ApiClientHelpers: ApiClient {
         &self,
         txid: &TransactionId,
         vout_index: u32,
-    ) -> Result<SiacoinElement, UtxoFromTxidError<Self::Error>> {
+    ) -> Result<SiacoinElement, UtxoFromTxidErrorGeneric<Self::Error>> {
         let output_id = SiacoinOutputId::new(txid.clone(), vout_index);
 
         // fetch the Event via /api/events/{txid}
@@ -225,12 +240,12 @@ pub trait ApiClientHelpers: ApiClient {
         // check that the fetched event is V2Transaction
         let tx = match event.data {
             EventDataWrapper::V2Transaction(tx) => tx,
-            _ => return Err(UtxoFromTxidError::<Self::Error>::EventVariant(event)),
+            _ => return Err(UtxoFromTxidErrorGeneric::<Self::Error>::EventVariant(event)),
         };
 
         // check that the output index is within bounds
         if tx.siacoin_outputs.len() <= (vout_index as usize) {
-            return Err(UtxoFromTxidError::<Self::Error>::OutputIndexOutOfBounds {
+            return Err(UtxoFromTxidErrorGeneric::<Self::Error>::OutputIndexOutOfBounds {
                 txid: txid.clone(),
                 index: vout_index,
             });
@@ -250,22 +265,25 @@ pub trait ApiClientHelpers: ApiClient {
         // ensure only one utxo was found
         match filtered_utxos.len() {
             1 => Ok(filtered_utxos[0].clone()),
-            0 => Err(UtxoFromTxidError::<Self::Error>::NotFound {
+            0 => Err(UtxoFromTxidErrorGeneric::<Self::Error>::NotFound {
                 txid: txid.clone(),
                 index: vout_index,
             }),
-            _ => Err(UtxoFromTxidError::<Self::Error>::DuplicateUtxoFound {
+            _ => Err(UtxoFromTxidErrorGeneric::<Self::Error>::DuplicateUtxoFound {
                 txid: txid.clone(),
                 index: vout_index,
             }),
         }
     }
 
-    async fn get_event(&self, event_id: &Hash256) -> Result<Event, GetEventError<Self::Error>> {
+    async fn get_event(&self, event_id: &Hash256) -> Result<Event, GetEventErrorGeneric<Self::Error>> {
         Ok(self.dispatcher(GetEventRequest { txid: event_id.clone() }).await?)
     }
 
-    async fn get_address_events(&self, address: Address) -> Result<Vec<Event>, GetAddressEventsError<Self::Error>> {
+    async fn get_address_events(
+        &self,
+        address: Address,
+    ) -> Result<Vec<Event>, GetAddressEventsErrorGeneric<Self::Error>> {
         let request = AddressesEventsRequest {
             address,
             limit: None,
@@ -275,14 +293,17 @@ pub trait ApiClientHelpers: ApiClient {
     }
 
     /// Fetch a v2 transaction from the blockchain
-    // FIXME Alright - this should return a Result<Option<V2Transaction>, HelperError> to allow for
+    // FIXME Alright - this should return a Result<Option<V2Transaction>, SomeError> to allow for
     // logic to handle the case where the transaction is not found in the blockchain
     // ApiClientError must be refactored to allow this
-    async fn get_transaction(&self, txid: &TransactionId) -> Result<V2Transaction, GetTransactionError<Self::Error>> {
+    async fn get_transaction(
+        &self,
+        txid: &TransactionId,
+    ) -> Result<V2Transaction, GetTransactionErrorGeneric<Self::Error>> {
         let event = self.dispatcher(GetEventRequest { txid: txid.clone() }).await?;
         match event.data {
             EventDataWrapper::V2Transaction(tx) => Ok(tx),
-            wrong_variant => Err(GetTransactionError::<Self::Error>::EventVariant(wrong_variant)),
+            wrong_variant => Err(GetTransactionErrorGeneric::<Self::Error>::EventVariant(wrong_variant)),
         }
     }
 
@@ -291,7 +312,7 @@ pub trait ApiClientHelpers: ApiClient {
     async fn get_unconfirmed_transaction(
         &self,
         txid: &TransactionId,
-    ) -> Result<Option<V2Transaction>, GetUnconfirmedTransactionError<Self::Error>> {
+    ) -> Result<Option<V2Transaction>, GetUnconfirmedTransactionErrorGeneric<Self::Error>> {
         let found_in_mempool = self
             .dispatcher(TxpoolTransactionsRequest)
             .await?
@@ -303,20 +324,23 @@ pub trait ApiClientHelpers: ApiClient {
 
     /// Get the median timestamp of the chain's last 11 blocks
     /// This is used in the evaluation of SpendPolicy::After
-    async fn get_median_timestamp(&self) -> Result<u64, GetMedianTimestampError<Self::Error>> {
+    async fn get_median_timestamp(&self) -> Result<u64, GetMedianTimestampErrorGeneric<Self::Error>> {
         let tipstate = self.dispatcher(ConsensusTipstateRequest).await?;
 
         // This can happen if the chain has less than 11 blocks
         // We assume the chain is at least 11 blocks long for this helper.
         if tipstate.prev_timestamps.len() != 11 {
-            return Err(GetMedianTimestampError::<Self::Error>::TimestampVecLen(tipstate));
+            return Err(GetMedianTimestampErrorGeneric::<Self::Error>::TimestampVecLen(tipstate));
         }
 
         let median_timestamp = tipstate.prev_timestamps[5];
         Ok(median_timestamp.timestamp() as u64)
     }
 
-    async fn broadcast_transaction(&self, tx: &V2Transaction) -> Result<(), BroadcastTransactionError<Self::Error>> {
+    async fn broadcast_transaction(
+        &self,
+        tx: &V2Transaction,
+    ) -> Result<(), BroadcastTransactionErrorGeneric<Self::Error>> {
         let request = TxpoolBroadcastRequest {
             transactions: vec![],
             v2transactions: vec![tx.clone()],
@@ -329,12 +353,12 @@ pub trait ApiClientHelpers: ApiClient {
     async fn get_consensus_updates(
         &self,
         begin_height: u64,
-    ) -> Result<ConsensusUpdatesResponse, GetConsensusUpdatesError<Self::Error>> {
+    ) -> Result<ConsensusUpdatesResponse, GetConsensusUpdatesErrorGeneric<Self::Error>> {
         let index_request = ConsensusIndexRequest { height: begin_height };
         let chain_index = self
             .dispatcher(index_request)
             .await
-            .map_err(|e| GetConsensusUpdatesError::<Self::Error>::FetchIndex(e))?;
+            .map_err(|e| GetConsensusUpdatesErrorGeneric::<Self::Error>::FetchIndex(e))?;
 
         let updates_request = ConsensusUpdatesRequest {
             height: chain_index.height,
@@ -344,7 +368,7 @@ pub trait ApiClientHelpers: ApiClient {
 
         self.dispatcher(updates_request)
             .await
-            .map_err(|e| GetConsensusUpdatesError::<Self::Error>::FetchUpdates(e))
+            .map_err(|e| GetConsensusUpdatesErrorGeneric::<Self::Error>::FetchUpdates(e))
     }
 
     /// Find the transaction that spent the given utxo
@@ -354,7 +378,7 @@ pub trait ApiClientHelpers: ApiClient {
         &self,
         output_id: &SiacoinOutputId,
         begin_height: u64,
-    ) -> Result<Option<V2Transaction>, FindWhereUtxoSpentError<Self::Error>> {
+    ) -> Result<Option<V2Transaction>, FindWhereUtxoSpentErrorGeneric<Self::Error>> {
         let updates = self.get_consensus_updates(begin_height).await?;
 
         // find the update that has the provided `output_id`` in its "spent" field
@@ -377,23 +401,22 @@ pub trait ApiClientHelpers: ApiClient {
             .transactions
             .into_iter()
             .find(|tx| tx.siacoin_inputs.iter().any(|input| input.parent.id == *output_id))
-            .ok_or(FindWhereUtxoSpentError::SpendNotInBlock { id: output_id.clone() })?;
+            .ok_or(FindWhereUtxoSpentErrorGeneric::SpendNotInBlock { id: output_id.clone() })?;
 
         Ok(Some(tx))
     }
 }
 
 #[derive(Debug, Error)]
-pub enum FindWhereUtxoSpentError<ClientError> {
-    // Boxed to allow HelperError to be held within itself
+pub enum FindWhereUtxoSpentErrorGeneric<ClientError> {
     #[error("ApiClientHelpers::find_where_utxo_spent: failed to fetch consensus updates {0}")]
-    FetchUpdates(#[from] GetConsensusUpdatesError<ClientError>),
+    FetchUpdates(#[from] GetConsensusUpdatesErrorGeneric<ClientError>),
     #[error("ApiClientHelpers::find_where_utxo_spent: SiacoinOutputId:{id} was not spent in the expected block")]
     SpendNotInBlock { id: SiacoinOutputId },
 }
 
 #[derive(Debug, Error)]
-pub enum GetConsensusUpdatesError<ClientError> {
+pub enum GetConsensusUpdatesErrorGeneric<ClientError> {
     #[error("ApiClientHelpers::get_consensus_updates_since_height: failed to fetch ChainIndex {0}")]
     FetchIndex(ClientError),
     #[error("ApiClientHelpers::get_consensus_updates_since_height: failed to fetch updates {0}")]
