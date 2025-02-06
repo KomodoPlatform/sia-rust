@@ -2,7 +2,7 @@ use super::ApiClient;
 use crate::transport::endpoints::{AddressBalanceRequest, AddressBalanceResponse, AddressesEventsRequest,
                                   ConsensusIndexRequest, ConsensusTipRequest, ConsensusTipstateRequest,
                                   ConsensusTipstateResponse, ConsensusUpdatesRequest, ConsensusUpdatesResponse,
-                                  GetAddressUtxosRequest, GetEventRequest, TxpoolBroadcastRequest,
+                                  DebugMineRequest, GetAddressUtxosRequest, GetEventRequest, TxpoolBroadcastRequest,
                                   TxpoolTransactionsRequest};
 use crate::types::{Address, Currency, Event, EventDataWrapper, Hash256, PublicKey, SiacoinElement, SiacoinOutputId,
                    SpendPolicy, TransactionId, V2Transaction, V2TransactionBuilder};
@@ -125,6 +125,12 @@ pub(crate) mod generic_errors {
         FetchIndex(ClientError),
         #[error("ApiClientHelpers::get_consensus_updates_since_height: failed to fetch updates {0}")]
         FetchUpdates(ClientError),
+    }
+
+    #[derive(Debug, Error)]
+    pub enum DebugMineErrorGeneric<ClientError> {
+        #[error("ApiClientDebugHelpers::mine_blocks: failed to mine blocks: {0}")]
+        Mine(#[from] ClientError),
     }
 }
 
@@ -431,5 +437,19 @@ pub trait ApiClientHelpers: ApiClient {
             .ok_or(FindWhereUtxoSpentErrorGeneric::SpendNotInBlock { id: output_id.clone() })?;
 
         Ok(Some(tx))
+    }
+
+    /**
+    Mine `n` blocks to the given Sia Address, `addr`.
+    Does not wait for the blocks to be mined. Returns immediately after receiving a response from the walletd node.
+    This endpoint is only available on Walletd nodes that have been started with `-debug`.
+    **/
+    async fn mine_blocks(&self, n: i64, addr: &Address) -> Result<(), DebugMineErrorGeneric<Self::Error>> {
+        self.dispatcher(DebugMineRequest {
+            address: addr.clone(),
+            blocks: n,
+        })
+        .await?;
+        Ok(())
     }
 }
