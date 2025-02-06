@@ -374,7 +374,11 @@ pub trait ApiClientHelpers: ApiClient {
         &self,
         tx: &V2Transaction,
     ) -> Result<(), BroadcastTransactionErrorGeneric<Self::Error>> {
+        // FIXME Alright this is not precise at all, waiting on clarification from Sia team
+        let basis = self.dispatcher(ConsensusTipRequest).await?;
+
         let request = TxpoolBroadcastRequest {
+            basis,
             transactions: vec![],
             v2transactions: vec![tx.clone()],
         };

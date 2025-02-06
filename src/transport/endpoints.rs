@@ -436,6 +436,7 @@ impl SiaApiRequest for GetAddressUtxosRequest {
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct TxpoolBroadcastRequest {
+    pub basis: ChainIndex,
     pub transactions: Vec<V1Transaction>,
     pub v2transactions: Vec<V2Transaction>,
 }
