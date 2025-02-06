@@ -124,12 +124,17 @@ impl ApiClient for Client {
             .process_schema(request.to_endpoint_schema()?)
             .map_err(|e| ClientError::DispatcherBuildRequest(Box::new(e)))?;
 
-        // Execute the request using reqwest client
-        let response = self
-            .client
-            .execute(request)
-            .await
-            .map_err(ClientError::DispatcherExecuteRequest)?;
+        let mut retries = 3;
+        let response = loop {
+            match self.client.execute(request.try_clone().unwrap()).await {
+                Ok(resp) => break Ok(resp),
+                Err(_) if retries > 0 => {
+                    retries -= 1;
+                    continue;
+                },
+                Err(e) => break Err(ClientError::DispatcherExecuteRequest(e)),
+            }
+        }?;
 
         // Check the response status and return the appropriate result
         match response.status() {
