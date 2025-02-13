@@ -1,9 +1,17 @@
+use crate::encoding::{Encodable, Encoder};
 use hex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::convert::TryFrom;
 use std::fmt::{self, Display};
 use std::str::FromStr;
 use thiserror::Error;
+
+/*
+TODO:
+Hash256 once required custom serde and encoding due to handling various prefixes based on the context.
+These prefixes are now removed, so helpers like serde_as and derive_more could be used to reduce
+boilerplate.
+ */
 
 #[derive(Debug, Error)]
 pub enum Hash256Error {
@@ -14,8 +22,14 @@ pub enum Hash256Error {
     #[error("Hash256::TryFrom<&[u8]> invalid slice length: expected 32 byte slice, found {0:?}")]
     InvalidSliceLength(Vec<u8>),
 }
+
+/// A 256 bit number representing a blake2b or sha256 hash in Sia's consensus protocol and APIs.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Hash256(pub [u8; 32]);
+
+impl Encodable for Hash256 {
+    fn encode(&self, encoder: &mut Encoder) { encoder.write_slice(&self.0); }
+}
 
 impl Serialize for Hash256 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

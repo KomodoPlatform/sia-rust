@@ -1,17 +1,67 @@
-use crate::transport::endpoints::{ConsensusTipRequest, SiaApiRequest};
+use crate::transport::endpoints::{ConsensusTipRequest, SiaApiRequest, SiaApiRequestError};
 use async_trait::async_trait;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
-use http::header::{HeaderMap, HeaderValue, AUTHORIZATION};
+use http::header::{HeaderMap, HeaderValue, InvalidHeaderValue, AUTHORIZATION};
 use reqwest::Client as ReqwestClient;
 use serde::Deserialize;
+use thiserror::Error;
 use url::Url;
 
-use crate::transport::client::{ApiClient, ApiClientError, ApiClientHelpers, Body as ClientBody, EndpointSchema};
+use crate::transport::client::{ApiClient, ApiClientHelpers, Body as ClientBody, EndpointSchema, EndpointSchemaError};
 use core::time::Duration;
 
+pub mod error {
+    use super::*;
+    use crate::transport::client::helpers::generic_errors::*;
+
+    pub type BroadcastTransactionError = BroadcastTransactionErrorGeneric<ClientError>;
+    pub type UtxoFromTxidError = UtxoFromTxidErrorGeneric<ClientError>;
+    pub type GetUnconfirmedTransactionError = GetUnconfirmedTransactionErrorGeneric<ClientError>;
+    pub type GetMedianTimestampError = GetMedianTimestampErrorGeneric<ClientError>;
+    pub type FindWhereUtxoSpentError = FindWhereUtxoSpentErrorGeneric<ClientError>;
+    pub type FundTxSingleSourceError = FundTxSingleSourceErrorGeneric<ClientError>;
+    pub type GetConsensusUpdatesError = GetConsensusUpdatesErrorGeneric<ClientError>;
+    pub type GetUnspentOutputsError = GetUnspentOutputsErrorGeneric<ClientError>;
+    pub type CurrentHeightError = CurrentHeightErrorGeneric<ClientError>;
+    pub type SelectUtxosError = SelectUtxosErrorGeneric<ClientError>;
+    pub type GetTransactionError = GetTransactionErrorGeneric<ClientError>;
+
+    /// An error that may occur when using the `NativeClient`.
+    /// Each variant is used exactly once and represents a unique logical path in the code.
+    // TODO this can be broken into enum per method; Reqwest error handling also has significant updates
+    // in newer versions that provide unique error types instead of a single "reqwest::Error"
+    #[derive(Debug, Error)]
+    pub enum ClientError {
+        #[error("NativeClient::new: Failed to construct HTTP auth header: {0}")]
+        InvalidHeader(#[from] InvalidHeaderValue),
+        #[error("NativeClient::new: Failed to build reqwest::Client: {0}")]
+        BuildClient(reqwest::Error),
+        #[error("NativeClient::new: Failed to ping server with ConsensusTipRequest: {0}")]
+        PingServer(Box<ClientError>),
+        #[error("NativeClient::dispatcher: failed to convert request into schema: {0}")]
+        RequestToSchema(#[from] SiaApiRequestError),
+        #[error("NativeClient::process_schema: failed to build url: {0}")]
+        SchemaBuildUrl(#[from] EndpointSchemaError),
+        #[error("NativeClient::process_schema: Failed to build request: {0}")]
+        SchemaBuildRequest(reqwest::Error),
+        #[error("NativeClient::dispatcher: Failed to convert SiaApiRequest to reqwest::Request: {0}")]
+        DispatcherBuildRequest(Box<ClientError>),
+        #[error("NativeClient::dispatcher: Failed to execute reqwest::Request: {0}")]
+        DispatcherExecuteRequest(reqwest::Error),
+        #[error("NativeClient::dispatcher: Failed to deserialize response body: {0}")]
+        DispatcherDeserializeBody(reqwest::Error),
+        #[error("NativeClient::dispatcher: Expected:{expected_type} found 204 No Content")]
+        DispatcherUnexpectedEmptyResponse { expected_type: String },
+        #[error("NativeClient::dispatcher: unexpected HTTP status:{status} body:{body}")]
+        DispatcherUnexpectedStatus { status: http::StatusCode, body: String },
+    }
+}
+
+use error::*;
+
 #[derive(Clone)]
-pub struct NativeClient {
+pub struct Client {
     pub client: ReqwestClient,
     pub base_url: Url,
 }
@@ -26,37 +76,38 @@ pub struct Conf {
 }
 
 #[async_trait]
-impl ApiClient for NativeClient {
+impl ApiClient for Client {
     type Request = reqwest::Request;
     type Response = reqwest::Response;
     type Conf = Conf;
 
-    async fn new(conf: Self::Conf) -> Result<Self, ApiClientError> {
+    type Error = ClientError;
+
+    async fn new(conf: Self::Conf) -> Result<Self, Self::Error> {
         let mut headers = HeaderMap::new();
         if let Some(password) = &conf.password {
             let auth_value = format!("Basic {}", BASE64.encode(format!(":{}", password)));
-            headers.insert(
-                AUTHORIZATION,
-                HeaderValue::from_str(&auth_value).map_err(|e| ApiClientError::BuildError(e.to_string()))?,
-            );
+            headers.insert(AUTHORIZATION, HeaderValue::from_str(&auth_value)?);
         }
         let timeout = conf.timeout.unwrap_or(30);
         let client = ReqwestClient::builder()
             .default_headers(headers)
             .timeout(Duration::from_secs(timeout))
             .build()
-            .map_err(ApiClientError::ReqwestError)?;
+            .map_err(ClientError::BuildClient)?;
 
-        let ret = NativeClient {
+        let ret = Client {
             client,
             base_url: conf.server_url,
         };
         // Ping the server with ConsensusTipRequest to check if the client is working
-        ret.dispatcher(ConsensusTipRequest).await?;
+        ret.dispatcher(ConsensusTipRequest)
+            .await
+            .map_err(|e| ClientError::PingServer(Box::new(e)))?;
         Ok(ret)
     }
 
-    fn process_schema(&self, schema: EndpointSchema) -> Result<Self::Request, ApiClientError> {
+    fn process_schema(&self, schema: EndpointSchema) -> Result<Self::Request, Self::Error> {
         let url = schema.build_url(&self.base_url)?;
         let req = match schema.body {
             ClientBody::None => self.client.request(schema.method.into(), url).build(),
@@ -64,35 +115,40 @@ impl ApiClient for NativeClient {
             ClientBody::Json(body) => self.client.request(schema.method.into(), url).json(&body).build(),
             ClientBody::Bytes(body) => self.client.request(schema.method.into(), url).body(body).build(),
         }
-        .map_err(ApiClientError::ReqwestError)?;
+        .map_err(ClientError::SchemaBuildRequest)?;
         Ok(req)
     }
 
-    async fn execute_request(&self, request: Self::Request) -> Result<Self::Response, ApiClientError> {
-        self.client.execute(request).await.map_err(ApiClientError::ReqwestError)
-    }
+    async fn dispatcher<R: SiaApiRequest>(&self, request: R) -> Result<R::Response, Self::Error> {
+        let request = self
+            .process_schema(request.to_endpoint_schema()?)
+            .map_err(|e| ClientError::DispatcherBuildRequest(Box::new(e)))?;
 
-    async fn dispatcher<R: SiaApiRequest>(&self, request: R) -> Result<R::Response, ApiClientError> {
-        let request = self.to_data_request(request)?;
-
-        // Execute the request using reqwest client
-        let response = self
-            .client
-            .execute(request)
-            .await
-            .map_err(ApiClientError::ReqwestError)?;
+        let mut retries = 3;
+        let response = loop {
+            match self.client.execute(request.try_clone().unwrap()).await {
+                Ok(resp) => break Ok(resp),
+                Err(_) if retries > 0 => {
+                    retries -= 1;
+                    continue;
+                },
+                Err(e) => break Err(ClientError::DispatcherExecuteRequest(e)),
+            }
+        }?;
 
         // Check the response status and return the appropriate result
         match response.status() {
+            // Attempt to deserialize the response body to the expected type if the status is OK
             reqwest::StatusCode::OK => Ok(response
                 .json::<R::Response>()
                 .await
-                .map_err(ApiClientError::ReqwestError)?),
+                .map_err(ClientError::DispatcherDeserializeBody)?),
+            // Handle empty responses; throw an error if the response is not expected to be empty
             reqwest::StatusCode::NO_CONTENT => {
                 if let Some(resp_type) = R::is_empty_response() {
                     Ok(resp_type)
                 } else {
-                    Err(ApiClientError::UnexpectedEmptyResponse {
+                    Err(ClientError::DispatcherUnexpectedEmptyResponse {
                         expected_type: std::any::type_name::<R::Response>().to_string(),
                     })
                 }
@@ -106,14 +162,14 @@ impl ApiClient for NativeClient {
                     .map_err(|e| format!("Failed to retrieve body: {}", e))
                     .unwrap_or_else(|e| e);
 
-                Err(ApiClientError::UnexpectedHttpStatus { status, body })
+                Err(ClientError::DispatcherUnexpectedStatus { status, body })
             },
         }
     }
 }
 
 #[async_trait]
-impl ApiClientHelpers for NativeClient {}
+impl ApiClientHelpers for Client {}
 
 // TODO these tests should not rely on the actual server - mock the server or use docker
 #[cfg(test)]
@@ -125,13 +181,13 @@ mod tests {
     use std::str::FromStr;
     use tokio;
 
-    async fn init_client() -> NativeClient {
+    async fn init_client() -> Client {
         let conf = Conf {
             server_url: Url::parse("https://sia-walletd.komodo.earth/").unwrap(),
             password: None,
             timeout: Some(10),
         };
-        NativeClient::new(conf).await.unwrap()
+        Client::new(conf).await.unwrap()
     }
 
     /// Helper function to setup the client and send a request

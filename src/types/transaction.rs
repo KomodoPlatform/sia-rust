@@ -130,8 +130,15 @@ impl<'a> Encodable for CurrencyVersion<'a> {
 
 /// Preimage is a 32-byte array representing the preimage of a hash used in Sia's SpendPolicy::Hash
 /// Used to allow HLTC-style hashlock contracts in Sia
+// TODO - this type is now effectively identical to Hash256. It only exists because Preimage once
+// supported variable length preimages. Using Preimage(Hash256) would reduce code duplication, but
+// we should consider changing Hash256's name as Preimage does not represent a "hash".
 #[derive(Clone, Debug, Default, PartialEq, From, Into)]
 pub struct Preimage(pub [u8; 32]);
+
+impl Encodable for Preimage {
+    fn encode(&self, encoder: &mut Encoder) { encoder.write_slice(&self.0); }
+}
 
 impl Serialize for Preimage {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -182,7 +189,7 @@ impl<'de> Deserialize<'de> for Preimage {
 
 #[derive(Debug, Error)]
 pub enum PreimageError {
-    #[error("PreimageError: failed to convert from slice invalid length: {0}")]
+    #[error("Preimage:TryFrom<&[u8]>: invalid length, expected 32 bytes found: {0}")]
     InvalidSliceLength(usize),
 }
 
@@ -222,49 +229,8 @@ impl Encodable for Signature {
 impl Encodable for SatisfiedPolicy {
     fn encode(&self, encoder: &mut Encoder) {
         self.policy.encode(encoder);
-        let mut sigi: usize = 0;
-        let mut prei: usize = 0;
-
-        fn rec(policy: &SpendPolicy, encoder: &mut Encoder, sigi: &mut usize, prei: &mut usize, sp: &SatisfiedPolicy) {
-            match policy {
-                SpendPolicy::PublicKey(_) => {
-                    if *sigi < sp.signatures.len() {
-                        sp.signatures[*sigi].encode(encoder);
-                        *sigi += 1;
-                    } else {
-                        // Sia Go code panics here but our code assumes encoding will always be successful
-                        // TODO: check if Sia Go will fix this
-                        encoder.write_string("Broken PublicKey encoding, see SatisfiedPolicy::encode")
-                    }
-                },
-                SpendPolicy::Hash(_) => {
-                    if *prei < sp.preimages.len() {
-                        encoder.write_slice(&sp.preimages[*prei].0);
-                        *prei += 1;
-                    } else {
-                        // Sia Go code panics here but our code assumes encoding will always be successful
-                        // consider changing the signature of encode() to return a Result
-                        encoder.write_string("Broken Hash encoding, see SatisfiedPolicy::encode")
-                    }
-                },
-                SpendPolicy::Threshold { n: _, of } => {
-                    for p in of {
-                        rec(p, encoder, sigi, prei, sp);
-                    }
-                },
-                SpendPolicy::UnlockConditions(uc) => {
-                    for unlock_key in &uc.unlock_keys {
-                        if let UnlockKey::Ed25519(public_key) = unlock_key {
-                            rec(&SpendPolicy::PublicKey(public_key.clone()), encoder, sigi, prei, sp);
-                        }
-                        // else FIXME consider when this is possible, is it always developer error or could it be forced maliciously?
-                    }
-                },
-                _ => {},
-            }
-        }
-
-        rec(&self.policy, encoder, &mut sigi, &mut prei, self);
+        encoder.write_len_prefixed_vec(&self.signatures);
+        encoder.write_len_prefixed_vec(&self.preimages);
     }
 }
 
@@ -330,6 +296,13 @@ impl Encodable for SiacoinElement {
         SiacoinOutputVersion::V2(&self.siacoin_output).encode(encoder);
         encoder.write_u64(self.maturity_height);
     }
+}
+
+/// A UTXO with its corresponding ChainIndex. This is not a type in Sia core, but is helpful because
+/// the ChainIndex is always needed when broadcasting a UTXO.
+pub struct UtxoWithBasis {
+    pub output: SiacoinElement,
+    pub basis: ChainIndex,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -1091,6 +1064,10 @@ pub struct V2Transaction {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub new_foundation_address: Option<Address>,
     pub miner_fee: Currency,
+    // Basis is not part of the transaction structure. This field is unique to the Rust implementation.
+    // This field is provided to keep track of the correct ChainIndex needed to broadcast the transaction.
+    #[serde(skip)]
+    pub basis: Option<ChainIndex>,
 }
 
 impl V2Transaction {
@@ -1250,6 +1227,10 @@ pub struct V2TransactionBuilder {
     // fee_policy is not part Sia consensus and it not encoded into any resulting transaction.
     // fee_policy has no effect unless a helper like `ApiClientHelpers::fund_tx_single_source` utilizes it.
     pub fee_policy: Option<FeePolicy>,
+    // basis is not part Sia consensus and it not encoded into any resulting transaction.
+    // It is the ChainIndex required to broadcast the transaction. This is provided by the
+    // /api/addresses/:addr/siacoin/outputs Walletd API endpoint.
+    pub basis: Option<ChainIndex>,
 }
 
 impl Encodable for V2TransactionBuilder {
@@ -1331,6 +1312,7 @@ impl V2TransactionBuilder {
             new_foundation_address: None,
             miner_fee: Currency::ZERO,
             fee_policy: None,
+            basis: None,
         }
     }
 
@@ -1415,6 +1397,23 @@ impl V2TransactionBuilder {
                 preimages: Vec::new(),
             },
         });
+        self
+    }
+
+    /// Update the basis of the transaction. The basis is the ChainIndex required to broadcast the
+    /// transaction.
+    pub fn update_basis(&mut self, basis: ChainIndex) -> &mut Self {
+        // Only update the basis if the new basis is higher than the existing basis.
+        match &self.basis {
+            Some(existing_basis) if existing_basis.height >= basis.height => {},
+            _ => self.basis = Some(basis),
+        }
+        self
+    }
+
+    pub fn add_siacoin_input_with_basis(&mut self, parent: UtxoWithBasis, policy: SpendPolicy) -> &mut Self {
+        self.add_siacoin_input(parent.output, policy);
+        self.update_basis(parent.basis);
         self
     }
 
@@ -1517,6 +1516,7 @@ impl V2TransactionBuilder {
             arbitrary_data: cloned.arbitrary_data,
             new_foundation_address: cloned.new_foundation_address,
             miner_fee: cloned.miner_fee,
+            basis: cloned.basis,
         }
     }
 }

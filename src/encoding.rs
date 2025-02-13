@@ -53,10 +53,6 @@ pub trait Encodable {
     fn encode(&self, encoder: &mut Encoder);
 }
 
-impl Encodable for Hash256 {
-    fn encode(&self, encoder: &mut Encoder) { encoder.write_slice(&self.0); }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;

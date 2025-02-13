@@ -180,7 +180,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            let expected = Hash256::from_str("51832be911c7382502a2011cbddf1a9f689c4ca08c6a83ae3d021fb0dc781822").unwrap();
+            let expected = Hash256::from_str("92d9097978387a5da9d17435b796984dae6bd4342c88684d0949e406755c289c").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -194,11 +194,10 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            let expected = Hash256::from_str("1e612d1ee36338b93a36bac0c52007a2d678cde0bd9b95c36a1f61166cf02b87").unwrap();
+            let expected = Hash256::from_str("abac830016d15871dfefad87ddfce263a6936b77e8ec18e7712870d6bf771376").unwrap();
             assert_eq!(hash, expected);
         }
 
-        // Adding a signature to SatisfiedPolicy of PolicyHash should have no effect
         fn test_satisfied_policy_encode_hash_frivulous_signature() {
             let policy = SpendPolicy::Hash(Hash256::default());
 
@@ -213,7 +212,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            let expected = Hash256::from_str("80f3caa4507615945bc839c8505546decd91e9642120f26938b2fc370fa61992").unwrap();
+            let expected = Hash256::from_str("f6885827fb8a6d1a5751ce3f5a8580dc590f262f42e2dd9944052ec43ffc8d97").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -229,7 +228,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            let expected = Hash256::from_str("80f3caa4507615945bc839c8505546decd91e9642120f26938b2fc370fa61992").unwrap();
+            let expected = Hash256::from_str("e3bbd67ade36322f3de8458b1daa80fd21bb74af88c779b768908e007611f36e").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -253,7 +252,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            let expected = Hash256::from_str("c749f9ac53395ec557aed7e21d202f76a58e0de79222e5756b27077e9295931f").unwrap();
+            let expected = Hash256::from_str("0411ac20ae5472822bdc6c24c9ba2afdd828300ed3706cb1c07a8578276fd72d").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -289,7 +288,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            let expected = Hash256::from_str("13806b6c13a97478e476e0e5a0469c9d0ad8bf286bec0ada992e363e9fc60901").unwrap();
+            let expected = Hash256::from_str("b4d658dbc32b3e147d2736f75b14ca881d5c04963663993b6448c86f4f1a2815").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -308,8 +307,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            // FIXME update this in go equivalent. Preimage was changed from Vec<u8> to [u8; 32]
-            let expected = Hash256::from_str("2200a1464864cfaea8d312c1f16b5e00b816110896bea32ef7e1ccd43042d312").unwrap();
+            let expected = Hash256::from_str("5cd34ed67f2b2a55d016b4c485dfd1ca2eca75f6831cec9eed9494d6fa735315").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -338,8 +336,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            // FIXME update this in go equivalent. Preimage was changed from Vec<u8> to [u8; 32]
-            let expected = Hash256::from_str("08852e4ad99f726120028ecd82925b5f55fa441952cfc034a5cf4f09159b9372").unwrap();
+            let expected = Hash256::from_str("30abac67d0017556ae69416f54663edbe2fb14c7bcef028f2d228aef500e8f51").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -368,7 +365,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            let expected = Hash256::from_str("8975e8cf990d5a20d9ec3dae18ed3b3a0c92edf967a8d93fcdef6a1eb73bb348").unwrap();
+            let expected = Hash256::from_str("69b26bdb1114af01e4626d2a31184706e1dc83d83063c9019f9ee66381bd6923").unwrap();
             assert_eq!(hash, expected);
         }
 
@@ -404,8 +401,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&vin);
-            // FIXME update this in go equivalent. Preimage was changed from Vec<u8> to [u8; 32]
-            let expected = Hash256::from_str("d31a05b155113a5244f14ae833887fd8b30f555129be126ca4b90592290db24a").unwrap();
+            let expected = Hash256::from_str("102a2924e7427ee3654bfeea8fc055fd82c2a403598484dbb704da9cdaada3ba").unwrap();
             assert_eq!(hash, expected);
         }
 

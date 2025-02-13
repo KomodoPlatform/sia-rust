@@ -1,4 +1,4 @@
-use crate::transport::client::{ApiClientError, Body, EndpointSchema, EndpointSchemaBuilder, SchemaMethod};
+use crate::transport::client::{Body, EndpointSchema, EndpointSchemaBuilder, SchemaMethod};
 use crate::types::{Address, ApiApplyUpdate, BlockId, ChainIndex, Currency, Event, Hash256, SiacoinElement,
                    V1Transaction, V2Transaction};
 use crate::utils::deserialize_null_as_empty_vec;
@@ -6,6 +6,7 @@ use chrono::{DateTime, Utc};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use thiserror::Error;
 
 const ENDPOINT_ADDRESSES_BALANCE: &str = "api/addresses/{address}/balance";
 const ENDPOINT_ADDRESSES_EVENTS: &str = "api/addresses/{address}/events";
@@ -26,7 +27,17 @@ pub trait SiaApiRequest: Send {
     // Applicable for requests that return HTTP 204 No Content
     fn is_empty_response() -> Option<Self::Response> { None }
 
-    fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError>;
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, SiaApiRequestError>;
+}
+
+// TODO it's not ideal that all endpoints share this error type because we may have "endpoints" in the
+// future that aren't a 1:1 mapping of walletd endpoints and may require different error handling per
+// endpoint or per data source. That is why this holds a String, request, that does not follow the typical
+// error handling pattern of the rest of the library.
+#[derive(Debug, Error)]
+pub enum SiaApiRequestError {
+    #[error("SiaApiRequest::to_endpoint_schema: failed to serialize request:{request} to JSON: {error}")]
+    Serde { error: serde_json::Error, request: String },
 }
 
 /// Represents the request-response pair for fetching the current consensus tip of the Sia network.
@@ -53,7 +64,7 @@ pub struct ConsensusTipRequest;
 impl SiaApiRequest for ConsensusTipRequest {
     type Response = ChainIndex;
 
-    fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, SiaApiRequestError> {
         Ok(EndpointSchemaBuilder::new(ENDPOINT_CONSENSUS_TIP.to_owned(), SchemaMethod::Get).build())
     }
 }
@@ -84,7 +95,7 @@ pub struct ConsensusIndexRequest {
 impl SiaApiRequest for ConsensusIndexRequest {
     type Response = ChainIndex;
 
-    fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, SiaApiRequestError> {
         // Create the path_params HashMap to substitute {height} in the path schema
         let mut path_params = HashMap::new();
         path_params.insert("height".to_owned(), self.height.to_string());
@@ -122,7 +133,7 @@ pub struct ConsensusTipstateRequest;
 impl SiaApiRequest for ConsensusTipstateRequest {
     type Response = ConsensusTipstateResponse;
 
-    fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, SiaApiRequestError> {
         Ok(EndpointSchemaBuilder::new(ENDPOINT_CONSENSUS_TIPSTATE.to_owned(), SchemaMethod::Get).build())
     }
 }
@@ -162,7 +173,7 @@ pub struct ConsensusUpdatesRequest {
 impl SiaApiRequest for ConsensusUpdatesRequest {
     type Response = ConsensusUpdatesResponse;
 
-    fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, SiaApiRequestError> {
         // Create the path_params HashMap to substitute {height} and {hash} in the path schema
         let mut path_params = HashMap::new();
         path_params.insert("height".to_owned(), self.height.to_string());
@@ -222,7 +233,7 @@ pub struct AddressBalanceRequest {
 impl SiaApiRequest for AddressBalanceRequest {
     type Response = AddressBalanceResponse;
 
-    fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, SiaApiRequestError> {
         let mut path_params = HashMap::new();
         path_params.insert("address".to_owned(), self.address.to_string());
 
@@ -269,7 +280,7 @@ pub struct GetEventRequest {
 impl SiaApiRequest for GetEventRequest {
     type Response = Event;
 
-    fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, SiaApiRequestError> {
         // Create the path_params HashMap to substitute {txid} in the path schema
         let mut path_params = HashMap::new();
         path_params.insert("txid".to_owned(), self.txid.to_string());
@@ -313,7 +324,7 @@ pub struct AddressesEventsRequest {
 impl SiaApiRequest for AddressesEventsRequest {
     type Response = Vec<Event>;
 
-    fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, SiaApiRequestError> {
         let mut path_params = HashMap::new();
         path_params.insert("address".to_owned(), self.address.to_string());
 
@@ -353,11 +364,11 @@ pub type AddressesEventsResponse = Vec<Event>;
 /// - `offset`: An optional offset for paginated results. Corresponds to `int64` in Go.
 ///
 /// # Response
-/// - The response is a `Vec<SiacoinElement>` in Rust, corresponding to `[]types.SiacoinElement` in Go.
-///   - [Go Source for SiacoinElement Type](https://github.com/SiaFoundation/core/blob/300042fd2129381468356dcd87c5e9a6ad94c0ef/types/types.go#L614)
+/// - The response is a `GetAddressUtxosResponse` in Rust, corresponding to `SiacoinElementsResponse` in Go.
+///   - [Go Source for SiacoinElementsResponse Type](https://github.com/SiaFoundation/walletd/blob/94ac6b0543c7495752554ae543d4ad28b4a620a5/api/api.go#L177C1-L182C2)
 ///
 /// # References
-/// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/6ff23fe34f6fa45a19bfb6e4bacc8a16d2c48144/api/server.go#L795)
+/// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/94ac6b0543c7495752554ae543d4ad28b4a620a5/api/server.go#L1127)
 ///
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
 #[derive(Clone, Deserialize, Serialize, Debug)]
@@ -367,10 +378,19 @@ pub struct GetAddressUtxosRequest {
     pub offset: Option<i64>,
 }
 
-impl SiaApiRequest for GetAddressUtxosRequest {
-    type Response = Vec<SiacoinElement>;
+#[derive(Clone, Deserialize, Serialize, Debug)]
+/// equivalent of SiacoinElementsResponse in Go
+/// The ChainIndex is required to be provided while broadcasting any transaction that spends any of
+/// these UTXOs
+pub struct UtxosWithBasis {
+    pub basis: ChainIndex,
+    pub outputs: Vec<SiacoinElement>,
+}
 
-    fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
+impl SiaApiRequest for GetAddressUtxosRequest {
+    type Response = UtxosWithBasis;
+
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, SiaApiRequestError> {
         let mut path_params = HashMap::new();
         path_params.insert("address".to_owned(), self.address.to_string());
 
@@ -425,6 +445,7 @@ impl SiaApiRequest for GetAddressUtxosRequest {
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct TxpoolBroadcastRequest {
+    pub basis: ChainIndex,
     pub transactions: Vec<V1Transaction>,
     pub v2transactions: Vec<V2Transaction>,
 }
@@ -439,9 +460,12 @@ impl SiaApiRequest for TxpoolBroadcastRequest {
 
     fn is_empty_response() -> Option<Self::Response> { Some(EmptyResponse) }
 
-    fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, SiaApiRequestError> {
         // Serialize the transactions into a JSON body
-        let body = serde_json::to_value(self).map_err(ApiClientError::Serde)?;
+        let body = serde_json::to_value(self).map_err(|e| SiaApiRequestError::Serde {
+            error: e,
+            request: format!("{:?}", self),
+        })?;
         let body = body.to_string();
         Ok(
             EndpointSchemaBuilder::new(ENDPOINT_TXPOOL_BROADCAST.to_owned(), SchemaMethod::Post)
@@ -483,7 +507,7 @@ pub struct TxpoolFeeResponse(pub Currency);
 impl SiaApiRequest for TxpoolFeeRequest {
     type Response = TxpoolFeeResponse;
 
-    fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, SiaApiRequestError> {
         Ok(
             EndpointSchemaBuilder::new(ENDPOINT_TXPOOL_FEE.to_owned(), SchemaMethod::Get).build(), // No path_params, query_params, or body needed for this request
         )
@@ -521,7 +545,7 @@ pub struct TxpoolTransactionsResponse {
 impl SiaApiRequest for TxpoolTransactionsRequest {
     type Response = TxpoolTransactionsResponse;
 
-    fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, SiaApiRequestError> {
         Ok(
             EndpointSchemaBuilder::new(ENDPOINT_TXPOOL_TRANSACTIONS.to_owned(), SchemaMethod::Get).build(), // No path_params, query_params, or body needed for this request
         )
@@ -561,9 +585,12 @@ impl SiaApiRequest for DebugMineRequest {
 
     fn is_empty_response() -> Option<Self::Response> { Some(EmptyResponse) }
 
-    fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, SiaApiRequestError> {
         // Serialize the request into a JSON string
-        let body = serde_json::to_string(self).map_err(ApiClientError::Serde)?;
+        let body = serde_json::to_string(self).map_err(|e| SiaApiRequestError::Serde {
+            error: e,
+            request: format!("{:?}", self),
+        })?;
         Ok(
             EndpointSchemaBuilder::new(ENDPOINT_DEBUG_MINE.to_owned(), SchemaMethod::Post)
                 .body(Body::Utf8(body)) // Set the JSON body for the POST request
