@@ -1064,6 +1064,10 @@ pub struct V2Transaction {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub new_foundation_address: Option<Address>,
     pub miner_fee: Currency,
+    // Basis is not part of the transaction structure. This field is unique to the Rust implementation.
+    // This field is provided to keep track of the correct ChainIndex needed to broadcast the transaction.
+    #[serde(skip)]
+    pub basis: Option<ChainIndex>,
 }
 
 impl V2Transaction {
@@ -1223,6 +1227,10 @@ pub struct V2TransactionBuilder {
     // fee_policy is not part Sia consensus and it not encoded into any resulting transaction.
     // fee_policy has no effect unless a helper like `ApiClientHelpers::fund_tx_single_source` utilizes it.
     pub fee_policy: Option<FeePolicy>,
+    // basis is not part Sia consensus and it not encoded into any resulting transaction.
+    // It is the ChainIndex required to broadcast the transaction. This is provided by the
+    // /api/addresses/:addr/siacoin/outputs Walletd API endpoint.
+    pub basis: Option<ChainIndex>,
 }
 
 impl Encodable for V2TransactionBuilder {
@@ -1304,6 +1312,7 @@ impl V2TransactionBuilder {
             new_foundation_address: None,
             miner_fee: Currency::ZERO,
             fee_policy: None,
+            basis: None,
         }
     }
 
@@ -1388,6 +1397,23 @@ impl V2TransactionBuilder {
                 preimages: Vec::new(),
             },
         });
+        self
+    }
+
+    /// Update the basis of the transaction. The basis is the ChainIndex required to broadcast the
+    /// transaction.
+    pub fn update_basis(&mut self, basis: ChainIndex) -> &mut Self {
+        // Only update the basis if the new basis is higher than the existing basis.
+        match &self.basis {
+            Some(existing_basis) if existing_basis.height >= basis.height => {},
+            _ => self.basis = Some(basis),
+        }
+        self
+    }
+
+    pub fn add_siacoin_input_with_basis(&mut self, parent: UtxoWithBasis, policy: SpendPolicy) -> &mut Self {
+        self.add_siacoin_input(parent.output, policy);
+        self.update_basis(parent.basis);
         self
     }
 
@@ -1490,6 +1516,7 @@ impl V2TransactionBuilder {
             arbitrary_data: cloned.arbitrary_data,
             new_foundation_address: cloned.new_foundation_address,
             miner_fee: cloned.miner_fee,
+            basis: cloned.basis,
         }
     }
 }
