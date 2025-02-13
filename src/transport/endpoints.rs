@@ -364,11 +364,11 @@ pub type AddressesEventsResponse = Vec<Event>;
 /// - `offset`: An optional offset for paginated results. Corresponds to `int64` in Go.
 ///
 /// # Response
-/// - The response is a `Vec<SiacoinElement>` in Rust, corresponding to `[]types.SiacoinElement` in Go.
-///   - [Go Source for SiacoinElement Type](https://github.com/SiaFoundation/core/blob/300042fd2129381468356dcd87c5e9a6ad94c0ef/types/types.go#L614)
+/// - The response is a `GetAddressUtxosResponse` in Rust, corresponding to `SiacoinElementsResponse` in Go.
+///   - [Go Source for SiacoinElementsResponse Type](https://github.com/SiaFoundation/walletd/blob/94ac6b0543c7495752554ae543d4ad28b4a620a5/api/api.go#L177C1-L182C2)
 ///
 /// # References
-/// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/6ff23fe34f6fa45a19bfb6e4bacc8a16d2c48144/api/server.go#L795)
+/// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/94ac6b0543c7495752554ae543d4ad28b4a620a5/api/server.go#L1127)
 ///
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
 #[derive(Clone, Deserialize, Serialize, Debug)]
@@ -378,8 +378,17 @@ pub struct GetAddressUtxosRequest {
     pub offset: Option<i64>,
 }
 
+#[derive(Clone, Deserialize, Serialize, Debug)]
+/// equivalent of SiacoinElementsResponse in Go
+/// The ChainIndex is required to be provided while broadcasting any transaction that spends any of
+/// these UTXOs
+pub struct UtxosWithBasis {
+    pub basis: ChainIndex,
+    pub outputs: Vec<SiacoinElement>,
+}
+
 impl SiaApiRequest for GetAddressUtxosRequest {
-    type Response = Vec<SiacoinElement>;
+    type Response = UtxosWithBasis;
 
     fn to_endpoint_schema(&self) -> Result<EndpointSchema, SiaApiRequestError> {
         let mut path_params = HashMap::new();

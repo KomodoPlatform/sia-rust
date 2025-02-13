@@ -3,9 +3,9 @@ use crate::transport::endpoints::{AddressBalanceRequest, AddressBalanceResponse,
                                   ConsensusIndexRequest, ConsensusTipRequest, ConsensusTipstateRequest,
                                   ConsensusTipstateResponse, ConsensusUpdatesRequest, ConsensusUpdatesResponse,
                                   DebugMineRequest, GetAddressUtxosRequest, GetEventRequest, TxpoolBroadcastRequest,
-                                  TxpoolTransactionsRequest};
+                                  TxpoolTransactionsRequest, UtxosWithBasis};
 use crate::types::{Address, Currency, Event, EventDataWrapper, Hash256, PublicKey, SiacoinElement, SiacoinOutputId,
-                   SpendPolicy, TransactionId, V2Transaction, V2TransactionBuilder};
+                   SpendPolicy, TransactionId, UtxoWithBasis, V2Transaction, V2TransactionBuilder};
 use async_trait::async_trait;
 use thiserror::Error;
 
@@ -157,7 +157,7 @@ pub trait ApiClientHelpers: ApiClient {
         address: &Address,
         limit: Option<i64>,
         offset: Option<i64>,
-    ) -> Result<Vec<SiacoinElement>, GetUnspentOutputsErrorGeneric<Self::Error>> {
+    ) -> Result<UtxosWithBasis, GetUnspentOutputsErrorGeneric<Self::Error>> {
         Ok(self
             .dispatcher(GetAddressUtxosRequest {
                 address: address.clone(),
@@ -185,17 +185,19 @@ pub trait ApiClientHelpers: ApiClient {
         &self,
         address: &Address,
         total_amount: Currency,
-    ) -> Result<(Vec<SiacoinElement>, Currency), SelectUtxosErrorGeneric<Self::Error>> {
+    ) -> Result<(UtxosWithBasis, Currency), SelectUtxosErrorGeneric<Self::Error>> {
         let mut unspent_outputs = self.get_unspent_outputs(address, None, None).await?;
 
         // Sort outputs from largest to smallest
-        unspent_outputs.sort_by(|a, b| b.siacoin_output.value.0.cmp(&a.siacoin_output.value.0));
+        unspent_outputs
+            .outputs
+            .sort_by(|a, b| b.siacoin_output.value.0.cmp(&a.siacoin_output.value.0));
 
         let mut selected = Vec::new();
         let mut selected_amount = Currency::ZERO;
 
         // Select outputs until the total amount is reached
-        for output in unspent_outputs {
+        for output in unspent_outputs.outputs {
             selected_amount += output.siacoin_output.value;
             selected.push(output);
 
@@ -212,7 +214,13 @@ pub trait ApiClientHelpers: ApiClient {
         }
         let change = selected_amount - total_amount;
 
-        Ok((selected, change))
+        Ok((
+            UtxosWithBasis {
+                outputs: selected,
+                basis: unspent_outputs.basis,
+            },
+            change,
+        ))
     }
 
     /// Fund a transaction with utxos from the given address.
@@ -246,9 +254,13 @@ pub trait ApiClientHelpers: ApiClient {
             .await?;
 
         // add selected utxos as inputs to the transaction
-        for utxo in &selected_utxos {
+        for utxo in &selected_utxos.outputs {
             tx_builder.add_siacoin_input(utxo.clone(), SpendPolicy::PublicKey(public_key.clone()));
         }
+
+        // update the transaction's basis
+        tx_builder.update_basis(selected_utxos.basis);
+
         if change > Currency::DUST {
             // add change as an output
             tx_builder.add_siacoin_output((address, change).into());
@@ -264,7 +276,7 @@ pub trait ApiClientHelpers: ApiClient {
         &self,
         txid: &TransactionId,
         vout_index: u32,
-    ) -> Result<SiacoinElement, UtxoFromTxidErrorGeneric<Self::Error>> {
+    ) -> Result<UtxoWithBasis, UtxoFromTxidErrorGeneric<Self::Error>> {
         let output_id = SiacoinOutputId::new(txid.clone(), vout_index);
 
         // fetch the Event via /api/events/{txid}
@@ -291,13 +303,17 @@ pub trait ApiClientHelpers: ApiClient {
 
         // filter the utxos to find any matching the expected SiacoinOutputId
         let filtered_utxos: Vec<SiacoinElement> = address_utxos
+            .outputs
             .into_iter()
             .filter(|element| element.id == output_id)
             .collect();
 
         // ensure only one utxo was found
         match filtered_utxos.len() {
-            1 => Ok(filtered_utxos[0].clone()),
+            1 => Ok(UtxoWithBasis {
+                output: filtered_utxos[0].clone(),
+                basis: address_utxos.basis,
+            }),
             0 => Err(UtxoFromTxidErrorGeneric::<Self::Error>::NotFound {
                 txid: txid.clone(),
                 index: vout_index,
