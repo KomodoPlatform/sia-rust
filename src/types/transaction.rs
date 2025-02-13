@@ -298,6 +298,13 @@ impl Encodable for SiacoinElement {
     }
 }
 
+/// A UTXO with its corresponding ChainIndex. This is not a type in Sia core, but is helpful because
+/// the ChainIndex is always needed when broadcasting a UTXO.
+pub struct UtxoWithBasis {
+    pub output: SiacoinElement,
+    pub basis: ChainIndex,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct SiafundInputV2 {
