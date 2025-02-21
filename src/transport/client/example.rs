@@ -1,10 +1,10 @@
 // THIS FILE MUST NOT INCLUDED IN WORKSPACE
 **Some Broken Code to Ensure the Build Fails if this File is Included in the Workspace**
 
-use crate::http::endpoints::{SiaApiRequest};
+use crate::transport::endpoints::{SiaApiRequest};
 use async_trait::async_trait;
 use serde::Deserialize;
-use crate::http::client::{ApiClient, ApiClientError, ApiClientHelpers, EndpointSchema};
+use crate::transport::client::{ApiClient, ApiClientError, ApiClientHelpers, EndpointSchema};
 
 
 #[derive(Clone)]

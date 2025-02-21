@@ -1,6 +1,8 @@
-use crate::http::client::{ApiClientError, Body, EndpointSchema, EndpointSchemaBuilder, SchemaMethod};
-use crate::transaction::{SiacoinElement, V1Transaction, V2Transaction};
-use crate::types::{Address, BlockID, Currency, Event, H256};
+use crate::transport::client::{ApiClientError, Body, EndpointSchema, EndpointSchemaBuilder, SchemaMethod};
+use crate::types::{Address, ApiApplyUpdate, BlockId, ChainIndex, Currency, Event, Hash256, SiacoinElement,
+                   V1Transaction, V2Transaction};
+use crate::utils::deserialize_null_as_empty_vec;
+use chrono::{DateTime, Utc};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -9,10 +11,14 @@ const ENDPOINT_ADDRESSES_BALANCE: &str = "api/addresses/{address}/balance";
 const ENDPOINT_ADDRESSES_EVENTS: &str = "api/addresses/{address}/events";
 const ENDPOINT_ADDRESSES_UTXOS_SIACOIN: &str = "api/addresses/{address}/outputs/siacoin";
 const ENDPOINT_CONSENSUS_TIP: &str = "api/consensus/tip";
+const ENDPOINT_CONSENSUS_INDEX: &str = "api/consensus/index/{height}";
+const ENDPOINT_CONSENSUS_TIPSTATE: &str = "api/consensus/tipstate";
+const ENDPOINT_CONSENSUS_UPDATES: &str = "api/consensus/updates/{height}::{hash}";
 const ENDPOINT_EVENTS: &str = "api/events/{txid}";
 const ENDPOINT_TXPOOL_BROADCAST: &str = "api/txpool/broadcast";
 const ENDPOINT_TXPOOL_FEE: &str = "api/txpool/fee";
 const ENDPOINT_TXPOOL_TRANSACTIONS: &str = "api/txpool/transactions";
+const ENDPOINT_DEBUG_MINE: &str = "api/debug/mine";
 
 pub trait SiaApiRequest: Send {
     type Response: DeserializeOwned;
@@ -33,7 +39,7 @@ pub trait SiaApiRequest: Send {
 /// and its block ID, representing the latest state of the blockchain.
 ///
 /// # Response
-/// - The response is a `ConsensusTipResponse`, which contains the block's height and ID.
+/// - The response is a `ChainIndex`, which contains the block's height and ID.
 ///   This corresponds to the `types.ChainIndex` type in Go.
 ///
 /// # References
@@ -41,21 +47,148 @@ pub trait SiaApiRequest: Send {
 /// - [Go Source for the ChainIndex Type](https://github.com/SiaFoundation/core/blob/300042fd2129381468356dcd87c5e9a6ad94c0ef/types/types.go#L194)
 ///
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct ConsensusTipRequest;
 
 impl SiaApiRequest for ConsensusTipRequest {
-    type Response = ConsensusTipResponse;
+    type Response = ChainIndex;
 
     fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
         Ok(EndpointSchemaBuilder::new(ENDPOINT_CONSENSUS_TIP.to_owned(), SchemaMethod::Get).build())
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
-pub struct ConsensusTipResponse {
+/// Represents the request-response pair for fetching a BlockId from a provided height.
+///
+/// # Walletd Endpoint
+/// `GET /consensus/index/{height}`
+///
+/// # Description
+/// Returns the ChainIndex of the Block at the provided height. The consensus tip includes the block's height
+/// and its BlockId.
+///
+/// # Response
+/// - The response is a `ChainIndex`, which contains the block's height and ID.
+///   This corresponds to the `types.ChainIndex` type in Go.
+///
+/// # References
+/// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/6ff23fe34f6fa45a19bfb6e4bacc8a16d2c48144/api/server.go#L158)
+/// - [Go Source for the ChainIndex Type](https://github.com/SiaFoundation/core/blob/300042fd2129381468356dcd87c5e9a6ad94c0ef/types/types.go#L194)
+///
+/// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
+#[derive(Clone, Deserialize, Serialize, Debug)]
+pub struct ConsensusIndexRequest {
     pub height: u64,
-    pub id: BlockID,
+}
+
+impl SiaApiRequest for ConsensusIndexRequest {
+    type Response = ChainIndex;
+
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
+        // Create the path_params HashMap to substitute {height} in the path schema
+        let mut path_params = HashMap::new();
+        path_params.insert("height".to_owned(), self.height.to_string());
+
+        Ok(
+            EndpointSchemaBuilder::new(ENDPOINT_CONSENSUS_INDEX.to_owned(), SchemaMethod::Get)
+                .path_params(path_params)
+                .build(),
+        )
+    }
+}
+
+/// Represents the request-response pair for fetching the current consensus tipstate of the Sia network.
+///
+/// # Walletd Endpoint
+/// `GET /consensus/tipstate`
+///
+/// # Description
+/// Returns the current consensus state of the Sia network.
+///
+/// # Response
+/// - The response is a `ConsensusTipstateResponse`, which is a partial implementation of the `consensus.State` type in Go.
+///   This response includes the current block's height and ID, as well as timestamps of the previous 11 blocks.
+///   The median of the provided timestamps is the medianTimestamp used to evaluate SpendPolicy::After.
+///   SpendPolicy::After(time) evaluates to true if `time > medianTimestamp`.
+///
+/// # References
+/// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/d71cf08d4579ba952c51e535f988000e43ed8722/api/server.go#L162)
+/// - [Go Source for the consensus.State Type](https://github.com/SiaFoundation/core/blob/00682daf422864b250b6bc750d4229dd76a8632d/consensus/state.go#L111)
+///
+/// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
+#[derive(Clone, Deserialize, Serialize, Debug)]
+pub struct ConsensusTipstateRequest;
+
+impl SiaApiRequest for ConsensusTipstateRequest {
+    type Response = ConsensusTipstateResponse;
+
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
+        Ok(EndpointSchemaBuilder::new(ENDPOINT_CONSENSUS_TIPSTATE.to_owned(), SchemaMethod::Get).build())
+    }
+}
+
+#[derive(Clone, Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ConsensusTipstateResponse {
+    pub index: ChainIndex,
+    pub prev_timestamps: Vec<DateTime<Utc>>,
+}
+
+/// Represents the request-response pair for fetching consensus updates of the Sia network.
+///
+/// # Walletd Endpoint
+/// `GET /consensus/updates/{height}::{hash}`
+///
+/// # Description
+/// Returns consensus updates since the specific block height until the current consensus tip.
+///
+/// # Response
+/// - The response is a `ConsensusUpdatesResponse`, which is a partial implementation of the `ConsensusUpdatesResponse` type in Go.
+///   This endpoint only partially implements the Go type provided as response.
+///   This endpoints implements the minimum required fields to facilitate the logic of ApiClientHelpers::find_where_utxo_spent method.
+///
+/// # References
+/// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/d71cf08d4579ba952c51e535f988000e43ed8722/api/server.go#L162)
+/// - [Go Source for the consensus.State Type](https://github.com/SiaFoundation/core/blob/00682daf422864b250b6bc750d4229dd76a8632d/consensus/state.go#L111)
+///
+/// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
+#[derive(Clone, Deserialize, Serialize, Debug)]
+pub struct ConsensusUpdatesRequest {
+    pub height: u64,
+    pub block_hash: BlockId,
+    pub limit: Option<i64>,
+}
+
+impl SiaApiRequest for ConsensusUpdatesRequest {
+    type Response = ConsensusUpdatesResponse;
+
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
+        // Create the path_params HashMap to substitute {height} and {hash} in the path schema
+        let mut path_params = HashMap::new();
+        path_params.insert("height".to_owned(), self.height.to_string());
+        path_params.insert("hash".to_owned(), format!("{}", self.block_hash.0));
+
+        let mut query_params = HashMap::new();
+        if let Some(limit) = self.limit {
+            query_params.insert("limit".to_owned(), limit.to_string());
+        }
+
+        let query_params_option = (!query_params.is_empty()).then_some(query_params);
+
+        Ok(
+            EndpointSchemaBuilder::new(ENDPOINT_CONSENSUS_UPDATES.to_owned(), SchemaMethod::Get)
+                .path_params(path_params) // Set the path params containing the height and hash
+                .query_params(query_params_option) // Set the query params for ?limit=
+                .build(),
+        )
+    }
+}
+
+#[derive(Clone, Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ConsensusUpdatesResponse {
+    #[serde(deserialize_with = "deserialize_null_as_empty_vec")]
+    pub applied: Vec<ApiApplyUpdate>,
 }
 
 /// Represents the request-response pair for fetching the balance of an individual address.
@@ -81,7 +214,7 @@ pub struct ConsensusTipResponse {
 /// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/6ff23fe34f6fa45a19bfb6e4bacc8a16d2c48144/api/server.go#L752)
 ///
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct AddressBalanceRequest {
     pub address: Address,
 }
@@ -101,7 +234,7 @@ impl SiaApiRequest for AddressBalanceRequest {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct AddressBalanceResponse {
     pub siacoins: Currency,
     #[serde(rename = "immatureSiacoins")]
@@ -121,20 +254,20 @@ pub struct AddressBalanceResponse {
 ///   - [Go Source for Hash256](https://github.com/SiaFoundation/core/blob/300042fd2129381468356dcd87c5e9a6ad94c0ef/types/types.go#L63)
 ///
 /// # Response
-/// - The response is a `GetEventResponse` in Rust, corresponding to `types.Event` in Go.
+/// - The response is an `Event` in Rust, corresponding to `types.Event` in Go.
 ///   - [Go Source for Event](https://github.com/SiaFoundation/walletd/blob/6ff23fe34f6fa45a19bfb6e4bacc8a16d2c48144/wallet/wallet.go#L14)
 ///
 /// # References
 /// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/134a28b063df60a687899ac33aa373bf461480bc/api/server.go#L828)
 ///
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct GetEventRequest {
-    pub txid: H256,
+    pub txid: Hash256,
 }
 
 impl SiaApiRequest for GetEventRequest {
-    type Response = GetEventResponse;
+    type Response = Event;
 
     fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
         // Create the path_params HashMap to substitute {txid} in the path schema
@@ -149,9 +282,6 @@ impl SiaApiRequest for GetEventRequest {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct GetEventResponse(pub Event);
-
 /// Represents the request-response pair for fetching events for a specific address.
 ///
 /// # Walletd Endpoint
@@ -159,8 +289,8 @@ pub struct GetEventResponse(pub Event);
 ///
 /// # Fields
 /// - `addr`: (`types.Address` in Go) the address for which events are fetched.
-/// - `limit`: (`i64` in Go) optional limit for the number of results.
-/// - `offset`: (`i64` in Go) optional offset for paginated results.
+/// - `limit`: (`int` type in Go) optional limit for the number of results.
+/// - `offset`: (`int` type in Go) optional offset for paginated results.
 ///
 /// # Response
 /// - `[]types.Event` in Go corresponds to `Vec<Event>` in Rust.
@@ -173,7 +303,7 @@ pub struct GetEventResponse(pub Event);
 /// - [Go Source for the Event Object](https://github.com/SiaFoundation/walletd/blob/6ff23fe34f6fa45a19bfb6e4bacc8a16d2c48144/wallet/wallet.go#L14)
 ///
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct AddressesEventsRequest {
     pub address: Address,
     pub limit: Option<i64>,
@@ -195,10 +325,12 @@ impl SiaApiRequest for AddressesEventsRequest {
             query_params.insert("offset".to_owned(), offset.to_string());
         }
 
+        let query_params_option = (!query_params.is_empty()).then_some(query_params);
+
         Ok(
             EndpointSchemaBuilder::new(ENDPOINT_ADDRESSES_EVENTS.to_owned(), SchemaMethod::Get)
                 .path_params(path_params) // Set the path params containing the address
-                .query_params(query_params) // Set the query params for limit and offset
+                .query_params(query_params_option) // Set the query params for limit and offset
                 .build(),
         )
     }
@@ -217,8 +349,8 @@ pub type AddressesEventsResponse = Vec<Event>;
 /// # Fields
 /// - `address`: The address for which to fetch UTXOs. In Go, this corresponds to `types.Address`.
 ///   - [Go Source for Address Type](https://github.com/SiaFoundation/core/blob/300042fd2129381468356dcd87c5e9a6ad94c0ef/types/types.go#L165)
-/// - `limit`: An optional limit on the number of results. Corresponds to `i64` in Go.
-/// - `offset`: An optional offset for paginated results. Corresponds to `i64` in Go.
+/// - `limit`: An optional limit on the number of results. Corresponds to `int64` in Go.
+/// - `offset`: An optional offset for paginated results. Corresponds to `int64` in Go.
 ///
 /// # Response
 /// - The response is a `Vec<SiacoinElement>` in Rust, corresponding to `[]types.SiacoinElement` in Go.
@@ -228,23 +360,22 @@ pub type AddressesEventsResponse = Vec<Event>;
 /// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/6ff23fe34f6fa45a19bfb6e4bacc8a16d2c48144/api/server.go#L795)
 ///
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct GetAddressUtxosRequest {
     pub address: Address,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
 }
 
-pub type GetAddressUtxosResponse = Vec<SiacoinElement>;
-
 impl SiaApiRequest for GetAddressUtxosRequest {
-    type Response = GetAddressUtxosResponse;
+    type Response = Vec<SiacoinElement>;
 
     fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
         let mut path_params = HashMap::new();
         path_params.insert("address".to_owned(), self.address.to_string());
 
         let mut query_params = HashMap::new();
+
         if let Some(limit) = self.limit {
             query_params.insert("limit".to_owned(), limit.to_string());
         }
@@ -252,10 +383,12 @@ impl SiaApiRequest for GetAddressUtxosRequest {
             query_params.insert("offset".to_owned(), offset.to_string());
         }
 
+        let query_params_option = (!query_params.is_empty()).then_some(query_params);
+
         Ok(
             EndpointSchemaBuilder::new(ENDPOINT_ADDRESSES_UTXOS_SIACOIN.to_owned(), SchemaMethod::Get)
                 .path_params(path_params) // Set the path params containing the address
-                .query_params(query_params) // Set the query params for limit and offset
+                .query_params(query_params_option) // Set the query params for limit and offset
                 .build(),
         )
     }
@@ -290,13 +423,15 @@ impl SiaApiRequest for GetAddressUtxosRequest {
 /// - [Go Source for the V2Transaction Type](https://github.com/SiaFoundation/core/blob/300042fd2129381468356dcd87c5e9a6ad94c0ef/types/types.go#L649)
 ///
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct TxpoolBroadcastRequest {
     pub transactions: Vec<V1Transaction>,
     pub v2transactions: Vec<V2Transaction>,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+// TODO Alright - this was initially thought neccesary to implement methods on it, but it seems ()
+// will work in its place
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct EmptyResponse;
 
 impl SiaApiRequest for TxpoolBroadcastRequest {
@@ -339,10 +474,10 @@ impl SiaApiRequest for TxpoolBroadcastRequest {
 /// - [Go Source for the Currency Type](https://github.com/SiaFoundation/core/blob/300042fd2129381468356dcd87c5e9a6ad94c0ef/types/currency.go#L26)
 ///
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct TxpoolFeeRequest;
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct TxpoolFeeResponse(pub Currency);
 
 impl SiaApiRequest for TxpoolFeeRequest {
@@ -371,17 +506,68 @@ impl SiaApiRequest for TxpoolFeeRequest {
 /// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/6ff23fe34f6fa45a19bfb6e4bacc8a16d2c48144/api/server.go#L282C18-L282C43)
 ///
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct TxpoolTransactionsRequest;
 
+#[derive(Clone, Deserialize, Serialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct TxpoolTransactionsResponse {
+    #[serde(deserialize_with = "deserialize_null_as_empty_vec")]
+    pub transactions: Vec<V1Transaction>,
+    #[serde(deserialize_with = "deserialize_null_as_empty_vec")]
+    pub v2transactions: Vec<V2Transaction>,
+}
+
 impl SiaApiRequest for TxpoolTransactionsRequest {
+    type Response = TxpoolTransactionsResponse;
+
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
+        Ok(
+            EndpointSchemaBuilder::new(ENDPOINT_TXPOOL_TRANSACTIONS.to_owned(), SchemaMethod::Get).build(), // No path_params, query_params, or body needed for this request
+        )
+    }
+}
+
+/// Represents the request-response pair for mining blocks on a Sia node.
+///
+/// # Walletd Endpoint
+/// `POST api/debug/mine`
+///
+/// # Description
+/// Mine n blocks to a specified address. This is a debug endpoint intended to be used on CI/CD test networks only.
+/// This method is only supported on walletd nodes started with `-debug` flag.
+///
+/// # Fields
+/// - `address`: The address where blocks will be mined to. (`types.Address` type in Go)
+///   - [Go Source for Address Type](https://github.com/SiaFoundation/core/blob/300042fd2129381468356dcd87c5e9a6ad94c0ef/types/types.go#L165)
+/// - `blocks`: The amount of blocks to mine. (`int` type in Go)
+///
+/// # Response
+/// - The response is `HTTP 204 NO CONTENT`, which is represented by `EmptyResponse` in Rust.
+///   This indicates that the request was successful but there is no response body.
+///
+/// # References
+/// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/1e56661fa23bb39438ec869c91d661d51bc889a4/api/server.go#L872)
+///
+/// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
+#[derive(Clone, Deserialize, Serialize, Debug)]
+pub struct DebugMineRequest {
+    pub address: Address,
+    pub blocks: i64,
+}
+
+impl SiaApiRequest for DebugMineRequest {
     type Response = EmptyResponse;
 
     fn is_empty_response() -> Option<Self::Response> { Some(EmptyResponse) }
 
     fn to_endpoint_schema(&self) -> Result<EndpointSchema, ApiClientError> {
+        // Serialize the request into a JSON string
+        let body = serde_json::to_string(self).map_err(ApiClientError::Serde)?;
         Ok(
-            EndpointSchemaBuilder::new(ENDPOINT_TXPOOL_TRANSACTIONS.to_owned(), SchemaMethod::Get).build(), // No path_params, query_params, or body needed for this request
+            EndpointSchemaBuilder::new(ENDPOINT_DEBUG_MINE.to_owned(), SchemaMethod::Post)
+                .body(Body::Utf8(body)) // Set the JSON body for the POST request
+                .build(),
         )
     }
 }

@@ -1,9 +1,6 @@
 use crate::blake2b_internal::{public_key_leaf, sigs_required_leaf, standard_unlock_hash, timelock_leaf, Accumulator};
-use crate::encoding::{Encodable, Encoder, PrefixedH256, PrefixedPublicKey};
-use crate::specifier::Specifier;
-use crate::transaction::{Preimage, SatisfiedPolicy};
-use crate::types::{Address, H256};
-use crate::{PublicKey, Signature};
+use crate::encoding::{Encodable, Encoder};
+use crate::types::{Address, Hash256, PublicKey, Specifier};
 use nom::bytes::complete::{take_until, take_while, take_while_m_n};
 use nom::character::complete::char;
 use nom::combinator::all_consuming;
@@ -15,62 +12,103 @@ use std::str::FromStr;
 
 const POLICY_VERSION: u8 = 1u8;
 
+/*
+The full representation of the atomic swap contract is as follows:
+    SpendPolicy::Threshold {
+        n: 1,
+        of: vec![
+            SpendPolicy::Threshold {
+                n: 2,
+                of: vec![
+                    SpendPolicy::Hash(<sha256(secret)>),
+                    SpendPolicy::PublicKey(<Alice pubkey>)
+                ]
+            },
+            SpendPolicy::Threshold {
+                n: 2,
+                of: vec![
+                    SpendPolicy::After(<timestamp>),
+                    SpendPolicy::PublicKey(<Bob pubkey>)
+                ]
+            },
+        ]
+    }
+
+In English, the above specifies that:
+    - Alice can spend the UTXO if:
+        - Alice provides the preimage of the SHA256 hash specified in the UTXO (the secret)
+        - Alice provides a valid signature
+    - Bob can spend the UTXO if:
+        - the current time is greater than the specified timestamp
+        - Bob provides a valid signature
+
+To lock funds in such a contract, we generate the address(see SpendPolicy::address) of the above SpendPolicy and use this Address in a transaction output.
+
+The resulting UTXO can then be spent by either Alice or Bob by meeting the conditions specified above.
+
+It is only neccesary to reveal the path that will be satisfied. The other path will be opacified(see SpendPolicy::opacify) and replaced with SpendPolicy::Opaque(<hash of unused path>).
+
+Alice can spend the UTXO by providing a signature, the secret and revealing the relevant path within the full SpendPolicy.
+
+Alice can construct the following SatisfiedPolicy to spend the UTXO:
+
+SatisfiedPolicy {
+    policy: SpendPolicy::Threshold {
+                n: 1,
+                of: vec![
+                    SpendPolicy::Threshold {
+                        n: 2,
+                        of: vec![
+                            SpendPolicy::Hash(<sha256(secret)>),
+                            SpendPolicy::PublicKey(<Alice pubkey>)
+                        ]
+                    },
+                    SpendPolicy::Opaque(<hash of unused path>),
+                ]
+            },
+    signatures: vec![<Alice signature>],
+    preimages: vec![<secret>]
+}
+
+Similarly, Bob can spend the UTXO with the following SatisfiedPolicy assuming he waits until the timestamp has passed:
+
+SatisfiedPolicy {
+    policy: SpendPolicy::Threshold {
+                n: 1,
+                of: vec![
+                    SpendPolicy::Opaque(<hash of unused path>),
+                    SpendPolicy::Threshold {
+                        n: 2,
+                        of: vec![
+                            SpendPolicy::After(<timestamp>),
+                            SpendPolicy::PublicKey(<Bob pubkey>)
+                        ]
+                    }
+                ]
+            },
+    signatures: vec![<Bob signature>],
+    preimages: vec![]
+}
+
+*/
+
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(tag = "type", content = "policy")]
 pub enum SpendPolicy {
+    #[serde(rename = "above")]
     Above(u64),
+    #[serde(rename = "after")]
     After(u64),
+    #[serde(rename = "pk")]
     PublicKey(PublicKey),
-    Hash(H256),
+    #[serde(rename = "h")]
+    Hash(Hash256),
+    #[serde(rename = "thresh")]
     Threshold { n: u8, of: Vec<SpendPolicy> },
+    #[serde(rename = "opaque")]
     Opaque(Address),
+    #[serde(rename = "uc")]
     UnlockConditions(UnlockCondition), // For v1 compatibility
-}
-
-/// Helper to serialize/deserialize SpendPolicy with prefixed PublicKey and H256
-#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
-#[serde(tag = "type", content = "policy", rename_all = "camelCase")]
-pub enum SpendPolicyHelper {
-    Above(u64),
-    After(u64),
-    Pk(PrefixedPublicKey),
-    H(PrefixedH256),
-    Thresh { n: u8, of: Vec<SpendPolicyHelper> },
-    Opaque(Address),
-    Uc(UnlockCondition), // For v1 compatibility
-}
-
-impl From<SpendPolicyHelper> for SpendPolicy {
-    fn from(helper: SpendPolicyHelper) -> Self {
-        match helper {
-            SpendPolicyHelper::Above(height) => SpendPolicy::Above(height),
-            SpendPolicyHelper::After(time) => SpendPolicy::After(time),
-            SpendPolicyHelper::Pk(pk) => SpendPolicy::PublicKey(pk.0),
-            SpendPolicyHelper::H(hash) => SpendPolicy::Hash(hash.0),
-            SpendPolicyHelper::Thresh { n, of } => SpendPolicy::Threshold {
-                n,
-                of: of.into_iter().map(SpendPolicy::from).collect(),
-            },
-            SpendPolicyHelper::Opaque(address) => SpendPolicy::Opaque(address),
-            SpendPolicyHelper::Uc(uc) => SpendPolicy::UnlockConditions(uc),
-        }
-    }
-}
-
-impl From<SpendPolicy> for SpendPolicyHelper {
-    fn from(policy: SpendPolicy) -> Self {
-        match policy {
-            SpendPolicy::Above(height) => SpendPolicyHelper::Above(height),
-            SpendPolicy::After(time) => SpendPolicyHelper::After(time),
-            SpendPolicy::PublicKey(pk) => SpendPolicyHelper::Pk(PrefixedPublicKey(pk)),
-            SpendPolicy::Hash(hash) => SpendPolicyHelper::H(PrefixedH256(hash)),
-            SpendPolicy::Threshold { n, of } => SpendPolicyHelper::Thresh {
-                n,
-                of: of.into_iter().map(SpendPolicyHelper::from).collect(),
-            },
-            SpendPolicy::Opaque(address) => SpendPolicyHelper::Opaque(address),
-            SpendPolicy::UnlockConditions(uc) => SpendPolicyHelper::Uc(uc),
-        }
-    }
 }
 
 impl Encodable for SpendPolicy {
@@ -162,99 +200,82 @@ impl SpendPolicy {
 
     pub fn public_key(pk: PublicKey) -> Self { SpendPolicy::PublicKey(pk) }
 
-    pub fn hash(h: H256) -> Self { SpendPolicy::Hash(h) }
+    pub fn hash(h: Hash256) -> Self { SpendPolicy::Hash(h) }
 
     pub fn threshold(n: u8, of: Vec<SpendPolicy>) -> Self { SpendPolicy::Threshold { n, of } }
 
     pub fn opaque(p: &SpendPolicy) -> Self { SpendPolicy::Opaque(p.address()) }
 
+    pub fn unlock_condition(pubkeys: Vec<PublicKey>, timelock: u64, signatures_required: u64) -> Self {
+        SpendPolicy::UnlockConditions(UnlockCondition::new(pubkeys, timelock, signatures_required))
+    }
+
     pub fn anyone_can_spend() -> Self { SpendPolicy::threshold(0, vec![]) }
 
     pub fn opacify(&self) -> Self { SpendPolicy::Opaque(self.address()) }
-
-    pub fn satisfy<T: SatisfyPolicy>(&self, data: T) -> Result<SatisfiedPolicy, String> { data.satisfy(self) }
 }
 
-pub trait SatisfyPolicy {
-    fn satisfy(self, policy: &SpendPolicy) -> Result<SatisfiedPolicy, String>;
-}
+impl SpendPolicy {
+    /// Create a HTLC SpendPolicy.
+    /// Arguments:
+    /// - success_public_key: the public key that is able to claim the funds immediately by providing
+    ///     the preimage of `secret_hash`
+    /// - refund_public_key: the public key that is able to claim the funds after `lock_time`
+    /// - lock_time: the timestamp after which `refund_public_key` can claim the funds
+    /// - secret_hash: the sha256 hash of the secret
+    pub fn atomic_swap(
+        success_public_key: &PublicKey,
+        refund_public_key: &PublicKey,
+        lock_time: u64,
+        secret_hash: &Hash256,
+    ) -> Self {
+        let policy_after = SpendPolicy::After(lock_time);
+        let policy_hash = SpendPolicy::Hash(secret_hash.clone());
 
-impl SatisfyPolicy for Signature {
-    fn satisfy(self, policy: &SpendPolicy) -> Result<SatisfiedPolicy, String> {
-        match policy {
-            SpendPolicy::PublicKey(_) | SpendPolicy::UnlockConditions(_) => Ok(SatisfiedPolicy {
-                policy: policy.clone(),
-                signatures: vec![self],
-                preimages: vec![],
-            }),
-            _ => Err("Failed to satisfy. Policy is not PublicKey or UnlockConditions".to_string()),
+        let policy_success = SpendPolicy::Threshold {
+            n: 2,
+            of: vec![SpendPolicy::PublicKey(success_public_key.clone()), policy_hash],
+        };
+
+        let policy_refund = SpendPolicy::Threshold {
+            n: 2,
+            of: vec![SpendPolicy::PublicKey(refund_public_key.clone()), policy_after],
+        };
+
+        SpendPolicy::Threshold {
+            n: 1,
+            of: vec![policy_success, policy_refund],
         }
     }
-}
 
-impl SatisfyPolicy for Preimage {
-    fn satisfy(self, policy: &SpendPolicy) -> Result<SatisfiedPolicy, String> {
-        match policy {
-            SpendPolicy::Hash(_) => Ok(SatisfiedPolicy {
-                policy: policy.clone(),
-                signatures: vec![],
-                preimages: vec![self],
-            }),
-            _ => Err("Failed to satisfy. Policy is not Hash".to_string()),
+    pub fn atomic_swap_success(
+        success_public_key: &PublicKey,
+        refund_public_key: &PublicKey,
+        lock_time: u64,
+        secret_hash: &Hash256,
+    ) -> Self {
+        match Self::atomic_swap(success_public_key, refund_public_key, lock_time, secret_hash) {
+            SpendPolicy::Threshold { n, mut of } => {
+                of[1] = of[1].opacify();
+                SpendPolicy::Threshold { n, of }
+            },
+            _ => unreachable!(),
         }
     }
-}
 
-impl SatisfyPolicy for () {
-    fn satisfy(self, policy: &SpendPolicy) -> Result<SatisfiedPolicy, String> {
-        match policy {
-            SpendPolicy::Above(_) | SpendPolicy::After(_) | SpendPolicy::Opaque(_) => Ok(SatisfiedPolicy {
-                policy: policy.clone(),
-                signatures: vec![],
-                preimages: vec![],
-            }),
-            _ => Err("Failed to satisfy. Policy is not Above, After or Opaque".to_string()),
+    pub fn atomic_swap_refund(
+        success_public_key: &PublicKey,
+        refund_public_key: &PublicKey,
+        lock_time: u64,
+        secret_hash: &Hash256,
+    ) -> Self {
+        match Self::atomic_swap(success_public_key, refund_public_key, lock_time, secret_hash) {
+            SpendPolicy::Threshold { n, mut of } => {
+                of[0] = of[0].opacify();
+                SpendPolicy::Threshold { n, of }
+            },
+            _ => unreachable!(),
         }
-    }
-}
-
-pub fn spend_policy_atomic_swap(alice: PublicKey, bob: PublicKey, lock_time: u64, hash: H256) -> SpendPolicy {
-    let policy_after = SpendPolicy::After(lock_time);
-    let policy_hash = SpendPolicy::Hash(hash);
-
-    let policy_success = SpendPolicy::Threshold {
-        n: 2,
-        of: vec![SpendPolicy::PublicKey(alice), policy_hash],
-    };
-
-    let policy_refund = SpendPolicy::Threshold {
-        n: 2,
-        of: vec![SpendPolicy::PublicKey(bob), policy_after],
-    };
-
-    SpendPolicy::Threshold {
-        n: 1,
-        of: vec![policy_success, policy_refund],
-    }
-}
-
-pub fn spend_policy_atomic_swap_success(alice: PublicKey, bob: PublicKey, lock_time: u64, hash: H256) -> SpendPolicy {
-    match spend_policy_atomic_swap(alice, bob, lock_time, hash) {
-        SpendPolicy::Threshold { n, mut of } => {
-            of[1] = of[1].opacify();
-            SpendPolicy::Threshold { n, of }
-        },
-        _ => unreachable!(),
-    }
-}
-
-pub fn spend_policy_atomic_swap_refund(alice: PublicKey, bob: PublicKey, lock_time: u64, hash: H256) -> SpendPolicy {
-    match spend_policy_atomic_swap(alice, bob, lock_time, hash) {
-        SpendPolicy::Threshold { n, mut of } => {
-            of[0] = of[0].opacify();
-            SpendPolicy::Threshold { n, of }
-        },
-        _ => unreachable!(),
     }
 }
 
@@ -422,7 +443,7 @@ impl UnlockCondition {
         }
     }
 
-    pub fn unlock_hash(&self) -> H256 {
+    pub fn unlock_hash(&self) -> Hash256 {
         // almost all UnlockConditions are standard, so optimize for that case
         if let UnlockKey::Ed25519(public_key) = &self.unlock_keys[0] {
             if self.timelock == 0 && self.unlock_keys.len() == 1 && self.signatures_required == 1 {

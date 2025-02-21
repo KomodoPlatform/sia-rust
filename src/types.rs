@@ -1,20 +1,36 @@
 use crate::blake2b_internal::standard_unlock_hash;
-use crate::encoding::{Encodable, Encoder, PrefixedH256};
-pub use crate::hash::H256;
-pub use crate::transaction::Currency;
-use crate::transaction::{FileContractElementV1, SiacoinElement, SiafundElement, StateElement, V1Transaction,
-                         V2FileContractResolution, V2Transaction};
-use crate::PublicKey;
+use crate::encoding::{Encodable, Encoder};
 use blake2b_simd::Params;
 use chrono::{DateTime, Utc};
-use hex::FromHexError;
+use derive_more::{Display, From, Into};
+use hex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
-use serde_with::{serde_as, FromInto};
-use std::convert::From;
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::str::FromStr;
+use thiserror::Error;
+
+mod hash;
+pub use hash::{Hash256, Hash256Error};
+
+mod signature;
+pub use signature::{Signature, SignatureError};
+
+mod keypair;
+pub use keypair::{Keypair, KeypairError, PublicKey, PublicKeyError};
+
+mod spend_policy;
+pub use spend_policy::*;
+
+mod transaction;
+pub use transaction::*;
+
+mod specifier;
+pub use specifier::*;
+
+mod consensus_updates;
+pub use consensus_updates::*;
 
 const ADDRESS_HASH_LENGTH: usize = 32;
 const ADDRESS_CHECKSUM_LENGTH: usize = 6;
@@ -22,7 +38,7 @@ const ADDRESS_CHECKSUM_LENGTH: usize = 6;
 // TODO this could probably include the checksum within the data type
 // generating the checksum on the fly is how Sia Go does this however
 #[derive(Debug, Clone, PartialEq)]
-pub struct Address(pub H256);
+pub struct Address(pub Hash256);
 
 impl Serialize for Address {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -45,7 +61,7 @@ impl<'de> Deserialize<'de> for Address {
             type Value = Address;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a string prefixed with 'addr:' and followed by a 76-character hex string")
+                formatter.write_str("a 76-character hex string representing a Sia address")
             }
 
             fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
@@ -61,11 +77,12 @@ impl<'de> Deserialize<'de> for Address {
 }
 
 impl Address {
-    pub fn str_without_prefix(&self) -> String {
-        let bytes = self.0 .0.as_ref();
-        let checksum = blake2b_checksum(bytes);
-        format!("{}{}", hex::encode(bytes), hex::encode(checksum))
+    pub fn standard_address_v1(pubkey: &PublicKey) -> Self {
+        let hash = standard_unlock_hash(pubkey);
+        Address(hash)
     }
+
+    pub fn from_public_key(pubkey: &PublicKey) -> Self { SpendPolicy::PublicKey(pubkey.clone()).address() }
 }
 
 impl Encodable for Address {
@@ -73,137 +90,70 @@ impl Encodable for Address {
 }
 
 impl fmt::Display for Address {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "addr:{}", self.str_without_prefix()) }
-}
-
-impl fmt::Display for ParseAddressError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "Failed to parse Address: {:?}", self) }
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub enum ParseAddressError {
-    #[serde(rename = "Address must begin with addr: prefix")]
-    MissingPrefix,
-    InvalidHexEncoding(String),
-    InvalidChecksum,
-    InvalidLength,
-}
-
-impl From<FromHexError> for ParseAddressError {
-    fn from(e: FromHexError) -> Self { ParseAddressError::InvalidHexEncoding(e.to_string()) }
-}
-
-impl FromStr for Address {
-    type Err = ParseAddressError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if !s.starts_with("addr:") {
-            return Err(ParseAddressError::MissingPrefix);
-        }
-
-        let without_prefix = &s[ADDRESS_CHECKSUM_LENGTH - 1..];
-        if without_prefix.len() != (ADDRESS_HASH_LENGTH + ADDRESS_CHECKSUM_LENGTH) * 2 {
-            return Err(ParseAddressError::InvalidLength);
-        }
-
-        let (address_hex, checksum_hex) = without_prefix.split_at(ADDRESS_HASH_LENGTH * 2);
-
-        let address_bytes: [u8; ADDRESS_HASH_LENGTH] = hex::decode(address_hex)
-            .map_err(ParseAddressError::from)?
-            .try_into()
-            .map_err(|_| ParseAddressError::InvalidLength)?;
-
-        let checksum = hex::decode(checksum_hex).map_err(ParseAddressError::from)?;
-        let checksum_bytes: [u8; ADDRESS_CHECKSUM_LENGTH] =
-            checksum.try_into().map_err(|_| ParseAddressError::InvalidLength)?;
-
-        if checksum_bytes != blake2b_checksum(&address_bytes) {
-            return Err(ParseAddressError::InvalidChecksum);
-        }
-
-        Ok(Address(H256::from(address_bytes)))
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let bytes = self.0 .0.as_ref();
+        let checksum = blake2b_checksum(bytes);
+        write!(f, "{}{}", hex::encode(bytes), hex::encode(checksum))
     }
 }
 
-// Sia uses the first 6 bytes of blake2b(preimage) appended
-// to address as checksum
+#[derive(Debug, Error)]
+pub enum AddressError {
+    #[error("Address::from_str Failed to decode hex: {0}")]
+    InvalidHex(#[from] hex::FromHexError),
+    #[error("Address::from_str: Invalid length, expected 38 byte hex string, found: {0}")]
+    InvalidLength(String),
+    #[error("Address::from_str: invalid checksum, expected:{expected}, found:{found}")]
+    InvalidChecksum { expected: String, found: String },
+}
+
+impl FromStr for Address {
+    type Err = AddressError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // An address consists of a 32 byte blake2h hash followed by a 6 byte checksum
+        let address_bytes = hex::decode(s)?;
+        if address_bytes.len() != ADDRESS_HASH_LENGTH + ADDRESS_CHECKSUM_LENGTH {
+            return Err(AddressError::InvalidLength(s.to_owned()));
+        }
+
+        let hash_bytes = &address_bytes[0..ADDRESS_HASH_LENGTH];
+        let checksum_bytes = &address_bytes[ADDRESS_HASH_LENGTH..];
+
+        let checksum = blake2b_checksum(hash_bytes);
+        if checksum_bytes != checksum {
+            return Err(AddressError::InvalidChecksum {
+                expected: hex::encode(checksum),
+                found: hex::encode(checksum_bytes),
+            });
+        }
+        let inner_hash = Hash256::try_from(hash_bytes).expect("hash_bytes is 32 bytes long");
+        Ok(Address(inner_hash))
+    }
+}
+
+/// Return the first 6 bytes of the blake2b(preimage) hash
+/// Used in generating the checksum for a Sia address
 fn blake2b_checksum(preimage: &[u8]) -> [u8; 6] {
     let hash = Params::new().hash_length(32).to_state().update(preimage).finalize();
     hash.as_bytes()[0..6].try_into().expect("array is 64 bytes long")
 }
 
-pub fn v1_standard_address_from_pubkey(pubkey: &PublicKey) -> Address {
-    let hash = standard_unlock_hash(pubkey);
-    Address(hash)
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct BlockID(pub H256);
-
-impl From<BlockID> for H256 {
-    fn from(sia_hash: BlockID) -> Self { sia_hash.0 }
-}
-
-impl From<H256> for BlockID {
-    fn from(h256: H256) -> Self { BlockID(h256) }
-}
-
-impl<'de> Deserialize<'de> for BlockID {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct BlockIDVisitor;
-
-        impl<'de> serde::de::Visitor<'de> for BlockIDVisitor {
-            type Value = BlockID;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a string prefixed with 'bid:' and followed by a 64-character hex string")
-            }
-
-            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                if let Some(hex_str) = value.strip_prefix("bid:") {
-                    H256::from_str(hex_str)
-                        .map(BlockID)
-                        .map_err(|_| E::invalid_value(serde::de::Unexpected::Str(value), &self))
-                } else {
-                    Err(E::invalid_value(serde::de::Unexpected::Str(value), &self))
-                }
-            }
-        }
-
-        deserializer.deserialize_str(BlockIDVisitor)
-    }
-}
-
-impl Serialize for BlockID {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&self.to_string())
-    }
-}
-
-impl fmt::Display for BlockID {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "bid:{}", self.0) }
-}
+#[derive(Clone, Debug, Display, PartialEq, From, Into, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct BlockId(pub Hash256);
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct ChainIndex {
     pub height: u64,
-    pub id: BlockID,
+    pub id: BlockId,
 }
 
 // TODO unit test
 impl Encodable for ChainIndex {
     fn encode(&self, encoder: &mut Encoder) {
         encoder.write_u64(self.height);
-        let block_id: H256 = self.id.clone().into();
+        let block_id: Hash256 = self.id.clone().into();
         block_id.encode(encoder);
     }
 }
@@ -242,12 +192,11 @@ pub enum EventType {
     V2ContractResolution,
 }
 
-#[serde_as]
 #[derive(Clone, Debug, Serialize)]
 pub struct Event {
-    #[serde_as(as = "FromInto<PrefixedH256>")]
-    pub id: H256,
+    pub id: Hash256,
     pub index: ChainIndex,
+    pub confirmations: u64,
     pub timestamp: DateTime<Utc>,
     #[serde(rename = "maturityHeight")]
     pub maturity_height: u64,
@@ -265,8 +214,9 @@ impl<'de> Deserialize<'de> for Event {
     {
         #[derive(Deserialize, Debug)]
         struct EventHelper {
-            id: PrefixedH256,
+            id: Hash256,
             index: ChainIndex,
+            confirmations: u64,
             timestamp: DateTime<Utc>,
             #[serde(rename = "maturityHeight")]
             maturity_height: u64,
@@ -294,7 +244,8 @@ impl<'de> Deserialize<'de> for Event {
                 .map(EventDataWrapper::V2Transaction)
                 .map_err(serde::de::Error::custom),
             EventType::V1ContractResolution => {
-                return Err(serde::de::Error::custom("V1ContractResolution not supported"))
+                // FIXME we require this to safely deser V2Transactions sent over the wire
+                return Err(serde::de::Error::custom("V1ContractResolution not supported"));
             },
             EventType::V2ContractResolution => serde_json::from_value::<EventV2ContractResolution>(helper.data)
                 .map(|data| EventDataWrapper::V2FileContractResolution(Box::new(data)))
@@ -302,8 +253,9 @@ impl<'de> Deserialize<'de> for Event {
         }?;
 
         Ok(Event {
-            id: helper.id.into(),
+            id: helper.id,
             index: helper.index,
+            confirmations: helper.confirmations,
             timestamp: helper.timestamp,
             maturity_height: helper.maturity_height,
             event_type: helper.event_type,
