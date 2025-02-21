@@ -2,8 +2,9 @@ use super::ApiClient;
 use crate::transport::endpoints::{AddressBalanceRequest, AddressBalanceResponse, AddressesEventsRequest,
                                   ConsensusIndexRequest, ConsensusTipRequest, ConsensusTipstateRequest,
                                   ConsensusTipstateResponse, ConsensusUpdatesRequest, ConsensusUpdatesResponse,
-                                  DebugMineRequest, GetAddressUtxosRequest, GetEventRequest, TxpoolBroadcastRequest,
-                                  TxpoolTransactionsRequest, UtxosWithBasis};
+                                  DebugMineRequest, GetAddressUtxosRequest, GetEventRequest,
+                                  OutputsSiacoinSpentRequest, TxpoolBroadcastRequest, TxpoolTransactionsRequest,
+                                  UtxosWithBasis};
 use crate::types::{Address, Currency, Event, EventDataWrapper, Hash256, PublicKey, SiacoinElement, SiacoinOutputId,
                    SpendPolicy, TransactionId, UtxoWithBasis, V2Transaction, V2TransactionBuilder};
 use async_trait::async_trait;
@@ -113,10 +114,10 @@ pub(crate) mod generic_errors {
 
     #[derive(Debug, Error)]
     pub enum FindWhereUtxoSpentErrorGeneric<ClientError> {
-        #[error("ApiClientHelpers::find_where_utxo_spent: failed to fetch consensus updates {0}")]
-        FetchUpdates(#[from] GetConsensusUpdatesErrorGeneric<ClientError>),
-        #[error("ApiClientHelpers::find_where_utxo_spent: SiacoinOutputId:{id} was not spent in the expected block")]
-        SpendNotInBlock { id: SiacoinOutputId },
+        #[error("ApiClientHelpers::find_where_utxo_spent: failed to fetch transaction event: {0}")]
+        FetchEvent(#[from] ClientError),
+        #[error("ApiClientHelpers::find_where_utxo_spent: expected V2Transaction event, found: {0:?}")]
+        WrongEventType(Event),
     }
 
     #[derive(Debug, Error)]
@@ -428,38 +429,30 @@ pub trait ApiClientHelpers: ApiClient {
     }
 
     /// Find the transaction that spent the given utxo
-    /// Scans the blockchain starting from `begin_height`
-    /// Returns Ok(None) if the utxo has not been spent
+    /// Wrapper for the /api/outputs/siacoin/:id/spent endpoint that assumes the utxo was
+    /// spent in a V2Transaction. Returns None if the utxo has not been spent.
     async fn find_where_utxo_spent(
         &self,
         output_id: &SiacoinOutputId,
-        begin_height: u64,
     ) -> Result<Option<V2Transaction>, FindWhereUtxoSpentErrorGeneric<Self::Error>> {
-        let updates = self.get_consensus_updates(begin_height).await?;
-
-        // find the update that has the provided `output_id`` in its "spent" field
-        let update_option = updates
-            .applied
-            .into_iter()
-            .find(|applied_update| applied_update.update.spent.contains(&output_id.0));
-
-        // If no update with the output_id was found, return Ok(None) indicating no error occured,
-        // but the spend transaction has not been found
-        let update = match update_option {
-            Some(update) => update,
-            None => return Ok(None),
+        let request = OutputsSiacoinSpentRequest {
+            output_id: output_id.clone(),
         };
 
-        // scan the block indicated by the update to find the transaction that spent the utxo
-        let tx = update
-            .block
-            .v2
-            .transactions
-            .into_iter()
-            .find(|tx| tx.siacoin_inputs.iter().any(|input| input.parent.id == *output_id))
-            .ok_or(FindWhereUtxoSpentErrorGeneric::SpendNotInBlock { id: output_id.clone() })?;
+        let response = self.dispatcher(request).await?;
 
-        Ok(Some(tx))
+        match response.event {
+            Some(event) => {
+                let tx = match event.data {
+                    EventDataWrapper::V2Transaction(tx) => tx,
+                    // utxo was spent in an unexpected way
+                    _ => return Err(FindWhereUtxoSpentErrorGeneric::<Self::Error>::WrongEventType(event)),
+                };
+                Ok(Some(tx))
+            },
+            // The utxo has not been spent
+            None => Ok(None),
+        }
     }
 
     /**

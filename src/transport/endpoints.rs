@@ -1,6 +1,6 @@
 use crate::transport::client::{Body, EndpointSchema, EndpointSchemaBuilder, SchemaMethod};
 use crate::types::{Address, ApiApplyUpdate, BlockId, ChainIndex, Currency, Event, Hash256, SiacoinElement,
-                   V1Transaction, V2Transaction};
+                   SiacoinOutputId, V1Transaction, V2Transaction};
 use crate::utils::deserialize_null_as_empty_vec;
 use chrono::{DateTime, Utc};
 use serde::de::DeserializeOwned;
@@ -20,6 +20,7 @@ const ENDPOINT_TXPOOL_BROADCAST: &str = "api/txpool/broadcast";
 const ENDPOINT_TXPOOL_FEE: &str = "api/txpool/fee";
 const ENDPOINT_TXPOOL_TRANSACTIONS: &str = "api/txpool/transactions";
 const ENDPOINT_DEBUG_MINE: &str = "api/debug/mine";
+const ENDPOINT_OUTPUTS_SIACOIN_SPENT: &str = "api/outputs/siacoin/{output_id}/spent";
 
 pub trait SiaApiRequest: Send {
     type Response: DeserializeOwned;
@@ -594,6 +595,52 @@ impl SiaApiRequest for DebugMineRequest {
         Ok(
             EndpointSchemaBuilder::new(ENDPOINT_DEBUG_MINE.to_owned(), SchemaMethod::Post)
                 .body(Body::Utf8(body)) // Set the JSON body for the POST request
+                .build(),
+        )
+    }
+}
+/// Represents the request-response pair for finding where a given Siacoin UTXO was spent.
+///
+/// # Walletd Endpoint
+/// `GET /outputs/siacoin/:id/spent`
+///
+/// # Description
+/// Returns the Event in which the given Siacoin UTXO was spent if it has been spent. Walletd only
+/// maintains spent UTXOs for 144 blocks( ~24 hours) after they are spent. After this time, the response
+/// will be `HTTP 404 NOT FOUND`.
+///
+/// # Response
+/// - The response is a struct consisting of a boolean `spent` field and an optional `event` field of
+///  type `types.Event`. The `spent` field indicates whether the UTXO has been spent, and the `event`
+///  field contains the event in which the UTXO was spent.
+///
+/// # References
+/// - [Go Source for the HTTP Endpoint](FIXME Alright - its not merged to master branch yet)
+///
+/// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
+#[derive(Clone, Deserialize, Serialize, Debug)]
+pub struct OutputsSiacoinSpentRequest {
+    pub output_id: SiacoinOutputId,
+}
+
+#[derive(Clone, Deserialize, Serialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct OutputsSiacoinSpentResponse {
+    pub spent: bool,
+    #[serde(default)]
+    pub event: Option<Event>,
+}
+
+impl SiaApiRequest for OutputsSiacoinSpentRequest {
+    type Response = OutputsSiacoinSpentResponse;
+
+    fn to_endpoint_schema(&self) -> Result<EndpointSchema, SiaApiRequestError> {
+        let path_params: HashMap<String, String> =
+            HashMap::from([("output_id".to_owned(), self.output_id.to_string())]);
+
+        Ok(
+            EndpointSchemaBuilder::new(ENDPOINT_OUTPUTS_SIACOIN_SPENT.to_owned(), SchemaMethod::Get)
+                .path_params(path_params)
                 .build(),
         )
     }
