@@ -11,6 +11,10 @@
 
 Rust nightly-2023-06-01 is the only officially supported toolchain. This was chosen to keep this library inline with Komodo DeFi Framework. Similarly, dependencies have been locked to explicit versions to align with Komodo DeFi Framework's dependency tree.
 
+## Contributing
+
+Branch name must have semantic prefix, alphanumeric with dashes, 5-50 characters ( `^(feat|fix|chore|docs|style|refactor|test|perf|ci)\/[a-z0-9\-_]{5,50}$` )
+
 ## Contact
 
 For any questions or suggestions, please open an issue on GitHub.
