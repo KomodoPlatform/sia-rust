@@ -5,8 +5,10 @@ use serde::{Deserialize, Serialize};
 
 /// This module consists of types related to walletd's `api/consensus/updates/:index` endpoint.
 /// Only a partial implementation is done here to facilitate `ApiClientHelpers::find_where_utxo_spent`
-/// It's possible these may be extended in the future, so a dedicated
-/// module is created for this.
+/// It's possible these may be extended in the future, so a dedicated module is created for this.
+
+// FIXME Alright - this may now be unneccessary with the addition of [GET] /outputs/siacoin/:id/spent
+// Sia team integrated this logic into the walletd API
 
 /// Minimal implementation of Go type `api.ApplyUpdate`
 /// As per walletd: "An ApplyUpdate is a consensus update that was applied to the best chain."
