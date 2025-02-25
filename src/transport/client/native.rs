@@ -49,8 +49,10 @@ pub mod error {
         DispatcherBuildRequest(Box<ClientError>),
         #[error("NativeClient::dispatcher: Failed to execute reqwest::Request: {0}")]
         DispatcherExecuteRequest(reqwest::Error),
-        #[error("NativeClient::dispatcher: Failed to deserialize response body: {0}")]
-        DispatcherDeserializeBody(reqwest::Error),
+        #[error("NativeClient::dispatcher: Failed to deserialize response body:{body} reqwest error: {error} ")]
+        DispatcherDeserializeJsonBody { error: serde_json::Error, body: String },
+        #[error("NativeClient::dispatcher: Failed to deserialize response body as JSON or UTF-8: {0}")]
+        DispatcherDeserializeUtf8Body(reqwest::Error),
         #[error("NativeClient::dispatcher: Expected:{expected_type} found 204 No Content")]
         DispatcherUnexpectedEmptyResponse { expected_type: String },
         #[error("NativeClient::dispatcher: unexpected HTTP status:{status} body:{body}")]
@@ -139,10 +141,16 @@ impl ApiClient for Client {
         // Check the response status and return the appropriate result
         match response.status() {
             // Attempt to deserialize the response body to the expected type if the status is OK
-            reqwest::StatusCode::OK => Ok(response
-                .json::<R::Response>()
-                .await
-                .map_err(ClientError::DispatcherDeserializeBody)?),
+            reqwest::StatusCode::OK => {
+                let utf8_body = response
+                    .text()
+                    .await
+                    .map_err(ClientError::DispatcherDeserializeUtf8Body)?;
+                serde_json::from_str(&utf8_body).map_err(|e| ClientError::DispatcherDeserializeJsonBody {
+                    error: e,
+                    body: utf8_body,
+                })
+            },
             // Handle empty responses; throw an error if the response is not expected to be empty
             reqwest::StatusCode::NO_CONTENT => {
                 if let Some(resp_type) = R::is_empty_response() {
