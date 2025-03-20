@@ -158,7 +158,7 @@ pub trait ApiClientHelpers: ApiClient {
         address: &Address,
         limit: Option<i64>,
         offset: Option<i64>,
-        include_mempool: Option<bool>,
+        include_mempool: bool,
     ) -> Result<UtxosWithBasis, GetUnspentOutputsErrorGeneric<Self::Error>> {
         Ok(self
             .dispatcher(GetAddressUtxosRequest {
@@ -189,7 +189,7 @@ pub trait ApiClientHelpers: ApiClient {
         address: &Address,
         total_amount: Currency,
     ) -> Result<(UtxosWithBasis, Currency), SelectUtxosErrorGeneric<Self::Error>> {
-        let mut unspent_outputs = self.get_unspent_outputs(address, None, None).await?;
+        let mut unspent_outputs = self.get_unspent_outputs(address, None, None, true).await?;
 
         // Sort outputs from largest to smallest
         unspent_outputs
@@ -302,7 +302,7 @@ pub trait ApiClientHelpers: ApiClient {
         let output_address = tx.siacoin_outputs[vout_index as usize].address.clone();
 
         // fetch unspent outputs of the address
-        let address_utxos = self.get_unspent_outputs(&output_address, None, None).await?;
+        let address_utxos = self.get_unspent_outputs(&output_address, None, None, true).await?;
 
         // filter the utxos to find any matching the expected SiacoinOutputId
         let filtered_utxos: Vec<SiacoinElement> = address_utxos

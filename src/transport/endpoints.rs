@@ -363,7 +363,7 @@ pub type AddressesEventsResponse = Vec<Event>;
 ///   - [Go Source for Address Type](https://github.com/SiaFoundation/core/blob/300042fd2129381468356dcd87c5e9a6ad94c0ef/types/types.go#L165)
 /// - `limit`: An optional limit on the number of results. Corresponds to `int64` in Go.
 /// - `offset`: An optional offset for paginated results. Corresponds to `int64` in Go.
-/// - `include_mempool`: An optional boolean, set to `true` to include UTXOs from the mempool.
+/// - `include_mempool`: boolean, set to `true` to include UTXOs from the mempool.
 ///
 /// # Response
 /// - The response is a `GetAddressUtxosResponse` in Rust, corresponding to `SiacoinElementsResponse` in Go.
@@ -378,7 +378,7 @@ pub struct GetAddressUtxosRequest {
     pub address: Address,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
-    pub include_mempool: Option<bool>,
+    pub include_mempool: bool,
 }
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
@@ -406,7 +406,7 @@ impl SiaApiRequest for GetAddressUtxosRequest {
             query_params.insert("offset".to_owned(), offset.to_string());
         }
 
-        if let Some(true) = self.include_mempool {
+        if self.include_mempool {
             query_params.insert("includeMempool".to_owned(), "true".to_owned());
         }
 
