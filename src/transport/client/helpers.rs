@@ -1,8 +1,8 @@
 use super::ApiClient;
 use crate::transport::endpoints::{AddressBalanceRequest, AddressBalanceResponse, AddressesEventsRequest,
-                                  ConsensusIndexRequest, ConsensusTipRequest, ConsensusTipstateRequest,
-                                  ConsensusTipstateResponse, ConsensusUpdatesRequest, ConsensusUpdatesResponse,
-                                  DebugMineRequest, GetAddressUtxosRequest, GetEventRequest,
+                                  AddressesEventsUnconfirmedRequest, ConsensusIndexRequest, ConsensusTipRequest,
+                                  ConsensusTipstateRequest, ConsensusTipstateResponse, ConsensusUpdatesRequest,
+                                  ConsensusUpdatesResponse, DebugMineRequest, GetAddressUtxosRequest, GetEventRequest,
                                   OutputsSiacoinSpentRequest, TxpoolBroadcastRequest, TxpoolTransactionsRequest,
                                   UtxosWithBasis};
 use crate::types::{Address, Currency, Event, EventDataWrapper, Hash256, PublicKey, SiacoinElement, SiacoinOutputId,
@@ -62,7 +62,7 @@ pub(crate) mod generic_errors {
 
     #[derive(Debug, Error)]
     pub enum GetAddressEventsErrorGeneric<ClientError> {
-        #[error("ApiClientHelpers::get_address_events failed: {0}")]
+        #[error("ApiClientHelpers::get_address_events failed to fetch unspent outputs: {0}")]
         FetchAddressEvents(#[from] ClientError),
     }
 
@@ -158,12 +158,14 @@ pub trait ApiClientHelpers: ApiClient {
         address: &Address,
         limit: Option<i64>,
         offset: Option<i64>,
+        include_mempool: Option<bool>,
     ) -> Result<UtxosWithBasis, GetUnspentOutputsErrorGeneric<Self::Error>> {
         Ok(self
             .dispatcher(GetAddressUtxosRequest {
                 address: address.clone(),
                 limit,
                 offset,
+                include_mempool,
             })
             .await?)
     }
