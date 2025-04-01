@@ -1,8 +1,8 @@
 use super::ApiClient;
 use crate::transport::endpoints::{AddressBalanceRequest, AddressBalanceResponse, AddressesEventsRequest,
-                                  AddressesEventsUnconfirmedRequest, ConsensusIndexRequest, ConsensusTipRequest,
-                                  ConsensusTipstateRequest, ConsensusTipstateResponse, ConsensusUpdatesRequest,
-                                  ConsensusUpdatesResponse, DebugMineRequest, GetAddressUtxosRequest, GetEventRequest,
+                                  ConsensusIndexRequest, ConsensusTipRequest, ConsensusTipstateRequest,
+                                  ConsensusTipstateResponse, ConsensusUpdatesRequest, ConsensusUpdatesResponse,
+                                  DebugMineRequest, GetAddressUtxosRequest, GetEventRequest,
                                   OutputsSiacoinSpentRequest, TxpoolBroadcastRequest, TxpoolTransactionsRequest,
                                   UtxosWithBasis};
 use crate::types::{Address, Currency, Event, EventDataWrapper, Hash256, PublicKey, SiacoinElement, SiacoinOutputId,
