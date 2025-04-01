@@ -11,16 +11,21 @@ use thiserror::Error;
 const ENDPOINT_ADDRESSES_BALANCE: &str = "api/addresses/{address}/balance";
 const ENDPOINT_ADDRESSES_EVENTS: &str = "api/addresses/{address}/events";
 const ENDPOINT_ADDRESSES_UTXOS_SIACOIN: &str = "api/addresses/{address}/outputs/siacoin";
+
 const ENDPOINT_CONSENSUS_TIP: &str = "api/consensus/tip";
 const ENDPOINT_CONSENSUS_INDEX: &str = "api/consensus/index/{height}";
 const ENDPOINT_CONSENSUS_TIPSTATE: &str = "api/consensus/tipstate";
 const ENDPOINT_CONSENSUS_UPDATES: &str = "api/consensus/updates/{height}::{hash}";
+
+const ENDPOINT_DEBUG_MINE: &str = "api/debug/mine";
+
 const ENDPOINT_EVENTS: &str = "api/events/{txid}";
+
+const ENDPOINT_OUTPUTS_SIACOIN_SPENT: &str = "api/outputs/siacoin/{output_id}/spent";
+
 const ENDPOINT_TXPOOL_BROADCAST: &str = "api/txpool/broadcast";
 const ENDPOINT_TXPOOL_FEE: &str = "api/txpool/fee";
 const ENDPOINT_TXPOOL_TRANSACTIONS: &str = "api/txpool/transactions";
-const ENDPOINT_DEBUG_MINE: &str = "api/debug/mine";
-const ENDPOINT_OUTPUTS_SIACOIN_SPENT: &str = "api/outputs/siacoin/{output_id}/spent";
 
 pub trait SiaApiRequest: Send {
     type Response: DeserializeOwned;
