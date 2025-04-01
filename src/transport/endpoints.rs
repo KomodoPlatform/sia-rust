@@ -407,7 +407,7 @@ impl SiaApiRequest for GetAddressUtxosRequest {
         }
 
         if self.include_mempool {
-            query_params.insert("includeMempool".to_owned(), "true".to_owned());
+            query_params.insert("tpool".to_owned(), "true".to_owned());
         }
 
         let query_params_option = (!query_params.is_empty()).then_some(query_params);
