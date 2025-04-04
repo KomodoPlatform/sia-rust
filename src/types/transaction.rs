@@ -993,6 +993,7 @@ pub struct V1Transaction {
     pub miner_fees: Vec<Currency>,
     pub arbitrary_data: Option<V1ArbitraryData>,
     pub signatures: Vec<TransactionSignature>,
+    pub id: Option<TransactionId>,
 }
 
 impl V1Transaction {
