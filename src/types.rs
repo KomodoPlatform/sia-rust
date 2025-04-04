@@ -158,12 +158,11 @@ impl Encodable for ChainIndex {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(default, deny_unknown_fields, rename_all = "camelCase")]
 pub struct EventV1Transaction {
     pub transaction: V1Transaction,
     pub spent_siacoin_elements: Vec<SiacoinElement>,
-    #[serde(default)]
     pub spent_siafund_elements: Vec<SiafundElement>,
 }
 
