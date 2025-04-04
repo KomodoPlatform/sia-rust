@@ -417,7 +417,7 @@ pub trait ApiClientHelpers: ApiClient {
         let chain_index = self
             .dispatcher(index_request)
             .await
-            .map_err(|e| GetConsensusUpdatesErrorGeneric::<Self::Error>::FetchIndex(e))?;
+            .map_err(GetConsensusUpdatesErrorGeneric::<Self::Error>::FetchIndex)?;
 
         let updates_request = ConsensusUpdatesRequest {
             height: chain_index.height,
@@ -427,7 +427,7 @@ pub trait ApiClientHelpers: ApiClient {
 
         self.dispatcher(updates_request)
             .await
-            .map_err(|e| GetConsensusUpdatesErrorGeneric::<Self::Error>::FetchUpdates(e))
+            .map_err(GetConsensusUpdatesErrorGeneric::<Self::Error>::FetchUpdates)
     }
 
     /// Find the transaction that spent the given utxo
