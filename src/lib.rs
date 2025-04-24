@@ -1,5 +1,5 @@
 #[macro_use]
-pub(crate) mod utils;
+pub mod utils;
 
 // TODO Alright - if this is truly "internal" it should not be public
 pub mod blake2b_internal;
