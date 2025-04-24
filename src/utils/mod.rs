@@ -1,3 +1,5 @@
+pub mod tx_builder;
+
 use serde::{Deserialize, Deserializer};
 
 /// Run a block of unit tests on both wasm32 and non-wasm32 targets
