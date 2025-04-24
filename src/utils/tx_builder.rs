@@ -116,57 +116,57 @@ impl V2TransactionBuilder {
         }
     }
 
-    pub fn siacoin_inputs(&mut self, inputs: Vec<SiacoinInputV2>) -> &mut Self {
+    pub fn siacoin_inputs(mut self, inputs: Vec<SiacoinInputV2>) -> Self {
         self.siacoin_inputs = inputs;
         self
     }
 
-    pub fn siacoin_outputs(&mut self, outputs: Vec<SiacoinOutput>) -> &mut Self {
+    pub fn siacoin_outputs(mut self, outputs: Vec<SiacoinOutput>) -> Self {
         self.siacoin_outputs = outputs;
         self
     }
 
-    pub fn siafund_inputs(&mut self, inputs: Vec<SiafundInputV2>) -> &mut Self {
+    pub fn siafund_inputs(mut self, inputs: Vec<SiafundInputV2>) -> Self {
         self.siafund_inputs = inputs;
         self
     }
 
-    pub fn siafund_outputs(&mut self, outputs: Vec<SiafundOutput>) -> &mut Self {
+    pub fn siafund_outputs(mut self, outputs: Vec<SiafundOutput>) -> Self {
         self.siafund_outputs = outputs;
         self
     }
 
-    pub fn file_contracts(&mut self, contracts: Vec<V2FileContract>) -> &mut Self {
+    pub fn file_contracts(mut self, contracts: Vec<V2FileContract>) -> Self {
         self.file_contracts = contracts;
         self
     }
 
-    pub fn file_contract_revisions(&mut self, revisions: Vec<FileContractRevisionV2>) -> &mut Self {
+    pub fn file_contract_revisions(mut self, revisions: Vec<FileContractRevisionV2>) -> Self {
         self.file_contract_revisions = revisions;
         self
     }
 
-    pub fn file_contract_resolutions(&mut self, resolutions: Vec<V2FileContractResolution>) -> &mut Self {
+    pub fn file_contract_resolutions(mut self, resolutions: Vec<V2FileContractResolution>) -> Self {
         self.file_contract_resolutions = resolutions;
         self
     }
 
-    pub fn attestations(&mut self, attestations: Vec<Attestation>) -> &mut Self {
+    pub fn attestations(mut self, attestations: Vec<Attestation>) -> Self {
         self.attestations = attestations;
         self
     }
 
-    pub fn arbitrary_data(&mut self, data: ArbitraryData) -> &mut Self {
+    pub fn arbitrary_data(mut self, data: ArbitraryData) -> Self {
         self.arbitrary_data = data;
         self
     }
 
-    pub fn new_foundation_address(&mut self, address: Address) -> &mut Self {
+    pub fn new_foundation_address(mut self, address: Address) -> Self {
         self.new_foundation_address = Some(address);
         self
     }
 
-    pub fn miner_fee(&mut self, fee: Currency) -> &mut Self {
+    pub fn miner_fee(mut self, fee: Currency) -> Self {
         self.miner_fee = fee;
         self
     }
@@ -188,7 +188,7 @@ impl V2TransactionBuilder {
     Policy is included here to give any signing function or method a schema for producing a
     signature for the input. Do not use this method if you are manually creating SatisfiedPolicys.
     Use siacoin_inputs() to add fully formed inputs instead. */
-    pub fn add_siacoin_input(&mut self, parent: SiacoinElement, policy: SpendPolicy) -> &mut Self {
+    pub fn add_siacoin_input(mut self, parent: SiacoinElement, policy: SpendPolicy) -> Self {
         self.siacoin_inputs.push(SiacoinInputV2 {
             parent,
             satisfied_policy: SatisfiedPolicy {
@@ -202,7 +202,7 @@ impl V2TransactionBuilder {
 
     /// Update the basis of the transaction. The basis is the ChainIndex required to broadcast the
     /// transaction.
-    pub fn update_basis(&mut self, basis: ChainIndex) -> &mut Self {
+    pub fn update_basis(mut self, basis: ChainIndex) -> Self {
         // Only update the basis if the new basis is higher than the existing basis.
         match &self.basis {
             Some(existing_basis) if existing_basis.height >= basis.height => {},
@@ -211,13 +211,11 @@ impl V2TransactionBuilder {
         self
     }
 
-    pub fn add_siacoin_input_with_basis(&mut self, parent: UtxoWithBasis, policy: SpendPolicy) -> &mut Self {
-        self.add_siacoin_input(parent.output, policy);
-        self.update_basis(parent.basis);
-        self
+    pub fn add_siacoin_input_with_basis(self, parent: UtxoWithBasis, policy: SpendPolicy) -> Self {
+        self.add_siacoin_input(parent.output, policy).update_basis(parent.basis)
     }
 
-    pub fn add_siacoin_output(&mut self, output: SiacoinOutput) -> &mut Self {
+    pub fn add_siacoin_output(mut self, output: SiacoinOutput) -> Self {
         self.siacoin_outputs.push(output);
         self
     }
@@ -232,8 +230,9 @@ impl V2TransactionBuilder {
 
     // Sign all PublicKey or UnlockConditions policies with the provided keypairs
     // Incapable of handling threshold policies
-    pub fn sign_simple(&mut self, keypairs: Vec<&Keypair>) -> &mut Self {
+    pub fn sign_simple(mut self, keypairs: Vec<&Keypair>) -> Self {
         let sig_hash = self.input_sig_hash();
+        // let mut cloned = self;
         for keypair in keypairs {
             let sig = keypair.sign(&sig_hash.0);
             for si in &mut self.siacoin_inputs {
@@ -258,21 +257,20 @@ impl V2TransactionBuilder {
         self
     }
 
-    pub async fn fund_tx_single_source<T: ApiClientHelpers>(
-        &mut self,
+    pub async fn fund_tx_single_source(
+        self,
         client: &Client,
         source_public_key: &PublicKey,
-    ) -> Result<&mut Self, V2TransactionBuilderError> {
-        client.fund_tx_single_source(self, &source_public_key).await?;
-        Ok(self)
+    ) -> Result<Self, V2TransactionBuilderError> {
+        Ok(client.fund_tx_single_source(self, &source_public_key).await?)
     }
 
     pub fn satisfy_atomic_swap_success(
-        &mut self,
+        mut self,
         keypair: &Keypair,
         secret: Preimage,
         input_index: u32,
-    ) -> Result<&mut Self, V2TransactionBuilderError> {
+    ) -> Result<Self, V2TransactionBuilderError> {
         let sig_hash = self.input_sig_hash();
         let sig = keypair.sign(&sig_hash.0);
 
@@ -291,10 +289,10 @@ impl V2TransactionBuilder {
     }
 
     pub fn satisfy_atomic_swap_refund(
-        &mut self,
+        mut self,
         keypair: &Keypair,
         input_index: u32,
-    ) -> Result<&mut Self, V2TransactionBuilderError> {
+    ) -> Result<Self, V2TransactionBuilderError> {
         let sig_hash = self.input_sig_hash();
         let sig = keypair.sign(&sig_hash.0);
 
@@ -306,26 +304,27 @@ impl V2TransactionBuilder {
             });
         }
 
-        let htlc_input = &mut self.siacoin_inputs[input_index as usize];
-        htlc_input.satisfied_policy.signatures.push(sig);
+        self.siacoin_inputs[input_index as usize]
+            .satisfied_policy
+            .signatures
+            .push(sig);
         Ok(self)
     }
 
-    pub fn build(&mut self) -> V2Transaction {
-        let cloned = self.clone();
+    pub fn build(self) -> V2Transaction {
         V2Transaction {
-            siacoin_inputs: cloned.siacoin_inputs,
-            siacoin_outputs: cloned.siacoin_outputs,
-            siafund_inputs: cloned.siafund_inputs,
-            siafund_outputs: cloned.siafund_outputs,
-            file_contracts: cloned.file_contracts,
-            file_contract_revisions: cloned.file_contract_revisions,
-            file_contract_resolutions: cloned.file_contract_resolutions,
-            attestations: cloned.attestations,
-            arbitrary_data: cloned.arbitrary_data,
-            new_foundation_address: cloned.new_foundation_address,
-            miner_fee: cloned.miner_fee,
-            basis: cloned.basis,
+            siacoin_inputs: self.siacoin_inputs,
+            siacoin_outputs: self.siacoin_outputs,
+            siafund_inputs: self.siafund_inputs,
+            siafund_outputs: self.siafund_outputs,
+            file_contracts: self.file_contracts,
+            file_contract_revisions: self.file_contract_revisions,
+            file_contract_resolutions: self.file_contract_resolutions,
+            attestations: self.attestations,
+            arbitrary_data: self.arbitrary_data,
+            new_foundation_address: self.new_foundation_address,
+            miner_fee: self.miner_fee,
+            basis: self.basis,
         }
     }
 }

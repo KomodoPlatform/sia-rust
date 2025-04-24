@@ -246,9 +246,9 @@ pub trait ApiClientHelpers: ApiClient {
     // It would not be appropriate to include ApiClient-related code in transaction.rs
     async fn fund_tx_single_source(
         &self,
-        tx_builder: &mut V2TransactionBuilder,
+        mut tx_builder: V2TransactionBuilder,
         public_key: &PublicKey,
-    ) -> Result<(), FundTxSingleSourceErrorGeneric<Self::Error>> {
+    ) -> Result<V2TransactionBuilder, FundTxSingleSourceErrorGeneric<Self::Error>> {
         let address = public_key.address();
         let outputs_total: Currency = tx_builder.siacoin_outputs.iter().map(|output| output.value).sum();
 
@@ -259,18 +259,18 @@ pub trait ApiClientHelpers: ApiClient {
 
         // add selected utxos as inputs to the transaction
         for utxo in &selected_utxos.outputs {
-            tx_builder.add_siacoin_input(utxo.clone(), SpendPolicy::PublicKey(public_key.clone()));
+            tx_builder = tx_builder.add_siacoin_input(utxo.clone(), SpendPolicy::PublicKey(public_key.clone()));
         }
 
         // update the transaction's basis
-        tx_builder.update_basis(selected_utxos.basis);
+        tx_builder = tx_builder.update_basis(selected_utxos.basis);
 
         if change > Currency::DUST {
             // add change as an output
-            tx_builder.add_siacoin_output((address, change).into());
+            tx_builder = tx_builder.add_siacoin_output((address, change).into());
         }
 
-        Ok(())
+        Ok(tx_builder)
     }
 
     /// Fetches a SiacoinElement(a UTXO) from a TransactionId and Index
