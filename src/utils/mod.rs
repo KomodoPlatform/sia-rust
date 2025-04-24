@@ -1,4 +1,5 @@
-pub mod tx_builder;
+mod tx_builder;
+pub use tx_builder::*;
 
 use serde::{Deserialize, Deserializer};
 

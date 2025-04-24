@@ -6,7 +6,8 @@ use crate::transport::endpoints::{AddressBalanceRequest, AddressBalanceResponse,
                                   OutputsSiacoinSpentRequest, TxpoolBroadcastRequest, TxpoolTransactionsRequest,
                                   UtxosWithBasis};
 use crate::types::{Address, Currency, Event, EventDataWrapper, Hash256, PublicKey, SiacoinElement, SiacoinOutputId,
-                   SpendPolicy, TransactionId, UtxoWithBasis, V2Transaction, V2TransactionBuilder};
+                   SpendPolicy, TransactionId, UtxoWithBasis, V2Transaction};
+use crate::utils::V2TransactionBuilder;
 use async_trait::async_trait;
 use thiserror::Error;
 
