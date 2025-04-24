@@ -1,8 +1,11 @@
 use crate::encoding::{Encodable, Encoder};
+use crate::transport::client::{error::ClientError, helpers::generic_errors::FundTxSingleSourceErrorGeneric,
+                               ApiClientHelpers, Client};
 use crate::types::{Address, ArbitraryData, Attestation, ChainIndex, Currency, CurrencyVersion, FileContractRevisionV2,
-                   Hash256, Keypair, Preimage, SatisfiedPolicy, SiacoinElement, SiacoinInputV2, SiacoinOutput,
-                   SiacoinOutputVersion, SiafundInputV2, SiafundOutput, SiafundOutputVersion, SpendPolicy, UnlockKey,
-                   UtxoWithBasis, V2FileContract, V2FileContractResolution, V2Transaction, V2_REPLAY_PREFIX};
+                   Hash256, Keypair, Preimage, PublicKey, SatisfiedPolicy, SiacoinElement, SiacoinInputV2,
+                   SiacoinOutput, SiacoinOutputVersion, SiafundInputV2, SiafundOutput, SiafundOutputVersion,
+                   SpendPolicy, UnlockKey, UtxoWithBasis, V2FileContract, V2FileContractResolution, V2Transaction,
+                   V2_REPLAY_PREFIX};
 
 use thiserror::Error;
 
@@ -90,6 +93,8 @@ pub enum V2TransactionBuilderError {
     SatisfySuccessIndexOutOfBounds { len: usize, index: u32 },
     #[error("V2TransactionBuilder::satisfy_atomic_swap_refund: provided index: {index} is out of bounds for inputs of length: {len}")]
     SatisfyRefundIndexOutOfBounds { len: usize, index: u32 },
+    #[error("V2TransactionBuilder::fund_tx_single_source: ApiClientHelpers methods failed: {0}")]
+    FundTxSingleSource(#[from] FundTxSingleSourceErrorGeneric<ClientError>),
 }
 
 impl V2TransactionBuilder {
@@ -251,6 +256,15 @@ impl V2TransactionBuilder {
             }
         }
         self
+    }
+
+    pub async fn fund_tx_single_source<T: ApiClientHelpers>(
+        &mut self,
+        client: &Client,
+        source_public_key: &PublicKey,
+    ) -> Result<&mut Self, V2TransactionBuilderError> {
+        client.fund_tx_single_source(self, &source_public_key).await?;
+        Ok(self)
     }
 
     pub fn satisfy_atomic_swap_success(
