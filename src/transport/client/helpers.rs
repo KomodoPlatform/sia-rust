@@ -231,7 +231,6 @@ pub trait ApiClientHelpers: ApiClient {
     /// This should generally be used only after all outputs and miner_fee have been added to the builder.
     /// Assumes no file contracts or resolutions. This is a helper designed for Komodo DeFi Framework.
     /// Adds inputs from the given address until the total amount from outputs and miner_fee is reached.
-    /// Adds the change amount to the transaction outputs
     /// See `select_unspent_outputs` for more details on UTXO selection.
     /// # Arguments
     /// * `tx_builder` - A mutable reference to a `V2TransactionBuilder.
@@ -240,10 +239,6 @@ pub trait ApiClientHelpers: ApiClient {
     /// * `Ok(())` - The transaction builder has been successfully funded
     /// * `Err(ApiClientHelpersError)` - An error is returned if the available outputs cannot meet
     ///     the required amount or a transport error is encountered.
-    // Alright TODO - move V2TransactionBuilder to a separate module then move this logic to a
-    // method of V2TransactionBuilder to allow chaining. It was included here because V2TransactionBuilder
-    // is currently inside the transaction module which is generally meant for consensnus related types.
-    // It would not be appropriate to include ApiClient-related code in transaction.rs
     async fn fund_tx_single_source(
         &self,
         mut tx_builder: V2TransactionBuilder,
@@ -253,7 +248,7 @@ pub trait ApiClientHelpers: ApiClient {
         let outputs_total: Currency = tx_builder.siacoin_outputs.iter().map(|output| output.value).sum();
 
         // select utxos from public key's address that total at least the sum of outputs and miner fee
-        let (selected_utxos, change) = self
+        let (selected_utxos, _) = self
             .select_unspent_outputs(&address, outputs_total + tx_builder.miner_fee)
             .await?;
 
@@ -264,11 +259,6 @@ pub trait ApiClientHelpers: ApiClient {
 
         // update the transaction's basis
         tx_builder = tx_builder.update_basis(selected_utxos.basis);
-
-        if change > Currency::DUST {
-            // add change as an output
-            tx_builder = tx_builder.add_siacoin_output((address, change).into());
-        }
 
         Ok(tx_builder)
     }
