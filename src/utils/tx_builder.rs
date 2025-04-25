@@ -311,6 +311,26 @@ impl V2TransactionBuilder {
         Ok(self)
     }
 
+    /// Adds an appropriately sized change output to the given address if the change amount is greater
+    /// than 0
+    /// Use this only after all inputs, all outputs and miner_fee are appropriately set.
+    pub fn add_change_output(self, address: &Address) -> Self {
+        let mut cloned = self.clone();
+        let inputs: Currency = self
+            .siacoin_inputs
+            .iter()
+            .map(|vin| vin.parent.siacoin_output.value)
+            .sum();
+
+        let outputs: Currency = self.siacoin_outputs.iter().map(|vout| vout.value).sum();
+
+        if outputs + self.miner_fee > inputs {
+            let change_amount = inputs - outputs - self.miner_fee;
+            cloned = self.add_siacoin_output((address, change_amount).into());
+        };
+        cloned
+    }
+
     pub fn build(self) -> V2Transaction {
         V2Transaction {
             siacoin_inputs: self.siacoin_inputs,
