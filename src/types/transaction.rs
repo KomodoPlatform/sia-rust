@@ -1,6 +1,5 @@
 use crate::encoding::{Encodable, Encoder};
-use crate::types::{Address, ChainIndex, Hash256, PublicKey, Signature, SpendPolicy, UnlockCondition
-};
+use crate::types::{Address, ChainIndex, Hash256, PublicKey, Signature, SpendPolicy, UnlockCondition};
 use crate::utils::deserialize_null_as_empty_vec;
 use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
 use derive_more::{Add, AddAssign, Deref, Display, Div, DivAssign, From, Into, Mul, MulAssign, Sub, SubAssign, Sum};
@@ -455,10 +454,28 @@ impl From<(Currency, Address)> for SiacoinOutput {
     }
 }
 
+impl From<(Currency, &Address)> for SiacoinOutput {
+    fn from(tuple: (Currency, &Address)) -> Self {
+        SiacoinOutput {
+            value: tuple.0,
+            address: tuple.1.clone(),
+        }
+    }
+}
+
 impl From<(Address, Currency)> for SiacoinOutput {
     fn from(tuple: (Address, Currency)) -> Self {
         SiacoinOutput {
             address: tuple.0,
+            value: tuple.1,
+        }
+    }
+}
+
+impl From<(&Address, Currency)> for SiacoinOutput {
+    fn from(tuple: (&Address, Currency)) -> Self {
+        SiacoinOutput {
+            address: tuple.0.clone(),
             value: tuple.1,
         }
     }
