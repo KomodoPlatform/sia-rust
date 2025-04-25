@@ -22,10 +22,10 @@ pub struct V2TransactionBuilder {
     pub arbitrary_data: ArbitraryData,
     pub new_foundation_address: Option<Address>,
     pub miner_fee: Currency,
-    // fee_policy is not part Sia consensus and it not encoded into any resulting transaction.
+    // fee_policy is not part of Sia consensus and it is not encoded into any resulting transaction.
     // fee_policy has no effect unless a helper like `ApiClientHelpers::fund_tx_single_source` utilizes it.
     pub fee_policy: Option<FeePolicy>,
-    // basis is not part Sia consensus and it not encoded into any resulting transaction.
+    // basis is not part of Sia consensus and it is not encoded into any resulting transaction.
     // It is the ChainIndex required to broadcast the transaction. This is provided by the
     // /api/addresses/:addr/siacoin/outputs Walletd API endpoint.
     pub basis: Option<ChainIndex>,
