@@ -323,8 +323,7 @@ impl V2TransactionBuilder {
             .sum();
 
         let outputs: Currency = self.siacoin_outputs.iter().map(|vout| vout.value).sum();
-
-        if outputs + self.miner_fee > inputs {
+        if outputs + self.miner_fee < inputs {
             let change_amount = inputs - outputs - self.miner_fee;
             cloned = self.add_siacoin_output((address, change_amount).into());
         };
