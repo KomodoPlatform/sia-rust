@@ -24,7 +24,7 @@ pub enum Hash256Error {
 }
 
 /// A 256 bit number representing a blake2b or sha256 hash in Sia's consensus protocol and APIs.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Hash)]
 pub struct Hash256(pub [u8; 32]);
 
 impl Encodable for Hash256 {

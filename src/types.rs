@@ -37,7 +37,7 @@ const ADDRESS_CHECKSUM_LENGTH: usize = 6;
 
 // TODO this could probably include the checksum within the data type
 // generating the checksum on the fly is how Sia Go does this however
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Address(pub Hash256);
 
 impl Serialize for Address {
