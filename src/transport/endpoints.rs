@@ -432,27 +432,24 @@ impl SiaApiRequest for GetAddressUtxosRequest {
 /// `POST /txpool/broadcast`
 ///
 /// # Description
-/// Used for broadcasting transactions to the network. The request body consists of two arrays:
+/// Used for broadcasting transactions to the network.
+///
+/// # Fields
 /// - `transactions`: an array of V1 transactions.
 /// - `v2transactions`: an array of V2 transactions.
-///
-/// # Request Body
-/// The body is structured as follows:
-/// ```json
-/// {
-///   "transactions": [],
-///   "v2transactions": []
-/// }
-/// ```
+/// - `basis`: a `ChainIndex` that represents the basis for the transactions being broadcast.
+///   In most cases, this is the most current response from the `GET /consensus/tip` endpoint.
 ///
 /// # Response
-/// - The response is `HTTP 204 NO CONTENT`, which is represented by `EmptyResponse` in Rust.
-///   This indicates that the request was successful but there is no response body.
+/// - The response is a `TxpoolBroadcastResponse` in Rust, corresponding to `TxpoolBroadcastResponse` in Go.
+///   - [Go Source for TxpoolBroadcastResponse Type](https://github.com/SiaFoundation/walletd/blob/82c855287c510a510969ae968af21d5423b849ba/api/api.go#L46)
+///
 ///
 /// # References
-/// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/6ff23fe34f6fa45a19bfb6e4bacc8a16d2c48144/api/server.go#L293)
+/// - [Go Source for the HTTP Endpoint](https://github.com/SiaFoundation/walletd/blob/82c855287c510a510969ae968af21d5423b849ba/api/server.go#L401)
 /// - [Go Source for the V1Transaction Type](https://github.com/SiaFoundation/core/blob/300042fd2129381468356dcd87c5e9a6ad94c0ef/types/types.go#L390)
 /// - [Go Source for the V2Transaction Type](https://github.com/SiaFoundation/core/blob/300042fd2129381468356dcd87c5e9a6ad94c0ef/types/types.go#L649)
+/// - [Go Source for the ChainIndex Type](https://github.com/SiaFoundation/core/blob/4c58987023c736df2fb19dd71c41dab16f307654/types/types.go#L194)
 ///
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
 #[derive(Clone, Deserialize, Serialize, Debug)]
@@ -462,15 +459,22 @@ pub struct TxpoolBroadcastRequest {
     pub v2transactions: Vec<V2Transaction>,
 }
 
+#[derive(Clone, Deserialize, Serialize, Debug)]
+pub struct TxpoolBroadcastResponse {
+    pub basis: ChainIndex,
+    #[serde(deserialize_with = "deserialize_null_as_empty_vec")]
+    pub transactions: Vec<V1Transaction>,
+    #[serde(deserialize_with = "deserialize_null_as_empty_vec")]
+    pub v2transactions: Vec<V2Transaction>,
+}
+
 // TODO Alright - this was initially thought neccesary to implement methods on it, but it seems ()
 // will work in its place
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct EmptyResponse;
 
 impl SiaApiRequest for TxpoolBroadcastRequest {
-    type Response = EmptyResponse;
-
-    fn is_empty_response() -> Option<Self::Response> { Some(EmptyResponse) }
+    type Response = TxpoolBroadcastResponse;
 
     fn to_endpoint_schema(&self) -> Result<EndpointSchema, SiaApiRequestError> {
         // Serialize the transactions into a JSON body
