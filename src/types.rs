@@ -167,6 +167,7 @@ pub struct EventV1Transaction {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EventV1ContractResolution {
     pub parent: FileContractElementV1,
     pub siacoin_element: SiacoinElement,

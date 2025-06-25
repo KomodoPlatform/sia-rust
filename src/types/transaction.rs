@@ -535,15 +535,17 @@ impl<'de> Deserialize<'de> for V1Signature {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FileContract {
     pub filesize: u64,
     pub file_merkle_root: Hash256,
     pub window_start: u64,
     pub window_end: u64,
+    #[serde(default)]
     pub payout: Currency,
     pub valid_proof_outputs: Vec<SiacoinOutput>,
     pub missed_proof_outputs: Vec<SiacoinOutput>,
-    pub unlock_hash: Hash256,
+    pub unlock_hash: Address,
     pub revision_number: u64,
 }
 
@@ -707,8 +709,11 @@ impl Encodable for StorageProof {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FileContractRevision {
+    #[serde(rename = "parentID")]
     pub parent_id: FileContractID,
+    #[serde(rename = "unlockConditions")]
     pub unlock_condition: UnlockCondition,
     #[serde(flatten)]
     pub file_contract: FileContract,
@@ -736,8 +741,11 @@ impl Encodable for FileContractRevision {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SiafundInputV1 {
+    #[serde(rename = "parentID")]
     pub parent_id: SiafundOutputId,
+    #[serde(rename = "unlockConditions")]
     pub unlock_condition: UnlockCondition,
     pub claim_address: Address,
 }
@@ -949,13 +957,15 @@ impl Encodable for ChainIndexElement {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FileContractElementV1 {
-    #[serde(flatten)]
+    pub id: FileContractID,
     pub state_element: StateElement,
     pub file_contract: FileContractV1,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FileContractV1 {
     pub filesize: u64,
     pub file_merkle_root: Hash256,
@@ -964,22 +974,10 @@ pub struct FileContractV1 {
     pub payout: Currency,
     pub valid_proof_outputs: Vec<SiacoinOutput>,
     pub missed_proof_outputs: Vec<SiacoinOutput>,
-    pub unlock_hash: Hash256,
+    pub unlock_hash: Address,
     pub revision_number: u64,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
-#[serde(transparent)]
-pub struct V1ArbitraryData {
-    pub data: Vec<Vec<u8>>,
-}
-
-impl Encodable for V1ArbitraryData {
-    fn encode(&self, encoder: &mut Encoder) {
-        encoder.write_u64(self.data.len() as u64);
-        self.data.iter().for_each(|b| encoder.write_slice(b));
-    }
-}
 /*
 While implementing
 , we faced two options.
@@ -1000,7 +998,7 @@ pub struct V1Transaction {
     pub siafund_inputs: Vec<SiafundInputV1>,
     pub siafund_outputs: Vec<SiafundOutput>,
     pub miner_fees: Vec<Currency>,
-    pub arbitrary_data: Option<V1ArbitraryData>,
+    pub arbitrary_data: Vec<ArbitraryData>,
     pub signatures: Vec<TransactionSignature>,
     pub id: Option<TransactionId>,
 }
@@ -1043,9 +1041,9 @@ impl Encodable for V1TransactionSansSigs {
             CurrencyVersion::V1(so).encode(encoder);
         }
 
-        match &self.arbitrary_data {
-            Some(data) => data.encode(encoder),
-            None => encoder.write_u64(0u64),
+        encoder.write_u64(self.arbitrary_data.len() as u64);
+        for data_vec in &self.arbitrary_data {
+            data_vec.encode(encoder);
         }
     }
 }
