@@ -186,6 +186,21 @@ mod test {
 
         fn test_satisfied_policy_encode_hash_empty() {
             let policy = SpendPolicy::Hash(Hash256::default());
+            // This would throw an error from SpendPolicy::Verify because it does not include a
+            // preimage, but both implementations should hash the same way regardless
+            let satisfied_policy = SatisfiedPolicy {
+                policy,
+                signatures: vec![],
+                preimages: vec![],
+            };
+
+            let hash = Encoder::encode_and_hash(&satisfied_policy);
+            let expected = Hash256::from_str("8499a629589884c5b343e61d1c503101229b44d529a36f2e27c37598067942a6").unwrap();
+            assert_eq!(hash, expected);
+        }
+
+        fn test_satisfied_policy_encode_hash_w_preimage() {
+            let policy = SpendPolicy::Hash(Hash256::default());
 
             let satisfied_policy = SatisfiedPolicy {
                 policy,
@@ -194,7 +209,22 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            let expected = Hash256::from_str("abac830016d15871dfefad87ddfce263a6936b77e8ec18e7712870d6bf771376").unwrap();
+            let expected = Hash256::from_str("22706c8f2cd851feb3e7432ac87be18acc55debd6e9bb738e3bad044f8dab94c").unwrap();
+            assert_eq!(hash, expected);
+        }
+
+        fn test_satisfied_policy_encode_hash_w_preimage_and_frivulous_signature() {
+            let policy = SpendPolicy::Hash(Hash256::default());
+            // This would throw "superfluous signature(s)" error from SpendPolicy::Verify
+            // Likely to never happen, but both implementations should hash the same way regardless
+            let satisfied_policy = SatisfiedPolicy {
+                policy,
+                signatures: vec![Signature::default()],
+                preimages: vec![Preimage::default()],
+            };
+
+            let hash = Encoder::encode_and_hash(&satisfied_policy);
+            let expected = Hash256::from_str("22706c8f2cd851feb3e7432ac87be18acc55debd6e9bb738e3bad044f8dab94c").unwrap();
             assert_eq!(hash, expected);
         }
 
