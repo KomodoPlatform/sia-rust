@@ -722,6 +722,7 @@ impl From<Leaf> for String {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct StorageProof {
+    #[serde(rename = "parentID")]
     pub parent_id: FileContractID,
     pub leaf: Leaf,
     pub proof: Vec<Hash256>,
@@ -904,7 +905,8 @@ impl Encodable for V2FileContractFinalization {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct V2FileContractRenewal {
-    final_revision: V2FileContract,
+    final_renter_output: SiacoinOutput,
+    final_host_output: SiacoinOutput,
     new_contract: V2FileContract,
     renter_rollover: Currency,
     host_rollover: Currency,
@@ -915,7 +917,6 @@ pub struct V2FileContractRenewal {
 impl V2FileContractRenewal {
     pub fn with_nil_sigs(&self) -> V2FileContractRenewal {
         V2FileContractRenewal {
-            final_revision: self.final_revision.with_nil_sigs(),
             new_contract: self.new_contract.with_nil_sigs(),
             renter_signature: Signature::default(),
             host_signature: Signature::default(),
@@ -927,10 +928,11 @@ impl V2FileContractRenewal {
 // TODO unit test
 impl Encodable for V2FileContractRenewal {
     fn encode(&self, encoder: &mut Encoder) {
-        self.final_revision.encode(encoder);
-        self.new_contract.encode(encoder);
+        SiacoinOutputVersion::V2(&self.final_renter_output).encode(encoder);
+        SiacoinOutputVersion::V2(&self.final_host_output).encode(encoder);
         CurrencyVersion::V2(&self.renter_rollover).encode(encoder);
         CurrencyVersion::V2(&self.host_rollover).encode(encoder);
+        self.new_contract.encode(encoder);
         self.renter_signature.encode(encoder);
         self.host_signature.encode(encoder);
     }
