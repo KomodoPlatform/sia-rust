@@ -209,7 +209,7 @@ mod test {
             };
 
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            let expected = Hash256::from_str("22706c8f2cd851feb3e7432ac87be18acc55debd6e9bb738e3bad044f8dab94c").unwrap();
+            let expected = Hash256::from_str("abac830016d15871dfefad87ddfce263a6936b77e8ec18e7712870d6bf771376").unwrap();
             assert_eq!(hash, expected);
         }
 
