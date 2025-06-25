@@ -183,7 +183,7 @@ impl ApiClientHelpers for Client {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::transport::endpoints::{AddressBalanceRequest, GetEventRequest};
+    use crate::transport::endpoints::AddressBalanceRequest;
     use crate::types::Address;
 
     use std::str::FromStr;
