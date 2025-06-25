@@ -536,22 +536,6 @@ mod test {
 }
 
 #[test]
-fn test_event_serde_debug() {
-    use crate::types::Event;
-    use std::fs;
-    use std::path::Path;
-    // Adjust path as needed
-    let path = Path::new("/Users/bud/repos/sia-rust/tests.json");
-
-    let data = fs::read_to_string(path).expect("Failed to read JSON file");
-
-    let events: Vec<Event> = serde_json::from_str(&data).expect("Failed to deserialize JSON into Vec<Event>");
-
-    assert!(!events.is_empty(), "Expected at least one event");
-    println!("Parsed {} events", events.len());
-}
-
-#[test]
 fn test_event_serde() {
     use crate::types::Event;
     let event_str = r#"
