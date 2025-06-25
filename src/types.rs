@@ -242,10 +242,9 @@ impl<'de> Deserialize<'de> for Event {
             EventType::V2Transaction => serde_json::from_value::<V2Transaction>(helper.data)
                 .map(EventDataWrapper::V2Transaction)
                 .map_err(serde::de::Error::custom),
-            EventType::V1ContractResolution => {
-                // FIXME we require this to safely deser V2Transactions sent over the wire
-                return Err(serde::de::Error::custom("V1ContractResolution not supported"));
-            },
+            EventType::V1ContractResolution => serde_json::from_value::<EventV1ContractResolution>(helper.data)
+                .map(EventDataWrapper::EventV1ContractResolution)
+                .map_err(serde::de::Error::custom),
             EventType::V2ContractResolution => serde_json::from_value::<EventV2ContractResolution>(helper.data)
                 .map(|data| EventDataWrapper::V2FileContractResolution(Box::new(data)))
                 .map_err(serde::de::Error::custom),
