@@ -654,12 +654,42 @@ impl Encodable for FileContractRevisionV2 {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(transparent)]
+pub struct AttestationValue(pub Vec<u8>);
+
+impl<'de> Deserialize<'de> for AttestationValue {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct AttestationValueVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for AttestationValueVisitor {
+            type Value = AttestationValue;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a base64 encoded string representing the attestation value")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                let decoded = base64.decode(value).map_err(serde::de::Error::custom)?;
+                Ok(AttestationValue(decoded))
+            }
+        }
+
+        deserializer.deserialize_str(AttestationValueVisitor)
+    }
+}
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Attestation {
     pub public_key: PublicKey,
     pub key: String,
-    pub value: Vec<u8>,
+    pub value: AttestationValue,
     pub signature: Signature,
 }
 
@@ -667,7 +697,7 @@ impl Encodable for Attestation {
     fn encode(&self, encoder: &mut Encoder) {
         self.public_key.encode(encoder);
         encoder.write_string(&self.key);
-        encoder.write_len_prefixed_bytes(&self.value);
+        encoder.write_len_prefixed_bytes(&self.value.0);
         self.signature.encode(encoder);
     }
 }
