@@ -630,7 +630,7 @@ impl SiaApiRequest for DebugMineRequest {
 ///  field contains the event in which the UTXO was spent.
 ///
 /// # References
-/// - [Go Source for the HTTP Endpoint](FIXME Alright - its not merged to master branch yet)
+/// - [Go Source for the HTTP Endpoint] (https://github.com/SiaFoundation/walletd/blob/5dd23bc2d8344140d52d5a99855ef46b42f9c9b6/api/server.go#L768)
 ///
 /// This type is ported from the Go codebase, representing the equivalent request-response pair in Rust.
 #[derive(Clone, Deserialize, Serialize, Debug)]
