@@ -143,6 +143,10 @@ fn blake2b_checksum(preimage: &[u8]) -> [u8; 6] {
 #[serde(transparent)]
 pub struct BlockId(pub Hash256);
 
+impl Encodable for BlockId {
+    fn encode(&self, encoder: &mut Encoder) { self.0.encode(encoder); }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct ChainIndex {
     pub height: u64,
