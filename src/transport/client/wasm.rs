@@ -186,7 +186,7 @@ mod wasm_tests {
     // #[wasm_bindgen_test]
     async fn test_sia_wasm_client_client_error() {
         use crate::transport::endpoints::TxpoolBroadcastRequest;
-        use crate::types::V2Transaction;
+        use crate::types::{BlockId, ChainIndex, Hash256, V2Transaction};
         let client = Client::new(CONF.clone()).await.unwrap();
 
         let tx_str = r#"
@@ -236,9 +236,14 @@ mod wasm_tests {
         }
         "#;
         let tx: V2Transaction = serde_json::from_str(tx_str).unwrap();
+        let basis = ChainIndex {
+            height: 0,
+            id: BlockId(Hash256::default()),
+        };
         let req = TxpoolBroadcastRequest {
             transactions: vec![],
             v2transactions: vec![tx],
+            basis,
         };
         match client.dispatcher(req).await.expect_err("Expected HTTP 400 error") {
             ClientError::DispatcherUnexpectedHttpStatus {
