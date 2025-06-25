@@ -384,7 +384,7 @@ pub trait ApiClientHelpers: ApiClient {
         &self,
         tx: &V2Transaction,
     ) -> Result<(), BroadcastTransactionErrorGeneric<Self::Error>> {
-        // FIXME Alright possible this may fail if basis was not provided
+        // Use the most recent ChainIndex as basis if not provided within `tx`
         let basis = match &tx.basis {
             Some(basis) => basis.clone(),
             None => self.dispatcher(ConsensusTipRequest).await?,
