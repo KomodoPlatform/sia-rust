@@ -236,13 +236,11 @@ mod test {
 
             let satisfied_policy = SatisfiedPolicy {
                 policy,
-                signatures: vec!(Signature::try_from(
-                    hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap()).unwrap()),
-                preimages: vec!(preimage.into()),
+                signatures: vec![Signature::default()],
+                preimages: vec![preimage.into()],
             };
-
             let hash = Encoder::encode_and_hash(&satisfied_policy);
-            let expected = Hash256::from_str("f6885827fb8a6d1a5751ce3f5a8580dc590f262f42e2dd9944052ec43ffc8d97").unwrap();
+            let expected = Hash256::from_str("cf1a51cb2e76546d96e8034ab050fbe95b6423ad450b2de8a4e76ad8f72500ed").unwrap();
             assert_eq!(hash, expected);
         }
 
