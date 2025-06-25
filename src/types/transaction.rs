@@ -1,5 +1,5 @@
 use crate::encoding::{Encodable, Encoder};
-use crate::types::{Address, ChainIndex, Hash256, PublicKey, Signature, SpendPolicy, UnlockCondition};
+use crate::types::{Address, BlockId, ChainIndex, Hash256, PublicKey, Signature, SpendPolicy, UnlockCondition};
 use crate::utils::deserialize_null_as_empty_vec;
 use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
 use derive_more::{Add, AddAssign, Deref, Display, Div, DivAssign, From, Into, Mul, MulAssign, Sub, SubAssign, Sum};
@@ -943,7 +943,7 @@ impl Encodable for V2StorageProof {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ChainIndexElement {
-    #[serde(flatten)]
+    pub id: BlockId,
     pub state_element: StateElement,
     pub chain_index: ChainIndex,
 }
@@ -952,6 +952,7 @@ pub struct ChainIndexElement {
 impl Encodable for ChainIndexElement {
     fn encode(&self, encoder: &mut Encoder) {
         self.state_element.encode(encoder);
+        self.id.encode(encoder);
         self.chain_index.encode(encoder);
     }
 }
