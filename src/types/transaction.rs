@@ -44,11 +44,11 @@ pub struct Currency(pub u128);
 impl Currency {
     pub const ZERO: Currency = Currency(0);
 
-    pub const COIN: Currency = Currency(1000000000000000000000000);
+    pub const COIN: Currency = Currency(1_000_000_000_000_000_000_000_000);
 
     /// A default fee amount for transactions
-    /// FIXME This is a placeholder value until testing is complete
-    pub const DEFAULT_FEE: Currency = Currency(10000000000000000000);
+    /// The appropriate way to calculate a txfee to use walletd's `api/txpool/fee` endpoint.
+    pub const DEFAULT_FEE: Currency = Currency(20_000_000_000_000_000_000); // 0.02 SC
 }
 
 // TODO does this also need to be able to deserialize from an integer?
