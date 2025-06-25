@@ -241,10 +241,6 @@ pub struct StateElement {
     pub merkle_proof: Vec<Hash256>,
 }
 
-// FIXME Alright requires new unit tests and corresponding rust_port_test.go tests
-// merkle_proof was previously Option<Vec<Hash256>> because Walletd can return null for this field
-// Test unintialized slice (ie, null) vs empty slice - do they encode the same?
-// the following encoding assumes that they do encode the same
 impl Encodable for StateElement {
     fn encode(&self, encoder: &mut Encoder) {
         encoder.write_u64(self.leaf_index);
