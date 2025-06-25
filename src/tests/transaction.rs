@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod test {
     use crate::encoding::Encoder;
-    use crate::types::{Address, Attestation, Currency, CurrencyVersion, FileContractRevisionV2, Hash256, Keypair,
-                       Preimage, PublicKey, SatisfiedPolicy, SiacoinElement, SiacoinInputV1, SiacoinInputV2,
-                       SiacoinOutput, SiacoinOutputId, SiacoinOutputVersion, Signature, SpendPolicy, StateElement,
-                       UnlockCondition, V2FileContract, V2FileContractElement, V2Transaction};
+    use crate::types::{Address, Attestation, AttestationValue, Currency, CurrencyVersion, FileContractRevisionV2,
+                       Hash256, Keypair, Preimage, PublicKey, SatisfiedPolicy, SiacoinElement, SiacoinInputV1,
+                       SiacoinInputV2, SiacoinOutput, SiacoinOutputId, SiacoinOutputVersion, Signature, SpendPolicy,
+                       StateElement, UnlockCondition, V2FileContract, V2FileContractElement, V2Transaction};
     use std::convert::TryFrom;
     use std::str::FromStr;
 
@@ -444,7 +444,7 @@ mod test {
             let attestation = Attestation {
                 public_key,
                 key: "HostAnnouncement".to_string(),
-                value: vec![1u8, 2u8, 3u8, 4u8],
+                value: AttestationValue(vec![1u8, 2u8, 3u8, 4u8]),
                 signature,
             };
 
