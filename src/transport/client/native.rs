@@ -191,7 +191,7 @@ mod tests {
 
     async fn init_client() -> Client {
         let conf = Conf {
-            server_url: Url::parse("https://sia-walletd.komodo.earth/").unwrap(),
+            server_url: Url::parse("https://api.siascan.com/wallet/api").unwrap(),
             password: None,
             timeout: Some(10),
         };
@@ -204,18 +204,15 @@ mod tests {
         api_client.dispatcher(request).await.unwrap()
     }
 
-    #[ignore = "FIXME Alright must utilize docker container or mock server"]
     #[tokio::test]
     async fn test_new_client() { let _api_client = init_client().await; }
 
-    #[ignore = "FIXME Alright must utilize docker container or mock server"]
     #[tokio::test]
     async fn test_api_consensus_tip() {
         // paranoid unit test - NativeClient::new already pings the server with ConsensusTipRequest
         let _response = test_dispatch(ConsensusTipRequest).await;
     }
 
-    #[ignore = "FIXME Alright must utilize docker container or mock server"]
     #[tokio::test]
     async fn test_api_address_balance() {
         let request = AddressBalanceRequest {
@@ -225,12 +222,15 @@ mod tests {
         let _response = test_dispatch(request).await;
     }
 
-    #[ignore = "FIXME Alright must utilize docker container or mock server"]
     #[tokio::test]
-    async fn test_api_events() {
-        use crate::types::Hash256;
-        let request = GetEventRequest {
-            txid: Hash256::from_str("77c5ae2220eac76dd841e365bb14fcba5499977e6483472b96f4a83bcdd6c892").unwrap(),
+    async fn test_api_address_events() {
+        use crate::transport::endpoints::AddressesEventsRequest;
+        // This is an address provided by Nate that has various event types
+        let request = AddressesEventsRequest {
+            address: Address::from_str("4f28992465d1f993f68b389b5b4a097b0c14de5022110ae3efe198fc1c6c68fa96aaa49e4196")
+                .unwrap(),
+            limit: None,
+            offset: None,
         };
         let _response = test_dispatch(request).await;
     }
