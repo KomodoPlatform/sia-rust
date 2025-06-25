@@ -46,10 +46,6 @@ impl Currency {
 
     pub const COIN: Currency = Currency(1000000000000000000000000);
 
-    /// The minimum amount of currency for a transaction output
-    // FIXME this is a placeholder value until testing is complete
-    pub const DUST: Currency = Currency(1);
-
     /// A default fee amount for transactions
     /// FIXME This is a placeholder value until testing is complete
     pub const DEFAULT_FEE: Currency = Currency(10000000000000000000);
