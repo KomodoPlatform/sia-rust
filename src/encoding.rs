@@ -59,6 +59,7 @@ mod test {
     use std::str::FromStr;
 
     cross_target_tests! {
+        // go test TestEncoderDefault
         fn test_encoder_default_hash() {
             assert_eq!(
                 Encoder::default().hash(),
@@ -66,6 +67,7 @@ mod test {
             )
         }
 
+        // go test TestEncoderWriteBytes
         fn test_encoder_write_bytes() {
             let mut encoder = Encoder::default();
             encoder.write_len_prefixed_bytes(&[1, 2, 3, 4]);
@@ -75,6 +77,7 @@ mod test {
             );
         }
 
+        // go test TestEncoderWriteUint8
         fn test_encoder_write_u8() {
             let mut encoder = Encoder::default();
             encoder.write_u8(1);
@@ -84,6 +87,7 @@ mod test {
             );
         }
 
+        // go test TestEncoderWriteUint64
         fn test_encoder_write_u64() {
             let mut encoder = Encoder::default();
             encoder.write_u64(1);
@@ -93,6 +97,7 @@ mod test {
             );
         }
 
+        // go test TestEncoderWriteDistinguisher
         fn test_encoder_write_distiguisher() {
             let mut encoder = Encoder::default();
             encoder.write_distinguisher("test");
@@ -102,6 +107,7 @@ mod test {
             );
         }
 
+        // go test TestEncoderWriteBool
         fn test_encoder_write_bool() {
             let mut encoder = Encoder::default();
             encoder.write_bool(true);
@@ -111,6 +117,7 @@ mod test {
             );
         }
 
+        // go test TestReset
         fn test_encoder_reset() {
             let mut encoder = Encoder::default();
             encoder.write_bool(true);
@@ -127,6 +134,7 @@ mod test {
             );
         }
 
+        // go test TestEncoderWriteComplex
         fn test_encoder_complex() {
             let mut encoder = Encoder::default();
             encoder.write_distinguisher("test");
