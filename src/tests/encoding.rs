@@ -1,3 +1,23 @@
+//! # Encoding and Hashing Tests for Sia Types
+//!
+//! This module provides test coverage for encoding, hashing, and deserialization of core
+//! consensus types ported from the Go Sia implementation. These tests are essential to ensure
+//! compatibility with the official `walletd` node and maintain protocol correctness.
+//!
+//! ## Purpose
+//! The tests primarily verify:
+//! - **Address derivation**
+//! - **Transaction encoding**
+//! - **Transaction deserialization**
+//!
+//! ## ⚠ Security Warning
+//! These tests are **consensus-critical**. Any failure to accurately decode or deserialize valid
+//! transactions produced by `walletd` could result in serious security issues.
+//!
+//! In particular, a deserialization failure could break atomic swaps. If the Rust code cannot
+//! correctly decode/deserialize the Sia transaction that reveals the shared secret, one party could
+//! potentially claim both sets of funds, breaking the atomicity of the swap.
+
 #[cfg(test)]
 mod test {
     use crate::blake2b_internal::standard_unlock_hash;
@@ -6,6 +26,7 @@ mod test {
     use std::str::FromStr;
 
     cross_target_tests! {
+        // go test TestUnlockConditions2of2Multisig
         fn test_unlock_condition_unlock_hash_2of2_multisig() {
             let pubkey = PublicKey::from_bytes(
                 &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
@@ -22,6 +43,7 @@ mod test {
             assert_eq!(hash, expected);
         }
 
+        // go test TestUnlockConditions1of2Multisig
         fn test_unlock_condition_unlock_hash_1of2_multisig() {
             let pubkey = PublicKey::from_bytes(
                 &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
@@ -36,8 +58,13 @@ mod test {
             let hash = unlock_condition.unlock_hash();
             let expected = Hash256::from_str("d7f84e3423da09d111a17f64290c8d05e1cbe4cab2b6bed49e3a4d2f659f0585").unwrap();
             assert_eq!(hash, expected);
+
+            let address = unlock_condition.address();
+            let expected = Address::from_str("d7f84e3423da09d111a17f64290c8d05e1cbe4cab2b6bed49e3a4d2f659f0585264e9181a51a").unwrap();
+            assert_eq!(address, expected);
         }
 
+        // go test TestPolicyAboveEncodeHash
         fn test_spend_policy_encode_above() {
             let policy = SpendPolicy::above(1);
 
@@ -51,6 +78,7 @@ mod test {
             assert_eq!(address, expected);
         }
 
+        // go test TestPolicyAfterEncodeHash
         fn test_spend_policy_encode_after() {
             let policy = SpendPolicy::after(1);
             let hash = Encoder::encode_and_hash(&policy);
@@ -63,6 +91,7 @@ mod test {
             assert_eq!(address, expected);
         }
 
+        // go test TestPolicyPublicKeyEncodeHash
         fn test_spend_policy_encode_pubkey() {
             let pubkey = PublicKey::from_bytes(
                 &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
@@ -80,6 +109,7 @@ mod test {
             assert_eq!(address, expected);
         }
 
+        // go test TestPolicyHash
         fn test_spend_policy_encode_hash() {
             let hash = Hash256::from_str("0102030000000000000000000000000000000000000000000000000000000000").unwrap();
             let policy = SpendPolicy::Hash(hash);
@@ -94,6 +124,7 @@ mod test {
             assert_eq!(address, expected);
         }
 
+        // go test TestPolicyThreshold
         fn test_spend_policy_encode_threshold() {
             let policy = SpendPolicy::Threshold {
                 n: 1,
@@ -110,6 +141,9 @@ mod test {
             assert_eq!(address, expected);
         }
 
+        // go test TestPolicyUnlockConditionEncodeSpecialCase
+        // UnlockCondtion SpendPolicy has a special case for backwards compatibility of v1 addresses
+        // see SpendPolicy::address
         fn test_spend_policy_encode_unlock_condition() {
             let pubkey = PublicKey::from_bytes(
                 &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
@@ -133,6 +167,7 @@ mod test {
             assert_eq!(address, expected);
         }
 
+        // go test TestSiacoinUnlockConditionEncodeHash
         fn test_unlock_condition_encode() {
             let pubkey = PublicKey::from_bytes(
                 &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
@@ -145,6 +180,7 @@ mod test {
             assert_eq!(hash, expected);
         }
 
+        // go test TestSiacoinPublicKeyEncodeHash
         fn test_public_key_encode() {
             let public_key = PublicKey::from_bytes(
                 &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
@@ -156,6 +192,7 @@ mod test {
             assert_eq!(hash, expected);
         }
 
+        // go test TestStandardUnlockHash
         fn test_unlock_condition_unlock_hash_standard() {
             let pubkey = PublicKey::from_bytes(
                 &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
