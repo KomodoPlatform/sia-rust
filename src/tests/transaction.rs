@@ -9,6 +9,7 @@ mod test {
     use std::str::FromStr;
 
     cross_target_tests! {
+        // go test TestSiacoinInputEncodeHash
         fn test_siacoin_input_encode() {
             let public_key = PublicKey::from_bytes(
                 &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
@@ -28,6 +29,7 @@ mod test {
             assert_eq!(hash, expected);
         }
 
+        // go test TestSiacoinCurrencyEncodeHashV1
         fn test_siacoin_currency_encode_v1() {
             let currency: Currency = 1u64.into();
 
@@ -36,6 +38,7 @@ mod test {
             assert_eq!(hash, expected);
         }
 
+        // go test TestSiacoinCurrencyEncodeHashV2
         fn test_siacoin_currency_encode_v2() {
             let currency: Currency = 1u64.into();
 
@@ -44,6 +47,7 @@ mod test {
             assert_eq!(hash, expected);
         }
 
+        // go test TestSiacoinCurrencyEncodeHashV1Max
         fn test_siacoin_currency_encode_v1_max() {
             let currency = Currency(u128::MAX);
 
@@ -52,6 +56,7 @@ mod test {
             assert_eq!(hash, expected);
         }
 
+        // go test TestSiacoinCurrencyEncodeHashV2Max
         fn test_siacoin_currency_encode_v2_max() {
             let currency = Currency(u128::MAX);
 
@@ -60,6 +65,7 @@ mod test {
             assert_eq!(hash, expected);
         }
 
+        // go test TestSiacoinOutputEncodeHashV1
         fn test_siacoin_output_encode_v1() {
             let vout = SiacoinOutput {
                 value: 1u64.into(),
@@ -72,6 +78,7 @@ mod test {
             assert_eq!(hash, expected);
         }
 
+        // go test TestSiacoinOutputEncodeHashV2
         fn test_siacoin_output_encode_v2() {
             let vout = SiacoinOutput {
                 value: 1u64.into(),
@@ -84,6 +91,7 @@ mod test {
             assert_eq!(hash, expected);
         }
 
+        // go test TestSiacoinElementEncodeHash
         fn test_siacoin_element_encode() {
             let state_element = StateElement {
                 leaf_index: 1,
@@ -110,6 +118,7 @@ mod test {
             assert_eq!(hash, expected);
         }
 
+        // go test TestStateElementEncodeHash
         fn test_state_element_encode() {
             let state_element = StateElement {
                 leaf_index: 1,
@@ -124,6 +133,7 @@ mod test {
             assert_eq!(hash, expected);
         }
 
+        // go test TestStateElementEncodeHashNullMerkleProof
         fn test_state_element_encode_null_merkle_proof() {
             let j = r#"{"leafIndex":1}"#;
             let state_element = serde_json::from_str::<StateElement>(j).unwrap();
@@ -133,6 +143,7 @@ mod test {
             assert_eq!(hash, expected);
         }
 
+        // go test TestStateElementEncodeHashNullMerkleProof
         fn test_state_element_encode_empty_merkle_proof() {
             let j = r#"{"leafIndex":1,"merkleProof":[]}"#;
             let state_element = serde_json::from_str::<StateElement>(j).unwrap();
@@ -142,6 +153,7 @@ mod test {
             assert_eq!(hash, expected);
         }
 
+        // go test TestSiacoinInputEncodeHashV1
         fn test_siacoin_input_encode_v1() {
             let vin = SiacoinInputV1 {
                 parent_id: Hash256::default().into(),
@@ -153,6 +165,7 @@ mod test {
             assert_eq!(hash, expected);
         }
 
+        // go test TestSignatureEncodeHash
         fn test_signature_encode() {
             let signature = Signature::try_from(
                 hex::decode("105641BF4AE119CB15617FC9658BEE5D448E2CC27C9BC3369F4BA5D0E1C3D01EBCB21B669A7B7A17CF8457189EAA657C41D4A2E6F9E0F25D0996D3A17170F309").unwrap().as_ref()).unwrap();
@@ -162,6 +175,7 @@ mod test {
             assert_eq!(hash, expected);
         }
 
+        // go test TestSatisfiedPolicyPublicKey
         fn test_satisfied_policy_encode_public_key() {
             let public_key = PublicKey::from_bytes(
                 &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
@@ -184,6 +198,7 @@ mod test {
             assert_eq!(hash, expected);
         }
 
+        // go test TestSatisfiedPolicyHashEmpty
         fn test_satisfied_policy_encode_hash_empty() {
             let policy = SpendPolicy::Hash(Hash256::default());
             // This would throw an error from SpendPolicy::Verify because it does not include a
