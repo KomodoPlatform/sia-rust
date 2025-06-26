@@ -206,5 +206,19 @@ mod test {
             let hash = standard_unlock_hash(&pubkey);
             assert_eq!(hash, expected);
         }
+
+        // go test TestSiacoinAddressEncodeHash
+        fn test_address_encode() {
+            let pubkey = PublicKey::from_bytes(
+                &hex::decode("0102030000000000000000000000000000000000000000000000000000000000").unwrap(),
+            )
+            .unwrap();
+            let unlock_condition = UnlockCondition::new(vec![pubkey.clone()], 0, 1);
+            let address = unlock_condition.address();
+
+            let hash = Encoder::encode_and_hash(&address);
+            let expected = Hash256::from_str("d64b9a56043a909494f07520915e10dae62d75dba24b17c8414f8f3f30c53425").unwrap();
+            assert_eq!(hash, expected);
+        }
     }
 }
