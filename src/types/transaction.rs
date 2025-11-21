@@ -787,7 +787,6 @@ pub enum ResolutionType {
     Renewal,
     StorageProof,
     Expiration,
-    Finalization,
 }
 
 
@@ -812,11 +811,6 @@ impl Encodable for V2FileContractResolution {
             },
             V2FileContractResolutionWrapper::Expiration => {
                 encoder.write_u8(2);
-            },
-            V2FileContractResolutionWrapper::Finalization(_) => {
-                // Finalization is not in Go core, but we support it for compatibility
-                // If this is used, it should be encoded as type 3
-                encoder.write_u8(3);
             },
         }
         self.resolution.encode(encoder);
@@ -845,9 +839,6 @@ impl<'de> Deserialize<'de> for V2FileContractResolution {
             ResolutionType::StorageProof => serde_json::from_value::<V2StorageProof>(helper.resolution)
                 .map(V2FileContractResolutionWrapper::StorageProof)
                 .map_err(serde::de::Error::custom),
-            ResolutionType::Finalization => serde_json::from_value::<V2FileContractFinalization>(helper.resolution)
-                .map(|data| V2FileContractResolutionWrapper::Finalization(Box::new(data)))
-                .map_err(serde::de::Error::custom),
             // expiration is a special case because it has no data. It is just an empty object, "{}".
             ResolutionType::Expiration => match &helper.resolution {
                 Value::Object(map) if map.is_empty() => Ok(V2FileContractResolutionWrapper::Expiration),
@@ -866,9 +857,6 @@ impl<'de> Deserialize<'de> for V2FileContractResolution {
 impl Encodable for V2FileContractResolutionWrapper {
     fn encode(&self, encoder: &mut Encoder) {
         match self {
-            V2FileContractResolutionWrapper::Finalization(f) => {
-                f.encode(encoder);
-            },
             V2FileContractResolutionWrapper::Renewal(r) => {
                 r.encode(encoder);
             },
@@ -893,7 +881,6 @@ impl V2FileContractResolution {
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub enum V2FileContractResolutionWrapper {
-    Finalization(Box<V2FileContractFinalization>),
     Renewal(Box<V2FileContractRenewal>),
     StorageProof(V2StorageProof),
     #[serde(serialize_with = "serialize_variant_as_empty_object")]
@@ -910,9 +897,6 @@ where
 impl V2FileContractResolutionWrapper {
     fn with_nil_sigs(&self) -> V2FileContractResolutionWrapper {
         match self {
-            V2FileContractResolutionWrapper::Finalization(f) => {
-                V2FileContractResolutionWrapper::Finalization(Box::new(f.with_nil_sigs()))
-            },
             V2FileContractResolutionWrapper::Renewal(r) => {
                 V2FileContractResolutionWrapper::Renewal(Box::new(r.with_nil_sigs()))
             },
@@ -922,18 +906,6 @@ impl V2FileContractResolutionWrapper {
             V2FileContractResolutionWrapper::Expiration => V2FileContractResolutionWrapper::Expiration,
         }
     }
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-pub struct V2FileContractFinalization(pub V2FileContract);
-
-impl V2FileContractFinalization {
-    fn with_nil_sigs(&self) -> V2FileContractFinalization { V2FileContractFinalization(self.0.with_nil_sigs()) }
-}
-
-// TODO unit test
-impl Encodable for V2FileContractFinalization {
-    fn encode(&self, encoder: &mut Encoder) { self.0.encode(encoder); }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
