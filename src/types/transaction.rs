@@ -790,6 +790,7 @@ pub enum ResolutionType {
     Finalization,
 }
 
+
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct V2FileContractResolution {
     pub parent: V2FileContractElement,
@@ -799,7 +800,27 @@ pub struct V2FileContractResolution {
 }
 
 impl Encodable for V2FileContractResolution {
-    fn encode(&self, _encoder: &mut Encoder) { todo!() }
+    fn encode(&self, encoder: &mut Encoder) {
+        self.parent.encode(encoder);
+        // Determine resolution type from the resolution itself, matching Go implementation
+        match &self.resolution {
+            V2FileContractResolutionWrapper::Renewal(_) => {
+                encoder.write_u8(0);
+            },
+            V2FileContractResolutionWrapper::StorageProof(_) => {
+                encoder.write_u8(1);
+            },
+            V2FileContractResolutionWrapper::Expiration => {
+                encoder.write_u8(2);
+            },
+            V2FileContractResolutionWrapper::Finalization(_) => {
+                // Finalization is not in Go core, but we support it for compatibility
+                // If this is used, it should be encoded as type 3
+                encoder.write_u8(3);
+            },
+        }
+        self.resolution.encode(encoder);
+    }
 }
 
 impl<'de> Deserialize<'de> for V2FileContractResolution {
@@ -843,8 +864,21 @@ impl<'de> Deserialize<'de> for V2FileContractResolution {
 }
 
 impl Encodable for V2FileContractResolutionWrapper {
-    fn encode(&self, _encoder: &mut Encoder) {
-        todo!();
+    fn encode(&self, encoder: &mut Encoder) {
+        match self {
+            V2FileContractResolutionWrapper::Finalization(f) => {
+                f.encode(encoder);
+            },
+            V2FileContractResolutionWrapper::Renewal(r) => {
+                r.encode(encoder);
+            },
+            V2FileContractResolutionWrapper::StorageProof(s) => {
+                s.encode(encoder);
+            },
+            V2FileContractResolutionWrapper::Expiration => {
+                // Expiration has no data, nothing to encode
+            },
+        }
     }
 }
 
@@ -1174,8 +1208,10 @@ impl Encodable for V2Transaction {
         encoder.write_u64(self.file_contract_resolutions.len() as u64);
         for fcr in &self.file_contract_resolutions {
             fcr.parent.id.encode(encoder);
-            fcr.with_nil_sigs().encode(encoder);
-            // FIXME .encode() leads to unimplemented!()
+            // Encode only the resolution data (without type), matching Go V2TransactionSemantics implementation
+            // The type is not encoded in V2TransactionSemantics, only the resolution data itself
+            let normalized_resolution = fcr.resolution.with_nil_sigs();
+            normalized_resolution.encode(encoder);
         }
 
         encoder.write_u64(self.attestations.len() as u64);
