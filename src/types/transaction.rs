@@ -1103,7 +1103,7 @@ pub struct V2Transaction {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub file_contract_revisions: Vec<FileContractRevisionV2>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub file_contract_resolutions: Vec<V2FileContractResolution>, // TODO needs Encodable trait
+    pub file_contract_resolutions: Vec<V2FileContractResolution>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub attestations: Vec<Attestation>,
     #[serde(skip_serializing_if = "ArbitraryData::is_empty")]
