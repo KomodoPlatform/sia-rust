@@ -68,7 +68,6 @@ impl Encodable for V2TransactionBuilder {
         for fcr in &self.file_contract_resolutions {
             fcr.parent.id.encode(encoder);
             fcr.with_nil_sigs().encode(encoder);
-            // FIXME .encode() leads to unimplemented!()
         }
 
         encoder.write_u64(self.attestations.len() as u64);

@@ -786,5 +786,249 @@ mod test {
             );
             assert_eq!(output_id, expected);
         }
+
+        fn test_v2_transaction_txid() {
+            const MAKER_SWAP_TAKER_FEE_TX: &str = r#"{
+                "id": "4c14880c567d164fa1ee826abec671e7782e3bc7bbfbad0c30b749f35f0db5e4",
+                "siacoinInputs": [
+                    {
+                        "parent": {
+                            "id": "3855e2c359cb43aea0765c6bb411df043ea92c5e5dc45a99f1faf647d1fb00e5",
+                            "stateElement": {
+                                "leafIndex": 74392410
+                            },
+                            "siacoinOutput": {
+                                "value": "24982638748779641304941874",
+                                "address": "2c4a029ef67858d7c3ebf9ce7f1c257fd880b1b073fd3923091423e1658ae23d2b426be204db"
+                            },
+                            "maturityHeight": 0
+                        },
+                        "satisfiedPolicy": {
+                            "policy": {
+                                "type": "pk",
+                                "policy": "ed25519:c94acdcbd6a44c25a2640191afd80d6ef6c692c3a0faa0db3cec0189d90f6cd1"
+                            },
+                            "signatures": [
+                                "a2065b3e4b684c7d74bb5e73c2b43bb307f216851e6f5d2138a3cce14280b79e50480b9e2410b9fa71fa2c9823ab915c63d93ddc2acbef078d9cf8cac8c64004"
+                            ]
+                        }
+                    }
+                ],
+                "siacoinOutputs": [
+                    {
+                        "value": "8681757519703999646709",
+                        "address": "0125788b383a1dd122cd511386dd2668c62e54610cc743307d7a8ba17161a175f4b03c40b656"
+                    },
+                    {
+                        "value": "24973936991259937305295165",
+                        "address": "2c4a029ef67858d7c3ebf9ce7f1c257fd880b1b073fd3923091423e1658ae23d2b426be204db"
+                    }
+                ],
+                "arbitraryData": "seTZFS6BSBS34GBqfuwqTQ==",
+                "minerFee": "20000000000000000000"
+            }"#;
+
+            const MAKER_SWAP_TAKER_FEE_HASH: &str =
+                "4c14880c567d164fa1ee826abec671e7782e3bc7bbfbad0c30b749f35f0db5e4";
+
+            let tx = serde_json::from_str::<V2Transaction>(MAKER_SWAP_TAKER_FEE_TX).unwrap();
+            let txid = tx.txid();
+            let expected = Hash256::from_str(MAKER_SWAP_TAKER_FEE_HASH).unwrap();
+            assert_eq!(txid, expected);
+        }
+
+        fn test_v2_transaction_txid_storage_proof() {
+            const STORAGE_PROOF_TX: &str = r#"{
+                "siacoinInputs": [
+                    {
+                        "parent": {
+                            "id": "ab5b0d4a5fc681b9b8bd276082cea42c3a3dc2359b8d2eb49722b544d2561115",
+                            "stateElement": {
+                                "leafIndex": 74391721
+                            },
+                            "siacoinOutput": {
+                                "value": "17670215106248225520963228288",
+                                "address": "15374e49010cac9840f86def0e8d63e3d0b1d11f951995f12c5152b908549f60c418613a8dd8"
+                            },
+                            "maturityHeight": 0
+                        },
+                        "satisfiedPolicy": {
+                            "policy": {
+                                "type": "uc",
+                                "policy": {
+                                    "timelock": 0,
+                                    "publicKeys": [
+                                        "ed25519:68271eda7adf5a80d154d15ccff3cebebcc447f0609cd580bb5c638aef227d43"
+                                    ],
+                                    "signaturesRequired": 1
+                                }
+                            },
+                            "signatures": [
+                                "e11e2edbc27b88461285283558e9b146ee620be1745ee9b60697f8e21409ea60ab1a4653710812f6836d3fefa08b96c1be16dcb87d3062034861f26915ecec06"
+                            ]
+                        }
+                    }
+                ],
+                "siacoinOutputs": [
+                    {
+                        "value": "17670195106248225520963228288",
+                        "address": "15374e49010cac9840f86def0e8d63e3d0b1d11f951995f12c5152b908549f60c418613a8dd8"
+                    }
+                ],
+                "fileContractResolutions": [
+                    {
+                        "parent": {
+                            "id": "c6eb6dca343a61a1a0f0b9f2a4939cdd51c297c987ca4b30b3333bdc0fc92081",
+                            "stateElement": {
+                                "leafIndex": 74348292
+                            },
+                            "v2FileContract": {
+                                "capacity": 0,
+                                "filesize": 0,
+                                "fileMerkleRoot": "0000000000000000000000000000000000000000000000000000000000000000",
+                                "proofHeight": 550434,
+                                "expirationHeight": 550578,
+                                "renterOutput": {
+                                    "value": "5675257912250488405884928",
+                                    "address": "b9d27c701886c5a86009a996eb518b3664973f2e812a4237f867f10483a178bd90fb4bd3244b"
+                                },
+                                "hostOutput": {
+                                    "value": "1596749473887802825375744",
+                                    "address": "15374e49010cac9840f86def0e8d63e3d0b1d11f951995f12c5152b908549f60c418613a8dd8"
+                                },
+                                "missedHostValue": "0",
+                                "totalCollateral": "0",
+                                "renterPublicKey": "ed25519:e8ccbabe231c1fc6e74ad974bec3ecf6ebca695d78715dae311bd7b6ec897471",
+                                "hostPublicKey": "ed25519:6795c1b2ac73485a809d5c4218320426e3243cc700772cb0808c58e7723321d4",
+                                "revisionNumber": 17,
+                                "renterSignature": "7e1f07d5fb07f2b8ec3e137415165c4f55ad73b1302906b9fa7d22746a6a0a4483bd5d7717b9f8b022c41438c6b3046a7f2888f71a53703b5f9face20d8df507",
+                                "hostSignature": "6db94f221b6ea9251c8546fb5f28d759cf0a5b2b389a2b5906aa1e1783316b74e4b41a05c6883f3d086551b4002a386c9b02f5e9048beb0437d6c4858f1ee00e"
+                            }
+                        },
+                        "type": "storageProof",
+                        "resolution": {
+                            "proofIndex": {
+                                "id": "00000000000000005fa0bf6b547eef003d7d667e573a579c5b6e3f842197b462",
+                                "stateElement": {
+                                    "leafIndex": 74393462
+                                },
+                                "chainIndex": {
+                                    "height": 550434,
+                                    "id": "00000000000000005fa0bf6b547eef003d7d667e573a579c5b6e3f842197b462"
+                                }
+                            },
+                            "leaf": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                            "proof": []
+                        }
+                    }
+                ],
+                "minerFee": "20000000000000000000000"
+            }"#;
+
+            const STORAGE_PROOF_TX_HASH: &str =
+                "1dbeb06ab9e487ce1e89bdd4b951f6c678c57ce873e890e8aa399a529569c1ac";
+
+            let tx = serde_json::from_str::<V2Transaction>(STORAGE_PROOF_TX).unwrap();
+            let txid = tx.txid();
+            let expected = Hash256::from_str(STORAGE_PROOF_TX_HASH).unwrap();
+            assert_eq!(txid, expected);
+        }
+
+        fn test_v2_transaction_txid_storage_proof_2() {
+            const STORAGE_PROOF_TX_2: &str = r#"{
+                "siacoinInputs": [
+                    {
+                        "parent": {
+                            "id": "858b04ee9b5313d28728b3adc1206ac61fbf2a3138364c13ffb62dec128da20e",
+                            "stateElement": {
+                                "leafIndex": 74388637
+                            },
+                            "siacoinOutput": {
+                                "value": "981822898445607153434624000",
+                                "address": "0832ac4f609e361dc8920adf85f9eec8843f2c2bb5c1614af28020fdeea490c0fe0d3ba2dbcc"
+                            },
+                            "maturityHeight": 0
+                        },
+                        "satisfiedPolicy": {
+                            "policy": {
+                                "type": "uc",
+                                "policy": {
+                                    "timelock": 0,
+                                    "publicKeys": [
+                                        "ed25519:3385212ec223c6badda2a03ac6f308cfa67fc0a42d941212af4ad5c403b0dba8"
+                                    ],
+                                    "signaturesRequired": 1
+                                }
+                            },
+                            "signatures": [
+                                "412bb9bc21165a15b903998b2164a32085bb7adaa59fcc444c7ef01a00a5be12745bc76c1a4a77d4e4625d87ae779e89700fc770e00b3b33d64b90770830a408"
+                            ]
+                        }
+                    }
+                ],
+                "siacoinOutputs": [
+                    {
+                        "value": "981802898445607153434624000",
+                        "address": "0832ac4f609e361dc8920adf85f9eec8843f2c2bb5c1614af28020fdeea490c0fe0d3ba2dbcc"
+                    }
+                ],
+                "fileContractResolutions": [
+                    {
+                        "parent": {
+                            "id": "c2a54ee8273f904ae2364886b39fb9d4cf67037effe6b3353b51e45cd9c81ce0",
+                            "stateElement": {
+                                "leafIndex": 74348293
+                            },
+                            "v2FileContract": {
+                                "capacity": 0,
+                                "filesize": 0,
+                                "fileMerkleRoot": "0000000000000000000000000000000000000000000000000000000000000000",
+                                "proofHeight": 550434,
+                                "expirationHeight": 550578,
+                                "renterOutput": {
+                                    "value": "5455864119930680151900160",
+                                    "address": "b9d27c701886c5a86009a996eb518b3664973f2e812a4237f867f10483a178bd90fb4bd3244b"
+                                },
+                                "hostOutput": {
+                                    "value": "1544363791036505340772352",
+                                    "address": "0832ac4f609e361dc8920adf85f9eec8843f2c2bb5c1614af28020fdeea490c0fe0d3ba2dbcc"
+                                },
+                                "missedHostValue": "0",
+                                "totalCollateral": "0",
+                                "renterPublicKey": "ed25519:e8ccbabe231c1fc6e74ad974bec3ecf6ebca695d78715dae311bd7b6ec897471",
+                                "hostPublicKey": "ed25519:b0b7a0eca67a5f92ef55803042e42fcad0f1ea28f9cadf36ae3a7cab17bdd27f",
+                                "revisionNumber": 15,
+                                "renterSignature": "d1d16e3bcda1d6250d9a9f629b64b3c91e6f717d4a938f5bc8ba43a87cf7fa54ce7cb75337ff66d9413ed865067ac631f3119fc029076d864db39e7b8029fa02",
+                                "hostSignature": "15c02779204542cf94b0bb21a36570c0d753b8e99af03fc750b615b11eb3c595b1ee30e370af22b3a80b5bb5fc391c91c0aa537c63ee5609292a3030416a510d"
+                            }
+                        },
+                        "type": "storageProof",
+                        "resolution": {
+                            "proofIndex": {
+                                "id": "00000000000000005fa0bf6b547eef003d7d667e573a579c5b6e3f842197b462",
+                                "stateElement": {
+                                    "leafIndex": 74393462
+                                },
+                                "chainIndex": {
+                                    "height": 550434,
+                                    "id": "00000000000000005fa0bf6b547eef003d7d667e573a579c5b6e3f842197b462"
+                                }
+                            },
+                            "leaf": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                            "proof": []
+                        }
+                    }
+                ],
+                "minerFee": "20000000000000000000000"
+            }"#;
+
+            const STORAGE_PROOF_TX_2_HASH: &str =
+                "d5be516291a6549f50a12f1f1f99acae1865eb3b00b674b34c60eefc3c0b15d1";
+
+            let tx = serde_json::from_str::<V2Transaction>(STORAGE_PROOF_TX_2).unwrap();
+            let txid = tx.txid();
+            let expected = Hash256::from_str(STORAGE_PROOF_TX_2_HASH).unwrap();
+            assert_eq!(txid, expected);
+        }
     }
 }

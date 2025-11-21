@@ -787,8 +787,8 @@ pub enum ResolutionType {
     Renewal,
     StorageProof,
     Expiration,
-    Finalization,
 }
+
 
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct V2FileContractResolution {
@@ -799,7 +799,22 @@ pub struct V2FileContractResolution {
 }
 
 impl Encodable for V2FileContractResolution {
-    fn encode(&self, _encoder: &mut Encoder) { todo!() }
+    fn encode(&self, encoder: &mut Encoder) {
+        self.parent.encode(encoder);
+        // Determine resolution type from the resolution itself, matching Go implementation
+        match &self.resolution {
+            V2FileContractResolutionWrapper::Renewal(_) => {
+                encoder.write_u8(0);
+            },
+            V2FileContractResolutionWrapper::StorageProof(_) => {
+                encoder.write_u8(1);
+            },
+            V2FileContractResolutionWrapper::Expiration => {
+                encoder.write_u8(2);
+            },
+        }
+        self.resolution.encode(encoder);
+    }
 }
 
 impl<'de> Deserialize<'de> for V2FileContractResolution {
@@ -824,9 +839,6 @@ impl<'de> Deserialize<'de> for V2FileContractResolution {
             ResolutionType::StorageProof => serde_json::from_value::<V2StorageProof>(helper.resolution)
                 .map(V2FileContractResolutionWrapper::StorageProof)
                 .map_err(serde::de::Error::custom),
-            ResolutionType::Finalization => serde_json::from_value::<V2FileContractFinalization>(helper.resolution)
-                .map(|data| V2FileContractResolutionWrapper::Finalization(Box::new(data)))
-                .map_err(serde::de::Error::custom),
             // expiration is a special case because it has no data. It is just an empty object, "{}".
             ResolutionType::Expiration => match &helper.resolution {
                 Value::Object(map) if map.is_empty() => Ok(V2FileContractResolutionWrapper::Expiration),
@@ -843,8 +855,18 @@ impl<'de> Deserialize<'de> for V2FileContractResolution {
 }
 
 impl Encodable for V2FileContractResolutionWrapper {
-    fn encode(&self, _encoder: &mut Encoder) {
-        todo!();
+    fn encode(&self, encoder: &mut Encoder) {
+        match self {
+            V2FileContractResolutionWrapper::Renewal(r) => {
+                r.encode(encoder);
+            },
+            V2FileContractResolutionWrapper::StorageProof(s) => {
+                s.encode(encoder);
+            },
+            V2FileContractResolutionWrapper::Expiration => {
+                // Expiration has no data, nothing to encode
+            },
+        }
     }
 }
 
@@ -859,7 +881,6 @@ impl V2FileContractResolution {
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub enum V2FileContractResolutionWrapper {
-    Finalization(Box<V2FileContractFinalization>),
     Renewal(Box<V2FileContractRenewal>),
     StorageProof(V2StorageProof),
     #[serde(serialize_with = "serialize_variant_as_empty_object")]
@@ -876,9 +897,6 @@ where
 impl V2FileContractResolutionWrapper {
     fn with_nil_sigs(&self) -> V2FileContractResolutionWrapper {
         match self {
-            V2FileContractResolutionWrapper::Finalization(f) => {
-                V2FileContractResolutionWrapper::Finalization(Box::new(f.with_nil_sigs()))
-            },
             V2FileContractResolutionWrapper::Renewal(r) => {
                 V2FileContractResolutionWrapper::Renewal(Box::new(r.with_nil_sigs()))
             },
@@ -888,18 +906,6 @@ impl V2FileContractResolutionWrapper {
             V2FileContractResolutionWrapper::Expiration => V2FileContractResolutionWrapper::Expiration,
         }
     }
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
-pub struct V2FileContractFinalization(pub V2FileContract);
-
-impl V2FileContractFinalization {
-    fn with_nil_sigs(&self) -> V2FileContractFinalization { V2FileContractFinalization(self.0.with_nil_sigs()) }
-}
-
-// TODO unit test
-impl Encodable for V2FileContractFinalization {
-    fn encode(&self, encoder: &mut Encoder) { self.0.encode(encoder); }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -1097,7 +1103,7 @@ pub struct V2Transaction {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub file_contract_revisions: Vec<FileContractRevisionV2>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub file_contract_resolutions: Vec<V2FileContractResolution>, // TODO needs Encodable trait
+    pub file_contract_resolutions: Vec<V2FileContractResolution>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub attestations: Vec<Attestation>,
     #[serde(skip_serializing_if = "ArbitraryData::is_empty")]
@@ -1174,8 +1180,10 @@ impl Encodable for V2Transaction {
         encoder.write_u64(self.file_contract_resolutions.len() as u64);
         for fcr in &self.file_contract_resolutions {
             fcr.parent.id.encode(encoder);
-            fcr.with_nil_sigs().encode(encoder);
-            // FIXME .encode() leads to unimplemented!()
+            // Encode only the resolution data (without type), matching Go V2TransactionSemantics implementation
+            // The type is not encoded in V2TransactionSemantics, only the resolution data itself
+            let normalized_resolution = fcr.resolution.with_nil_sigs();
+            normalized_resolution.encode(encoder);
         }
 
         encoder.write_u64(self.attestations.len() as u64);
