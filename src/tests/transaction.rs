@@ -786,5 +786,55 @@ mod test {
             );
             assert_eq!(output_id, expected);
         }
+
+        fn test_v2_transaction_txid() {
+            const MAKER_SWAP_TAKER_FEE_TX: &str = r#"{
+                "id": "4c14880c567d164fa1ee826abec671e7782e3bc7bbfbad0c30b749f35f0db5e4",
+                "siacoinInputs": [
+                    {
+                        "parent": {
+                            "id": "3855e2c359cb43aea0765c6bb411df043ea92c5e5dc45a99f1faf647d1fb00e5",
+                            "stateElement": {
+                                "leafIndex": 74392410
+                            },
+                            "siacoinOutput": {
+                                "value": "24982638748779641304941874",
+                                "address": "2c4a029ef67858d7c3ebf9ce7f1c257fd880b1b073fd3923091423e1658ae23d2b426be204db"
+                            },
+                            "maturityHeight": 0
+                        },
+                        "satisfiedPolicy": {
+                            "policy": {
+                                "type": "pk",
+                                "policy": "ed25519:c94acdcbd6a44c25a2640191afd80d6ef6c692c3a0faa0db3cec0189d90f6cd1"
+                            },
+                            "signatures": [
+                                "a2065b3e4b684c7d74bb5e73c2b43bb307f216851e6f5d2138a3cce14280b79e50480b9e2410b9fa71fa2c9823ab915c63d93ddc2acbef078d9cf8cac8c64004"
+                            ]
+                        }
+                    }
+                ],
+                "siacoinOutputs": [
+                    {
+                        "value": "8681757519703999646709",
+                        "address": "0125788b383a1dd122cd511386dd2668c62e54610cc743307d7a8ba17161a175f4b03c40b656"
+                    },
+                    {
+                        "value": "24973936991259937305295165",
+                        "address": "2c4a029ef67858d7c3ebf9ce7f1c257fd880b1b073fd3923091423e1658ae23d2b426be204db"
+                    }
+                ],
+                "arbitraryData": "seTZFS6BSBS34GBqfuwqTQ==",
+                "minerFee": "20000000000000000000"
+            }"#;
+
+            const MAKER_SWAP_TAKER_FEE_HASH: &str =
+                "4c14880c567d164fa1ee826abec671e7782e3bc7bbfbad0c30b749f35f0db5e4";
+
+            let tx = serde_json::from_str::<V2Transaction>(MAKER_SWAP_TAKER_FEE_TX).unwrap();
+            let txid = tx.txid();
+            let expected = Hash256::from_str(MAKER_SWAP_TAKER_FEE_HASH).unwrap();
+            assert_eq!(txid, expected);
+        }
     }
 }
