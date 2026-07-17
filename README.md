@@ -2,6 +2,8 @@
 
 `sia-rust` is a Rust implementation of Siacoin to be used primarily by the [Komodo DeFi Framework](https://github.com/KomodoPlatform/komodo-defi-framework). This crate provides the core functionalities to create and sign Siacoin transactions. 
 
+See the [official rust implementation](https://github.com/SiaFoundation/sia-sdk-rs/) if you are building something new with Sia. This codebase was developed prior to the official implementation being fully mature. 
+
 ## Features
 
 - **V2 Transaction Builder**: Build Sia V2 transactions including SpendPolicy support
