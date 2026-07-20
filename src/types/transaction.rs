@@ -1,5 +1,5 @@
 use crate::encoding::{Encodable, Encoder};
-use crate::types::{Address, ChainIndex, Hash256, Keypair, PublicKey, Signature, SpendPolicy, UnlockCondition,
+use crate::types::{Address, BlockId, ChainIndex, Hash256, Keypair, PublicKey, Signature, SpendPolicy, UnlockCondition,
                    UnlockKey};
 use crate::utils::deserialize_null_as_empty_vec;
 use base64::{engine::general_purpose::STANDARD as base64, Engine as _};
@@ -920,6 +920,7 @@ impl Encodable for V2FileContractRenewal {
 pub struct V2StorageProof {
     proof_index: ChainIndexElement,
     leaf: Leaf,
+    #[serde(deserialize_with = "deserialize_null_as_empty_vec", default)]
     proof: Vec<Hash256>,
 }
 
@@ -953,7 +954,7 @@ impl Encodable for V2StorageProof {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ChainIndexElement {
-    #[serde(flatten)]
+    pub id: BlockId,
     pub state_element: StateElement,
     pub chain_index: ChainIndex,
 }
@@ -962,6 +963,7 @@ pub struct ChainIndexElement {
 impl Encodable for ChainIndexElement {
     fn encode(&self, encoder: &mut Encoder) {
         self.state_element.encode(encoder);
+        self.id.0.encode(encoder);
         self.chain_index.encode(encoder);
     }
 }
